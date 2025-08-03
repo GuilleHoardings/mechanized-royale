@@ -10,6 +10,9 @@ class BattleScene extends Phaser.Scene {
         this.battleTime = BATTLE_CONFIG.DURATION;
         this.tanks = [];
         this.buildings = [];
+        this.selectedTank = null;
+        this.cameraSpeed = 5;
+        this.deploymentMode = true; // Toggle between deployment and movement modes
     }
 
     create() {
@@ -33,21 +36,32 @@ class BattleScene extends Phaser.Scene {
 
         // Input handling
         this.input.on('pointerdown', this.onBattlefieldClick, this);
+        
+        // Keyboard controls for camera
+        this.cursors = this.input.keyboard.createCursorKeys();
+        this.wasd = this.input.keyboard.addKeys('W,S,A,D');
+        
+        // Mode toggle key (Space)
+        this.input.keyboard.on('keydown-SPACE', this.toggleMode, this);
     }
 
     createBattlefield() {
+        // Set world bounds larger than viewport for camera movement
+        this.physics.world.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+        this.cameras.main.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+
         // Simple grid background
         const graphics = this.add.graphics();
         graphics.lineStyle(1, 0x556b2f, 0.3);
         
         // Vertical lines
-        for (let x = 0; x <= GAME_CONFIG.WIDTH; x += 50) {
-            graphics.lineBetween(x, 0, x, GAME_CONFIG.HEIGHT - 100); // -100 for UI space
+        for (let x = 0; x <= GAME_CONFIG.WORLD_WIDTH; x += 50) {
+            graphics.lineBetween(x, 0, x, GAME_CONFIG.WORLD_HEIGHT - 100); // -100 for UI space
         }
         
         // Horizontal lines
-        for (let y = 0; y <= GAME_CONFIG.HEIGHT - 100; y += 50) {
-            graphics.lineBetween(0, y, GAME_CONFIG.WIDTH, y);
+        for (let y = 0; y <= GAME_CONFIG.WORLD_HEIGHT - 100; y += 50) {
+            graphics.lineBetween(0, y, GAME_CONFIG.WORLD_WIDTH, y);
         }
 
         // Deployment zones
@@ -63,17 +77,20 @@ class BattleScene extends Phaser.Scene {
     createUI() {
         const uiY = GAME_CONFIG.HEIGHT - 100;
         
-        // UI background
+        // UI background - fixed to camera
         const uiGraphics = this.add.graphics();
         uiGraphics.fillStyle(0x1a1a1a, 0.9);
         uiGraphics.fillRect(0, uiY, GAME_CONFIG.WIDTH, 100);
+        uiGraphics.setScrollFactor(0); // Fixed to camera
 
         // Energy bar
         this.energyBarBg = this.add.graphics();
         this.energyBarBg.fillStyle(0x333333);
         this.energyBarBg.fillRect(20, uiY + 20, 200, 20);
+        this.energyBarBg.setScrollFactor(0);
 
         this.energyBarFill = this.add.graphics();
+        this.energyBarFill.setScrollFactor(0);
         this.updateEnergyBar();
 
         // Energy text
@@ -82,6 +99,7 @@ class BattleScene extends Phaser.Scene {
             fill: '#ffffff',
             fontFamily: 'Arial'
         });
+        this.energyText.setScrollFactor(0);
 
         // Battle timer
         this.timerText = this.add.text(GAME_CONFIG.WIDTH - 100, uiY + 20, this.formatTime(this.battleTime), {
@@ -89,9 +107,26 @@ class BattleScene extends Phaser.Scene {
             fill: '#ffffff',
             fontFamily: 'Arial'
         });
+        this.timerText.setScrollFactor(0);
 
         // Tank cards (placeholder for now)
         this.createTankCards(uiY);
+
+        // Mode indicator
+        this.modeText = this.add.text(GAME_CONFIG.WIDTH / 2, uiY + 10, 'DEPLOY MODE - Press SPACE to toggle', {
+            fontSize: '16px',
+            fill: '#ffffff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        this.modeText.setScrollFactor(0);
+
+        // Camera instructions
+        const instructionsText = this.add.text(GAME_CONFIG.WIDTH - 200, 50, 'Camera: Arrow Keys or WASD', {
+            fontSize: '12px',
+            fill: '#cccccc',
+            fontFamily: 'Arial'
+        });
+        instructionsText.setScrollFactor(0);
 
         // Back button
         const backButton = this.add.text(20, 20, '← MENU', {
@@ -99,6 +134,7 @@ class BattleScene extends Phaser.Scene {
             fill: '#ffffff',
             fontFamily: 'Arial'
         }).setInteractive();
+        backButton.setScrollFactor(0);
 
         backButton.on('pointerdown', () => {
             this.scene.start('MenuScene');
@@ -125,6 +161,7 @@ class BattleScene extends Phaser.Scene {
                 .setDisplaySize(cardWidth, cardHeight)
                 .setInteractive()
                 .setOrigin(0);
+            card.setScrollFactor(0);
 
             // Tank icon (simplified)
             let tankTexture = 'tank_light';
@@ -134,6 +171,7 @@ class BattleScene extends Phaser.Scene {
             const tankIcon = this.add.image(cardX + cardWidth/2, cardY + 20, tankTexture)
                 .setScale(0.8)
                 .setOrigin(0.5);
+            tankIcon.setScrollFactor(0);
 
             // Cost
             const costText = this.add.text(cardX + cardWidth - 10, cardY + cardHeight - 10, tankData.cost, {
@@ -141,6 +179,7 @@ class BattleScene extends Phaser.Scene {
                 fill: '#ffff00',
                 fontFamily: 'Arial'
             }).setOrigin(1);
+            costText.setScrollFactor(0);
 
             // Store card info
             const cardInfo = {
@@ -180,14 +219,14 @@ class BattleScene extends Phaser.Scene {
 
     createBases() {
         // Player base
-        const playerBase = this.add.image(100, 500, 'base');
+        const playerBase = this.add.image(150, 500, 'base');
         playerBase.health = 1000;
         playerBase.maxHealth = 1000;
         playerBase.isPlayerBase = true;
         this.buildings.push(playerBase);
 
         // Enemy base
-        const enemyBase = this.add.image(700, 100, 'base');
+        const enemyBase = this.add.image(1050, 150, 'base');
         enemyBase.health = 1000;
         enemyBase.maxHealth = 1000;
         enemyBase.isPlayerBase = false;
@@ -265,18 +304,31 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
-        // Only allow deployment in player zone
-        const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
-        if (!GameHelpers.pointInRect(pointer.x, pointer.y, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
-            return;
-        }
+        if (this.deploymentMode) {
+            // Deployment mode - only allow deployment in player zone
+            const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
+            if (!GameHelpers.pointInRect(pointer.x, pointer.y, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
+                return;
+            }
 
-        // Deploy selected tank if we have enough energy
-        const selectedCardData = this.tankCards[this.selectedCard];
-        if (this.energy >= selectedCardData.tankData.cost) {
-            this.deployTank(selectedCardData.tankId, pointer.x, pointer.y);
-            this.energy -= selectedCardData.tankData.cost;
-            this.updateEnergyBar();
+            // Deploy selected tank if we have enough energy
+            const selectedCardData = this.tankCards[this.selectedCard];
+            if (this.energy >= selectedCardData.tankData.cost) {
+                this.deployTank(selectedCardData.tankId, pointer.x, pointer.y);
+                this.energy -= selectedCardData.tankData.cost;
+                this.updateEnergyBar();
+            }
+        } else {
+            // Movement mode - select tank or move selected tank
+            const clickedTank = this.getTankAtPosition(pointer.x, pointer.y);
+            
+            if (clickedTank && clickedTank.isPlayerTank) {
+                // Select this tank
+                this.selectTank(clickedTank);
+            } else if (this.selectedTank) {
+                // Move selected tank to clicked position
+                this.moveSelectedTankTo(pointer.x, pointer.y);
+            }
         }
     }
 
@@ -300,12 +352,13 @@ class BattleScene extends Phaser.Scene {
         tank.isPlayerTank = true;
         tank.target = null;
         tank.lastShotTime = 0;
+        tank.moveTarget = null; // For manual movement
+        tank.manualControl = false; // Whether tank is under manual control
 
-        // Simple AI: move towards enemy base
+        // Simple AI: move towards enemy base (only if not under manual control)
         const enemyBase = this.buildings.find(b => !b.isPlayerBase);
-        if (enemyBase) {
+        if (enemyBase && !tank.manualControl) {
             tank.target = enemyBase;
-            this.moveTankToTarget(tank);
         }
 
         this.tanks.push(tank);
@@ -333,19 +386,39 @@ class BattleScene extends Phaser.Scene {
     }
 
     moveTankToTarget(tank) {
-        if (!tank.target) return;
-
-        const distance = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
-        const range = tank.tankData.stats.range;
-
-        // If in range, stop and prepare to shoot
-        if (distance <= range) {
-            tank.moving = false;
+        let targetPos = null;
+        
+        // Determine what to move towards
+        if (tank.moveTarget && tank.manualControl) {
+            // Manual movement target
+            targetPos = tank.moveTarget;
+        } else if (tank.target && !tank.manualControl) {
+            // AI target (enemy base)
+            targetPos = tank.target;
+        } else {
             return;
         }
 
+        const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
+        
+        // If manual movement and close enough to target, stop
+        if (tank.manualControl && distance <= 10) {
+            tank.moveTarget = null;
+            tank.moving = false;
+            return;
+        }
+        
+        // If AI movement and in range of target, stop and prepare to shoot
+        if (!tank.manualControl && tank.target) {
+            const range = tank.tankData.stats.range;
+            if (distance <= range) {
+                tank.moving = false;
+                return;
+            }
+        }
+
         // Move towards target
-        const angle = GameHelpers.angle(tank.x, tank.y, tank.target.x, tank.target.y);
+        const angle = GameHelpers.angle(tank.x, tank.y, targetPos.x, targetPos.y);
         const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame (assuming 60 FPS)
         
         tank.x += Math.cos(angle) * speed;
@@ -359,10 +432,20 @@ class BattleScene extends Phaser.Scene {
             this.updateTankHealth(tank);
         }
 
+        // Update selection circle position
+        if (tank.selectionCircle) {
+            tank.selectionCircle.clear();
+            tank.selectionCircle.lineStyle(3, 0xffff00);
+            tank.selectionCircle.strokeCircle(tank.x, tank.y, 35);
+        }
+
         tank.moving = true;
     }
 
     update() {
+        // Handle camera movement
+        this.handleCameraMovement();
+        
         // Update all tanks
         this.tanks.forEach(tank => {
             if (tank.health > 0) {
@@ -374,12 +457,123 @@ class BattleScene extends Phaser.Scene {
         // Remove destroyed tanks
         this.tanks = this.tanks.filter(tank => {
             if (tank.health <= 0) {
+                // If this was the selected tank, deselect it
+                if (this.selectedTank === tank) {
+                    this.selectedTank = null;
+                }
+                
                 tank.destroy();
                 if (tank.healthBg) tank.healthBg.destroy();
                 if (tank.healthFill) tank.healthFill.destroy();
+                if (tank.selectionCircle) tank.selectionCircle.destroy();
                 return false;
             }
             return true;
+        });
+    }
+
+    toggleMode() {
+        this.deploymentMode = !this.deploymentMode;
+        const modeText = this.deploymentMode ? 'DEPLOY MODE - Press SPACE to toggle' : 'MOVE MODE - Press SPACE to toggle';
+        this.modeText.setText(modeText);
+        
+        // Clear selection when switching modes
+        if (this.selectedTank) {
+            this.selectTank(null);
+        }
+    }
+
+    handleCameraMovement() {
+        const camera = this.cameras.main;
+        
+        // Arrow keys or WASD movement
+        if (this.cursors.left.isDown || this.wasd.A.isDown) {
+            camera.scrollX -= this.cameraSpeed;
+        }
+        if (this.cursors.right.isDown || this.wasd.D.isDown) {
+            camera.scrollX += this.cameraSpeed;
+        }
+        if (this.cursors.up.isDown || this.wasd.W.isDown) {
+            camera.scrollY -= this.cameraSpeed;
+        }
+        if (this.cursors.down.isDown || this.wasd.S.isDown) {
+            camera.scrollY += this.cameraSpeed;
+        }
+
+        // Keep camera within world bounds
+        const maxScrollX = GAME_CONFIG.WORLD_WIDTH - GAME_CONFIG.WIDTH;
+        const maxScrollY = GAME_CONFIG.WORLD_HEIGHT - GAME_CONFIG.HEIGHT;
+        
+        camera.scrollX = GameHelpers.clamp(camera.scrollX, 0, maxScrollX);
+        camera.scrollY = GameHelpers.clamp(camera.scrollY, 0, maxScrollY);
+    }
+
+    getTankAtPosition(x, y) {
+        // Find tank at clicked position
+        for (const tank of this.tanks) {
+            const distance = GameHelpers.distance(x, y, tank.x, tank.y);
+            if (distance <= 30) { // Click tolerance
+                return tank;
+            }
+        }
+        return null;
+    }
+
+    selectTank(tank) {
+        // Remove previous selection
+        if (this.selectedTank && this.selectedTank.selectionCircle) {
+            this.selectedTank.selectionCircle.destroy();
+            this.selectedTank.selectionCircle = null;
+        }
+
+        this.selectedTank = tank;
+
+        if (tank) {
+            // Create selection indicator
+            const selectionCircle = this.add.graphics();
+            selectionCircle.lineStyle(3, 0xffff00);
+            selectionCircle.strokeCircle(tank.x, tank.y, 35);
+            tank.selectionCircle = selectionCircle;
+
+            // Put tank under manual control
+            tank.manualControl = true;
+            tank.moveTarget = null;
+        }
+    }
+
+    moveSelectedTankTo(x, y) {
+        if (!this.selectedTank) return;
+
+        // Set manual movement target
+        this.selectedTank.moveTarget = { x: x, y: y };
+        this.selectedTank.manualControl = true;
+
+        // Update selection circle position over time
+        if (this.selectedTank.selectionCircle) {
+            this.selectedTank.selectionCircle.destroy();
+            const selectionCircle = this.add.graphics();
+            selectionCircle.lineStyle(3, 0xffff00);
+            selectionCircle.strokeCircle(this.selectedTank.x, this.selectedTank.y, 35);
+            this.selectedTank.selectionCircle = selectionCircle;
+        }
+
+        // Visual feedback for move target
+        this.createMoveTargetIndicator(x, y);
+    }
+
+    createMoveTargetIndicator(x, y) {
+        const indicator = this.add.graphics();
+        indicator.lineStyle(2, 0x00ff00);
+        indicator.strokeCircle(x, y, 15);
+        indicator.fillStyle(0x00ff00, 0.3);
+        indicator.fillCircle(x, y, 15);
+
+        // Fade out the indicator
+        this.tweens.add({
+            targets: indicator,
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => indicator.destroy()
         });
     }
 

@@ -2,7 +2,9 @@
 const GAME_CONFIG = {
     WIDTH: 800,
     HEIGHT: 600,
-    BACKGROUND_COLOR: '#2c5234'
+    BACKGROUND_COLOR: '#2c5234',
+    WORLD_WIDTH: 1200,
+    WORLD_HEIGHT: 900
 };
 
 const TANK_TYPES = {
@@ -28,6 +30,6 @@ const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
     DEPLOYMENT_ZONES: {
         PLAYER: { x: 50, y: 400, width: 200, height: 150 },
-        ENEMY: { x: 550, y: 50, width: 200, height: 150 }
+        ENEMY: { x: 950, y: 50, width: 200, height: 150 }
     }
 };
