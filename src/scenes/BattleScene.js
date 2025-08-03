@@ -299,6 +299,9 @@ class BattleScene extends Phaser.Scene {
         playerBase.health = 1000;
         playerBase.maxHealth = 1000;
         playerBase.isPlayerBase = true;
+        playerBase.lastShotTime = 0;
+        playerBase.target = null;
+        playerBase.lastTargetUpdate = 0;
         this.buildings.push(playerBase);
 
         // Enemy base
@@ -306,6 +309,9 @@ class BattleScene extends Phaser.Scene {
         enemyBase.health = 1000;
         enemyBase.maxHealth = 1000;
         enemyBase.isPlayerBase = false;
+        enemyBase.lastShotTime = 0;
+        enemyBase.target = null;
+        enemyBase.lastTargetUpdate = 0;
         this.buildings.push(enemyBase);
 
         // Health bars for bases
@@ -817,6 +823,14 @@ class BattleScene extends Phaser.Scene {
             }
         });
 
+        // Update base defenses
+        this.buildings.forEach(building => {
+            if (building.health > 0) {
+                this.updateBaseDefense(building);
+                this.checkBaseCombat(building);
+            }
+        });
+
         // Remove destroyed tanks
         this.tanks = this.tanks.filter(tank => {
             if (tank.health <= 0) {
@@ -1133,6 +1147,159 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
+    updateBaseDefense(base) {
+        const currentTime = this.time.now;
+        const baseRange = 200; // Base defense range
+        
+        // Update base target every 2 seconds or if target is destroyed
+        if (currentTime - base.lastTargetUpdate > 2000 || !base.target || base.target.health <= 0) {
+            base.lastTargetUpdate = currentTime;
+            
+            // Find closest enemy tank within range
+            let closestEnemy = null;
+            let closestDistance = Infinity;
+            
+            if (base.isPlayerBase) {
+                // Player base: target AI tanks
+                const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+                enemyTanks.forEach(enemy => {
+                    const distance = GameHelpers.distance(base.x, base.y, enemy.x, enemy.y);
+                    if (distance < closestDistance && distance <= baseRange) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                });
+            } else {
+                // Enemy base: target player tanks
+                const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+                playerTanks.forEach(enemy => {
+                    const distance = GameHelpers.distance(base.x, base.y, enemy.x, enemy.y);
+                    if (distance < closestDistance && distance <= baseRange) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                });
+            }
+            
+            base.target = closestEnemy;
+        }
+    }
+
+    checkBaseCombat(base) {
+        if (!base.target) return;
+
+        const currentTime = this.time.now;
+        const timeSinceLastShot = currentTime - base.lastShotTime;
+        const baseRateOfFire = 1500; // Bases fire faster than tanks
+
+        if (timeSinceLastShot >= baseRateOfFire) {
+            this.baseShoot(base, base.target);
+            base.lastShotTime = currentTime;
+        }
+    }
+
+    baseShoot(base, target) {
+        // Create a powerful base projectile
+        this.createBaseProjectile(base, target);
+    }
+
+    createBaseProjectile(base, target) {
+        // Base projectiles are more powerful
+        const bulletSpeed = 300; // Faster than tank bullets
+        const bulletColor = base.isPlayerBase ? 0x0088ff : 0xff0088; // Blue for player, magenta for enemy
+        
+        // Create bullet sprite
+        const bullet = this.add.image(base.x, base.y, 'shell');
+        bullet.setTint(bulletColor);
+        bullet.setScale(1.2); // Larger bullets
+        
+        // Create bullet trail
+        const trail = this.add.graphics();
+        trail.lineStyle(3, bulletColor, 0.8);
+        bullet.trail = trail;
+        
+        // Calculate angle from base to target
+        const angle = GameHelpers.angle(base.x, base.y, target.x, target.y);
+        const distance = GameHelpers.distance(base.x, base.y, target.x, target.y);
+        const travelTime = (distance / bulletSpeed) * 1000;
+        
+        // Rotate bullet to face direction of travel
+        bullet.setRotation(angle);
+        
+        // Store bullet properties - bases are more powerful
+        bullet.damage = 80; // Higher damage than tanks
+        bullet.penetration = 100; // High penetration
+        bullet.attacker = base;
+        bullet.target = target;
+        bullet.speed = bulletSpeed;
+        bullet.isBaseProjectile = true; // Mark as base projectile
+        
+        // Add to projectiles array
+        this.projectiles.push(bullet);
+        
+        // Play powerful shoot sound
+        const playShootSound = this.registry.get('playShootSound');
+        if (playShootSound) playShootSound();
+        
+        // Animate bullet movement
+        this.tweens.add({
+            targets: bullet,
+            x: target.x,
+            y: target.y,
+            duration: travelTime,
+            ease: 'None',
+            onUpdate: () => {
+                // Update trail
+                if (bullet.trail) {
+                    bullet.trail.clear();
+                    bullet.trail.lineStyle(3, bulletColor, 0.8);
+                    bullet.trail.lineBetween(base.x, base.y, bullet.x, bullet.y);
+                }
+            },
+            onComplete: () => {
+                this.onBulletHit(bullet);
+            }
+        });
+        
+        // Create larger muzzle flash for base
+        this.createBaseMuzzleFlash(base.x, base.y, angle);
+    }
+
+    createBaseMuzzleFlash(x, y, angle) {
+        // Create larger muzzle flash for base weapons
+        const flashOffset = 40; // Distance from base center
+        const flashX = x + Math.cos(angle) * flashOffset;
+        const flashY = y + Math.sin(angle) * flashOffset;
+        
+        const flash = this.add.graphics();
+        flash.fillStyle(0xffff88, 0.9);
+        flash.fillCircle(flashX, flashY, 12); // Larger flash
+        
+        // Quick flash animation
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scaleX: 0.3,
+            scaleY: 0.3,
+            duration: 150,
+            onComplete: () => flash.destroy()
+        });
+        
+        // Add secondary flash ring
+        const flashRing = this.add.graphics();
+        flashRing.lineStyle(4, 0xffaa00, 0.7);
+        flashRing.strokeCircle(flashX, flashY, 15);
+        
+        this.tweens.add({
+            targets: flashRing,
+            alpha: 0,
+            scaleX: 2,
+            scaleY: 2,
+            duration: 200,
+            onComplete: () => flashRing.destroy()
+        });
+    }
+
     createMoveTargetIndicator(x, y) {
         const indicator = this.add.graphics();
         indicator.lineStyle(2, 0x00ff00);
@@ -1295,7 +1462,7 @@ class BattleScene extends Phaser.Scene {
             }
 
             // Create hit effect with actual damage dealt
-            this.createHitEffect(bullet.target.x, bullet.target.y, finalDamage);
+            this.createHitEffect(bullet.target.x, bullet.target.y, finalDamage, bullet.isBaseProjectile);
             
             // Play explosion sound
             const playExplosionSound = this.registry.get('playExplosionSound');
@@ -1332,33 +1499,37 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    createHitEffect(x, y, damage = 30) {
-        // Main explosion effect
+    createHitEffect(x, y, damage = 30, isFromBase = false) {
+        // Main explosion effect - enhanced for base projectiles
         const explosion = this.add.graphics();
-        explosion.fillStyle(0xff4444, 0.8);
-        explosion.fillCircle(x, y, 15);
-        explosion.lineStyle(3, 0xffaa00);
-        explosion.strokeCircle(x, y, 15);
+        const explosionColor = isFromBase ? 0xffaa00 : 0xff4444;
+        const explosionSize = isFromBase ? 20 : 15;
+        
+        explosion.fillStyle(explosionColor, 0.8);
+        explosion.fillCircle(x, y, explosionSize);
+        explosion.lineStyle(3, isFromBase ? 0xff6600 : 0xffaa00);
+        explosion.strokeCircle(x, y, explosionSize);
         
         // Explosion animation
         this.tweens.add({
             targets: explosion,
             alpha: 0,
-            scaleX: 2.5,
-            scaleY: 2.5,
+            scaleX: isFromBase ? 3.0 : 2.5,
+            scaleY: isFromBase ? 3.0 : 2.5,
             duration: 400,
             ease: 'Power2',
             onComplete: () => explosion.destroy()
         });
         
-        // Sparks effect
-        for (let i = 0; i < 6; i++) {
+        // Sparks effect - more for base projectiles
+        const sparkCount = isFromBase ? 8 : 6;
+        for (let i = 0; i < sparkCount; i++) {
             const spark = this.add.graphics();
-            spark.fillStyle(0xffff00);
-            spark.fillCircle(x, y, 2);
+            spark.fillStyle(isFromBase ? 0xffcc00 : 0xffff00);
+            spark.fillCircle(x, y, isFromBase ? 3 : 2);
             
-            const sparkAngle = (Math.PI * 2 * i) / 6;
-            const sparkDistance = GameHelpers.randomInt(20, 40);
+            const sparkAngle = (Math.PI * 2 * i) / sparkCount;
+            const sparkDistance = GameHelpers.randomInt(isFromBase ? 30 : 20, isFromBase ? 50 : 40);
             const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
             const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
             
@@ -1373,11 +1544,13 @@ class BattleScene extends Phaser.Scene {
             });
         }
         
-        // Damage number - show actual damage dealt
-        const damageText = this.add.text(x, y - 20, `-${damage}`, {
-            fontSize: '16px',
-            fill: '#ff0000',
+        // Damage number - show actual damage dealt with base colors
+        const damageColor = isFromBase ? '#ffaa00' : '#ff0000';
+        const damageText = this.add.text(x, y - 20, `-${Math.floor(damage)}`, {
+            fontSize: isFromBase ? '18px' : '16px',
+            fill: damageColor,
             fontFamily: 'Arial',
+            fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 2
         }).setOrigin(0.5);
