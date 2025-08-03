@@ -101,7 +101,6 @@ class BattleScene extends Phaser.Scene {
 
         this.energyBarFill = this.add.graphics();
         this.energyBarFill.setScrollFactor(0);
-        this.updateEnergyBar();
 
         // Energy text
         this.energyText = this.add.text(230, uiY + 22, `${this.energy}/${this.maxEnergy}`, {
@@ -110,6 +109,9 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial'
         });
         this.energyText.setScrollFactor(0);
+
+        // Update energy bar after creating the text
+        this.updateEnergyBar();
 
         // Battle timer
         this.timerText = this.add.text(GAME_CONFIG.WIDTH - 100, uiY + 20, this.formatTime(this.battleTime), {
