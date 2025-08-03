@@ -10,6 +10,7 @@ class BattleScene extends Phaser.Scene {
         this.battleTime = BATTLE_CONFIG.DURATION;
         this.tanks = [];
         this.buildings = [];
+        this.projectiles = [];
         this.selectedTank = null;
         this.cameraSpeed = 5;
         this.deploymentMode = true; // Toggle between deployment and movement modes
@@ -462,6 +463,12 @@ class BattleScene extends Phaser.Scene {
         tank.manualControl = false; // Whether tank is under manual control
         tank.lastTargetUpdate = 0; // For AI target selection
 
+        // Face towards the center of the battlefield initially
+        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
+        const centerY = GAME_CONFIG.WORLD_HEIGHT / 2;
+        const initialAngle = GameHelpers.angle(x, y, centerX, centerY);
+        tank.setRotation(initialAngle);
+
         // AI behavior: find best target (closest enemy or enemy base)
         this.updateTankAI(tank);
 
@@ -552,6 +559,11 @@ class BattleScene extends Phaser.Scene {
         tank.x += moveX;
         tank.y += moveY;
         
+        // Face movement direction (but only if moving significantly)
+        if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
+            tank.setRotation(targetAngle);
+        }
+        
         // Keep tanks within battlefield bounds
         tank.x = GameHelpers.clamp(tank.x, 20, GAME_CONFIG.WORLD_WIDTH - 20);
         tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 120);
@@ -569,6 +581,13 @@ class BattleScene extends Phaser.Scene {
             tank.selectionCircle.clear();
             tank.selectionCircle.lineStyle(3, 0xffff00);
             tank.selectionCircle.strokeCircle(tank.x, tank.y, 35);
+        }
+
+        // Update range circle position
+        if (tank.rangeCircle) {
+            tank.rangeCircle.clear();
+            tank.rangeCircle.lineStyle(2, 0x00ff00, 0.3);
+            tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
         }
 
         tank.moving = true;
@@ -646,6 +665,12 @@ class BattleScene extends Phaser.Scene {
         tank.manualControl = false;
         tank.lastTargetUpdate = 0;
 
+        // Face towards the player side initially
+        const playerSideX = GAME_CONFIG.WORLD_WIDTH / 4;
+        const playerSideY = GAME_CONFIG.WORLD_HEIGHT * 3 / 4;
+        const initialAngle = GameHelpers.angle(x, y, playerSideX, playerSideY);
+        tank.setRotation(initialAngle);
+
         // AI behavior: target player base and tanks
         this.updateTankAI(tank);
 
@@ -682,6 +707,17 @@ class BattleScene extends Phaser.Scene {
                 if (tank.healthBg) tank.healthBg.destroy();
                 if (tank.healthFill) tank.healthFill.destroy();
                 if (tank.selectionCircle) tank.selectionCircle.destroy();
+                if (tank.rangeCircle) tank.rangeCircle.destroy();
+                return false;
+            }
+            return true;
+        });
+
+        // Clean up any stray projectiles that might have missed their targets
+        this.projectiles = this.projectiles.filter(projectile => {
+            if (!projectile.scene || projectile.x < -100 || projectile.x > GAME_CONFIG.WORLD_WIDTH + 100 || 
+                projectile.y < -100 || projectile.y > GAME_CONFIG.WORLD_HEIGHT + 100) {
+                if (projectile.destroy) projectile.destroy();
                 return false;
             }
             return true;
@@ -741,6 +777,11 @@ class BattleScene extends Phaser.Scene {
             this.selectedTank.selectionCircle.destroy();
             this.selectedTank.selectionCircle = null;
         }
+        
+        if (this.selectedTank && this.selectedTank.rangeCircle) {
+            this.selectedTank.rangeCircle.destroy();
+            this.selectedTank.rangeCircle = null;
+        }
 
         this.selectedTank = tank;
 
@@ -750,6 +791,12 @@ class BattleScene extends Phaser.Scene {
             selectionCircle.lineStyle(3, 0xffff00);
             selectionCircle.strokeCircle(tank.x, tank.y, 35);
             tank.selectionCircle = selectionCircle;
+
+            // Show tank range
+            const rangeCircle = this.add.graphics();
+            rangeCircle.lineStyle(2, 0x00ff00, 0.3);
+            rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+            tank.rangeCircle = rangeCircle;
 
             // Put tank under manual control
             tank.manualControl = true;
@@ -957,48 +1004,213 @@ class BattleScene extends Phaser.Scene {
         const rateOfFire = 2000; // 2 seconds between shots
 
         if (timeSinceLastShot >= rateOfFire) {
+            // Face the target before shooting
+            const angle = GameHelpers.angle(tank.x, tank.y, tank.target.x, tank.target.y);
+            tank.setRotation(angle);
+            
             this.tankShoot(tank, tank.target);
             tank.lastShotTime = currentTime;
         }
     }
 
     tankShoot(attacker, target) {
-        // Simple damage calculation for now
-        const damage = attacker.tankData.stats.damage;
-        
-        // Deal damage to target
-        if (target.health) {
-            target.health = Math.max(0, target.health - damage);
-            
-            if (target.healthFill) {
-                this.updateTankHealth ? this.updateTankHealth(target) : this.updateBuildingHealth(target);
-            }
+        // Create a projectile instead of instant damage
+        this.createProjectile(attacker, target);
+    }
 
-            // Check if target is destroyed
-            if (target.health <= 0) {
-                if (target.isPlayerBase !== undefined) {
-                    // Base destroyed - end battle
-                    this.endBattle(target.isPlayerBase ? 'defeat' : 'victory');
+    createProjectile(attacker, target) {
+        // Determine projectile type based on tank type
+        let bulletTexture = 'bullet';
+        let bulletSpeed = 250; // pixels per second - slower for visibility
+        let bulletColor = 0xffff00;
+        
+        if (attacker.tankData.type === TANK_TYPES.HEAVY) {
+            bulletTexture = 'shell';
+            bulletSpeed = 200;
+            bulletColor = 0xff8800;
+        } else if (attacker.tankData.type === TANK_TYPES.MEDIUM) {
+            bulletSpeed = 225;
+            bulletColor = 0xffffff;
+        }
+
+        // Create bullet sprite
+        const bullet = this.add.image(attacker.x, attacker.y, bulletTexture);
+        bullet.setTint(bulletColor);
+        
+        // Create bullet trail
+        const trail = this.add.graphics();
+        trail.lineStyle(2, bulletColor, 0.6);
+        bullet.trail = trail;
+        
+        // Calculate angle from attacker to target
+        const angle = GameHelpers.angle(attacker.x, attacker.y, target.x, target.y);
+        const distance = GameHelpers.distance(attacker.x, attacker.y, target.x, target.y);
+        const travelTime = (distance / bulletSpeed) * 1000; // Convert to milliseconds
+        
+        // Rotate bullet to face direction of travel
+        bullet.setRotation(angle);
+        
+        // Store bullet properties
+        bullet.damage = attacker.tankData.stats.damage;
+        bullet.attacker = attacker;
+        bullet.target = target;
+        bullet.speed = bulletSpeed;
+        
+        // Add to projectiles array
+        this.projectiles.push(bullet);
+        
+        // Play shoot sound
+        const playShootSound = this.registry.get('playShootSound');
+        if (playShootSound) playShootSound();
+        
+        // Animate bullet movement
+        this.tweens.add({
+            targets: bullet,
+            x: target.x,
+            y: target.y,
+            duration: travelTime,
+            ease: 'None',
+            onUpdate: () => {
+                // Update trail
+                if (bullet.trail) {
+                    bullet.trail.clear();
+                    bullet.trail.lineStyle(2, bulletColor, 0.6);
+                    bullet.trail.lineBetween(attacker.x, attacker.y, bullet.x, bullet.y);
+                }
+            },
+            onComplete: () => {
+                this.onBulletHit(bullet);
+            }
+        });
+        
+        // Create muzzle flash effect at attacker position
+        this.createMuzzleFlash(attacker.x, attacker.y, angle);
+    }
+
+    onBulletHit(bullet) {
+        // Remove bullet from projectiles array
+        const index = this.projectiles.indexOf(bullet);
+        if (index > -1) {
+            this.projectiles.splice(index, 1);
+        }
+        
+        // Check if target still exists and has health
+        if (bullet.target && bullet.target.health > 0) {
+            // Apply damage
+            bullet.target.health = Math.max(0, bullet.target.health - bullet.damage);
+            
+            // Update health display
+            if (bullet.target.healthFill) {
+                if (this.updateTankHealth && bullet.target.tankData) {
+                    this.updateTankHealth(bullet.target);
+                } else if (this.updateBuildingHealth) {
+                    this.updateBuildingHealth(bullet.target);
                 }
             }
 
-            // Visual feedback
-            this.createHitEffect(target.x, target.y);
+            // Check if target is destroyed
+            if (bullet.target.health <= 0) {
+                if (bullet.target.isPlayerBase !== undefined) {
+                    // Base destroyed - end battle
+                    this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
+                }
+            }
+
+            // Create hit effect
+            this.createHitEffect(bullet.target.x, bullet.target.y);
+            
+            // Play explosion sound
+            const playExplosionSound = this.registry.get('playExplosionSound');
+            if (playExplosionSound) playExplosionSound();
+        }
+        
+        // Destroy bullet sprite
+        bullet.destroy();
+        
+        // Destroy trail
+        if (bullet.trail) {
+            bullet.trail.destroy();
         }
     }
 
+    createMuzzleFlash(x, y, angle) {
+        // Create muzzle flash at barrel tip
+        const flashOffset = 25; // Distance from tank center to barrel tip
+        const flashX = x + Math.cos(angle) * flashOffset;
+        const flashY = y + Math.sin(angle) * flashOffset;
+        
+        const flash = this.add.graphics();
+        flash.fillStyle(0xffff88, 0.8);
+        flash.fillCircle(flashX, flashY, 8);
+        
+        // Quick flash animation
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scaleX: 0.3,
+            scaleY: 0.3,
+            duration: 100,
+            onComplete: () => flash.destroy()
+        });
+    }
+
     createHitEffect(x, y) {
-        const effect = this.add.graphics();
-        effect.fillStyle(0xff4444);
-        effect.fillCircle(x, y, 10);
+        // Main explosion effect
+        const explosion = this.add.graphics();
+        explosion.fillStyle(0xff4444, 0.8);
+        explosion.fillCircle(x, y, 15);
+        explosion.lineStyle(3, 0xffaa00);
+        explosion.strokeCircle(x, y, 15);
+        
+        // Explosion animation
+        this.tweens.add({
+            targets: explosion,
+            alpha: 0,
+            scaleX: 2.5,
+            scaleY: 2.5,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => explosion.destroy()
+        });
+        
+        // Sparks effect
+        for (let i = 0; i < 6; i++) {
+            const spark = this.add.graphics();
+            spark.fillStyle(0xffff00);
+            spark.fillCircle(x, y, 2);
+            
+            const sparkAngle = (Math.PI * 2 * i) / 6;
+            const sparkDistance = GameHelpers.randomInt(20, 40);
+            const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
+            const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
+            
+            this.tweens.add({
+                targets: spark,
+                x: sparkX,
+                y: sparkY,
+                alpha: 0,
+                duration: 300,
+                ease: 'Power2',
+                onComplete: () => spark.destroy()
+            });
+        }
+        
+        // Damage number
+        const damageText = this.add.text(x, y - 20, `-${Math.floor(Math.random() * 50 + 30)}`, {
+            fontSize: '16px',
+            fill: '#ff0000',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
         
         this.tweens.add({
-            targets: effect,
+            targets: damageText,
+            y: damageText.y - 30,
             alpha: 0,
-            scaleX: 2,
-            scaleY: 2,
-            duration: 300,
-            onComplete: () => effect.destroy()
+            duration: 1000,
+            ease: 'Power2',
+            onComplete: () => damageText.destroy()
         });
     }
 

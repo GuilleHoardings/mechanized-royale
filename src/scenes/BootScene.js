@@ -60,7 +60,35 @@ class BootScene extends Phaser.Scene {
         graphics.fillRect(0, 0, 200, 40);
         graphics.generateTexture('button', 200, 40);
         
+        // Projectiles
+        graphics.clear();
+        graphics.fillStyle(0xffff00);
+        graphics.fillCircle(0, 0, 3);
+        graphics.generateTexture('bullet', 6, 6);
+        
+        graphics.clear();
+        graphics.fillStyle(0xff8800);
+        graphics.fillCircle(0, 0, 4);
+        graphics.generateTexture('shell', 8, 8);
+        
         graphics.destroy();
+
+        // Create simple audio feedback (we'll use Web Audio API for simple tones)
+        this.createAudioFeedback();
+    }
+
+    createAudioFeedback() {
+        // We'll add simple sound effects using the Web Audio API
+        // For now, we'll create placeholder functions that could play sounds
+        this.registry.set('playShootSound', () => {
+            // Simple shoot sound could be implemented here
+            console.log('Pew!');
+        });
+        
+        this.registry.set('playExplosionSound', () => {
+            // Simple explosion sound could be implemented here
+            console.log('Boom!');
+        });
     }
 
     createLoadingBar() {
