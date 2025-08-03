@@ -320,15 +320,27 @@ class BattleScene extends Phaser.Scene {
 
     createHealthBars() {
         this.buildings.forEach(building => {
-            // Health bar background
+            // Health bar background - larger for bases
             const healthBg = this.add.graphics();
             healthBg.fillStyle(0x333333);
-            healthBg.fillRect(building.x - 40, building.y - 50, 80, 8);
+            healthBg.fillRect(building.x - 50, building.y - 60, 100, 10);
             building.healthBg = healthBg;
 
             // Health bar fill
             const healthFill = this.add.graphics();
             building.healthFill = healthFill;
+            
+            // Health percentage text
+            const healthText = this.add.text(building.x, building.y - 75, 
+                `${building.health}/${building.maxHealth}`, {
+                fontSize: '14px',
+                fill: '#ffffff',
+                fontFamily: 'Arial',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            building.healthText = healthText;
+            
             this.updateBuildingHealth(building);
         });
     }
@@ -336,8 +348,21 @@ class BattleScene extends Phaser.Scene {
     updateBuildingHealth(building) {
         const healthPercent = building.health / building.maxHealth;
         building.healthFill.clear();
-        building.healthFill.fillStyle(healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000);
-        building.healthFill.fillRect(building.x - 40, building.y - 50, 80 * healthPercent, 8);
+        
+        // Color based on health percentage
+        let healthColor = 0x00ff00; // Green
+        if (healthPercent <= 0.25) healthColor = 0xff0000; // Red
+        else if (healthPercent <= 0.5) healthColor = 0xffff00; // Yellow
+        else if (healthPercent <= 0.75) healthColor = 0xffa500; // Orange
+        
+        building.healthFill.fillStyle(healthColor);
+        building.healthFill.fillRect(building.x - 50, building.y - 60, 100 * healthPercent, 10);
+        
+        // Update health text
+        if (building.healthText) {
+            building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
+            building.healthText.setFill(healthColor === 0xff0000 ? '#ff0000' : '#ffffff');
+        }
     }
 
     startEnergyRegeneration() {
@@ -392,6 +417,13 @@ class BattleScene extends Phaser.Scene {
             callback: () => {
                 this.battleTime--;
                 this.timerText.setText(this.formatTime(this.battleTime));
+                
+                // Change timer color when time is running low
+                if (this.battleTime <= 30) {
+                    this.timerText.setFill('#ff0000'); // Red
+                } else if (this.battleTime <= 60) {
+                    this.timerText.setFill('#ffff00'); // Yellow
+                }
                 
                 if (this.battleTime <= 0) {
                     this.endBattle('time');
@@ -1453,8 +1485,12 @@ class BattleScene extends Phaser.Scene {
             // Check if target is destroyed
             if (bullet.target.health <= 0) {
                 if (bullet.target.isPlayerBase !== undefined) {
-                    // Base destroyed - end battle
-                    this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
+                    // Base destroyed - create destruction effect then end battle
+                    this.destroyBuilding(bullet.target);
+                    // Delay battle end to show destruction
+                    this.time.delayedCall(1000, () => {
+                        this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
+                    });
                 } else if (previousHealth > 0) {
                     // Tank destroyed - add destruction animation
                     this.destroyTank(bullet.target);
@@ -1562,6 +1598,223 @@ class BattleScene extends Phaser.Scene {
             duration: 1000,
             ease: 'Power2',
             onComplete: () => damageText.destroy()
+        });
+    }
+
+    destroyBuilding(building) {
+        // Create massive destruction animation for base
+        const x = building.x;
+        const y = building.y;
+        
+        // Multiple large explosions
+        for (let i = 0; i < 5; i++) {
+            this.time.delayedCall(i * 200, () => {
+                const offsetX = GameHelpers.randomInt(-30, 30);
+                const offsetY = GameHelpers.randomInt(-30, 30);
+                
+                const explosion = this.add.graphics();
+                explosion.fillStyle(0xff3300, 0.9);
+                explosion.fillCircle(x + offsetX, y + offsetY, 40);
+                explosion.lineStyle(6, 0xffaa00);
+                explosion.strokeCircle(x + offsetX, y + offsetY, 40);
+                
+                this.tweens.add({
+                    targets: explosion,
+                    alpha: 0,
+                    scaleX: 5,
+                    scaleY: 5,
+                    duration: 800,
+                    ease: 'Power2',
+                    onComplete: () => explosion.destroy()
+                });
+            });
+        }
+        
+        // Shake the screen
+        this.cameras.main.shake(1000, 0.02);
+        
+        // Remove building from buildings array
+        const index = this.buildings.indexOf(building);
+        if (index > -1) {
+            this.buildings.splice(index, 1);
+        }
+        
+        // Fade out the building
+        this.tweens.add({
+            targets: [building, building.healthBg, building.healthFill, building.healthText],
+            alpha: 0,
+            duration: 1000,
+            onComplete: () => {
+                building.destroy();
+                if (building.healthBg) building.healthBg.destroy();
+                if (building.healthFill) building.healthFill.destroy();
+                if (building.healthText) building.healthText.destroy();
+            }
+        });
+    }
+
+    endBattle(result) {
+        // Stop all timers
+        if (this.battleTimer) this.battleTimer.destroy();
+        if (this.energyTimer) this.energyTimer.destroy();
+        if (this.aiEnergyTimer) this.aiEnergyTimer.destroy();
+        
+        // Pause all game activity
+        this.physics.pause();
+        
+        // Create victory/defeat overlay
+        this.createBattleResultScreen(result);
+    }
+
+    createBattleResultScreen(result) {
+        // Dark overlay
+        const overlay = this.add.graphics();
+        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+        overlay.setScrollFactor(0);
+        overlay.setDepth(100);
+        
+        // Result container
+        const container = this.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2);
+        container.setScrollFactor(0);
+        container.setDepth(101);
+        
+        // Result background
+        const resultBg = this.add.graphics();
+        resultBg.fillStyle(result === 'victory' ? 0x004400 : 0x440000, 0.9);
+        resultBg.fillRoundedRect(-200, -150, 400, 300, 20);
+        resultBg.lineStyle(4, result === 'victory' ? 0x00ff00 : 0xff0000);
+        resultBg.strokeRoundedRect(-200, -150, 400, 300, 20);
+        container.add(resultBg);
+        
+        // Title text
+        let titleText, titleColor;
+        if (result === 'victory') {
+            titleText = 'VICTORY!';
+            titleColor = '#00ff00';
+        } else if (result === 'defeat') {
+            titleText = 'DEFEAT!';
+            titleColor = '#ff0000';
+        } else if (result === 'time') {
+            // Determine winner based on base health
+            const playerBase = this.buildings.find(b => b.isPlayerBase);
+            const enemyBase = this.buildings.find(b => !b.isPlayerBase);
+            
+            if (!playerBase && !enemyBase) {
+                titleText = 'DRAW!';
+                titleColor = '#ffff00';
+            } else if (!playerBase) {
+                titleText = 'DEFEAT!';
+                titleColor = '#ff0000';
+                result = 'defeat';
+            } else if (!enemyBase) {
+                titleText = 'VICTORY!';
+                titleColor = '#00ff00';
+                result = 'victory';
+            } else {
+                // Both bases alive - compare health
+                const playerHealthPercent = playerBase.health / playerBase.maxHealth;
+                const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
+                
+                if (playerHealthPercent > enemyHealthPercent) {
+                    titleText = 'VICTORY!';
+                    titleColor = '#00ff00';
+                    result = 'victory';
+                } else if (enemyHealthPercent > playerHealthPercent) {
+                    titleText = 'DEFEAT!';
+                    titleColor = '#ff0000';
+                    result = 'defeat';
+                } else {
+                    titleText = 'DRAW!';
+                    titleColor = '#ffff00';
+                    result = 'draw';
+                }
+            }
+        }
+        
+        const titleTextObj = this.add.text(0, -80, titleText, {
+            fontSize: '48px',
+            fill: titleColor,
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        container.add(titleTextObj);
+        
+        // Battle stats
+        const playerTanksDeployed = this.tanks.filter(t => t.isPlayerTank).length;
+        const enemyTanksDeployed = this.tanks.filter(t => !t.isPlayerTank).length;
+        const battleDuration = BATTLE_CONFIG.DURATION - this.battleTime;
+        
+        const statsText = this.add.text(0, -20, 
+            `Battle Duration: ${this.formatTime(battleDuration)}\n` +
+            `Player Tanks Deployed: ${playerTanksDeployed}\n` +
+            `Enemy Tanks Deployed: ${enemyTanksDeployed}`, {
+            fontSize: '16px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            align: 'center'
+        }).setOrigin(0.5);
+        container.add(statsText);
+        
+        // Reward text (placeholder for future progression system)
+        if (result === 'victory') {
+            const rewardText = this.add.text(0, 40, 
+                '+ 100 XP\n+ 50 Credits\n+ Research Points', {
+                fontSize: '18px',
+                fill: '#ffff00',
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                align: 'center'
+            }).setOrigin(0.5);
+            container.add(rewardText);
+        } else if (result === 'draw') {
+            const rewardText = this.add.text(0, 40, 
+                '+ 25 XP\n+ 10 Credits', {
+                fontSize: '18px',
+                fill: '#ffff00',
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                align: 'center'
+            }).setOrigin(0.5);
+            container.add(rewardText);
+        }
+        
+        // Buttons
+        const continueButton = this.add.text(0, 100, '→ CONTINUE', {
+            fontSize: '24px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            backgroundColor: '#333333',
+            padding: { x: 20, y: 10 }
+        }).setOrigin(0.5).setInteractive();
+        
+        continueButton.on('pointerover', () => {
+            continueButton.setTint(0xcccccc);
+        });
+        
+        continueButton.on('pointerout', () => {
+            continueButton.clearTint();
+        });
+        
+        continueButton.on('pointerdown', () => {
+            this.scene.start('MenuScene');
+        });
+        
+        container.add(continueButton);
+        
+        // Animate the result screen in
+        container.setAlpha(0);
+        container.setScale(0.5);
+        
+        this.tweens.add({
+            targets: container,
+            alpha: 1,
+            scaleX: 1,
+            scaleY: 1,
+            duration: 500,
+            ease: 'Back.out'
         });
     }
 
