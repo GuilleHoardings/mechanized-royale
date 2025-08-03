@@ -2719,7 +2719,7 @@ class BattleScene extends Phaser.Scene {
             container.add(overtimeText);
         }
         
-        // Continue button
+        // Continue button with hover effect
         const continueBtn = this.add.text(0, 180, 'Click to Continue', {
             fontSize: '20px',
             fill: '#ffff00',
@@ -2727,6 +2727,16 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         container.add(continueBtn);
+        
+        // Add pulsing effect to continue button
+        this.tweens.add({
+            targets: continueBtn,
+            alpha: 0.5,
+            duration: 800,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
         
         // Animate entrance
         container.setScale(0);
@@ -2738,9 +2748,11 @@ class BattleScene extends Phaser.Scene {
             ease: 'Back.out'
         });
         
-        // Make clickable to continue
+        // Make the entire screen clickable to continue
         overlay.setInteractive();
-        overlay.once('pointerdown', () => {
+        container.setInteractive(new Phaser.Geom.Rectangle(-300, -250, 600, 500), Phaser.Geom.Rectangle.Contains);
+        
+        const clickHandler = () => {
             // Update player progress
             if (result === 'victory') {
                 this.gameState.player.experience += 100;
@@ -2754,6 +2766,14 @@ class BattleScene extends Phaser.Scene {
             this.gameState.lastBattleStats = this.battleStats;
             
             this.scene.start('MenuScene', { gameState: this.gameState });
-        });
+        };
+        
+        // Add click handlers to both overlay and container for better reliability
+        overlay.once('pointerdown', clickHandler);
+        container.once('pointerdown', clickHandler);
+        
+        // Also add input listener for any key press or click anywhere on screen
+        this.input.once('pointerdown', clickHandler);
+        this.input.keyboard.once('keydown', clickHandler);
     }
 }
