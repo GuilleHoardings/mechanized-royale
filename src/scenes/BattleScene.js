@@ -1081,26 +1081,50 @@ class BattleScene extends Phaser.Scene {
             let closestEnemy = null;
             let closestDistance = Infinity;
             
-            // Check enemy tanks first (higher priority)
-            const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-            enemyTanks.forEach(enemy => {
-                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
-                    closestDistance = distance;
-                    closestEnemy = enemy;
-                }
-            });
-            
-            // If no enemy tanks in range, target enemy buildings
-            if (!closestEnemy) {
-                const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
-                enemyBuildings.forEach(building => {
-                    const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                    if (distance < closestDistance) {
+            if (tank.isPlayerTank) {
+                // Player tank: target AI tanks and enemy base
+                const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+                enemyTanks.forEach(enemy => {
+                    const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+                    if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
                         closestDistance = distance;
-                        closestEnemy = building;
+                        closestEnemy = enemy;
                     }
                 });
+                
+                // If no enemy tanks in range, target enemy base
+                if (!closestEnemy) {
+                    const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+                    enemyBuildings.forEach(building => {
+                        const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestEnemy = building;
+                        }
+                    });
+                }
+            } else {
+                // AI tank: target player tanks and player base
+                const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+                playerTanks.forEach(enemy => {
+                    const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+                    if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
+                        closestDistance = distance;
+                        closestEnemy = enemy;
+                    }
+                });
+                
+                // If no player tanks in range, target player base
+                if (!closestEnemy) {
+                    const playerBuildings = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
+                    playerBuildings.forEach(building => {
+                        const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                        if (distance < closestDistance) {
+                            closestDistance = distance;
+                            closestEnemy = building;
+                        }
+                    });
+                }
             }
             
             tank.target = closestEnemy;
