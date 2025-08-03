@@ -140,6 +140,16 @@ class BattleScene extends Phaser.Scene {
         });
         instructionsText.setScrollFactor(0);
 
+        // AI Strategy indicator
+        this.aiStrategyText = this.add.text(20, 50, 'AI: Analyzing...', {
+            fontSize: '14px',
+            fill: '#ffaa00',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        this.aiStrategyText.setScrollFactor(0);
+
         // Back button
         const backButton = this.add.text(20, 20, '← MENU', {
             fontSize: '18px',
@@ -509,6 +519,9 @@ class BattleScene extends Phaser.Scene {
         
         // Create health bar for tank
         this.createTankHealthBar(tank);
+        
+        // Notify AI of player deployment for reactive strategy
+        this.notifyAIOfPlayerAction('deploy', tankData);
     }
 
     createTankGraphics(x, y, tankType, isPlayerTank) {
@@ -765,11 +778,29 @@ class BattleScene extends Phaser.Scene {
     }
 
     startAI() {
-        // AI configuration
+        // AI configuration with strategic deck composition
         this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
         this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
-        this.aiDeck = ['tank_light_1', 'tank_medium_1', 'tank_heavy_1', 'tank_light_1'];
-        this.aiNextDeployment = this.time.now + GameHelpers.randomInt(3000, 6000);
+        
+        // Strategic AI deck - more variety and tactical choices
+        this.aiDeck = [
+            'tank_light_1', 'tank_light_2', 'tank_medium_1', 'tank_medium_2',
+            'tank_heavy_1', 'tank_light_1', 'tank_medium_1', 'tank_light_2'
+        ];
+        
+        // AI strategy state
+        this.aiStrategy = {
+            mode: 'balanced', // 'aggressive', 'defensive', 'balanced'
+            lastPlayerAction: 0,
+            playerTankCount: 0,
+            baseHealthPercent: 1.0,
+            preferredTankTypes: ['tank_medium_1', 'tank_light_1'],
+            rushMode: false,
+            defensiveMode: false
+        };
+        
+        this.aiNextDeployment = this.time.now + GameHelpers.randomInt(2000, 4000);
+        this.aiLastStrategyUpdate = this.time.now;
         
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
@@ -786,29 +817,249 @@ class BattleScene extends Phaser.Scene {
     updateAI() {
         const currentTime = this.time.now;
         
-        // Check if AI should deploy a tank
-        if (currentTime >= this.aiNextDeployment && this.aiEnergy >= 2) {
-            this.aiDeployTank();
-            // Schedule next deployment
-            this.aiNextDeployment = currentTime + GameHelpers.randomInt(4000, 8000);
+        // Update AI strategy every 3 seconds
+        if (currentTime - this.aiLastStrategyUpdate > 3000) {
+            this.updateAIStrategy();
+            this.aiLastStrategyUpdate = currentTime;
+        }
+        
+        // Check if AI should deploy a tank (strategic timing)
+        if (currentTime >= this.aiNextDeployment && this.aiEnergy >= 1) {
+            const shouldDeploy = this.shouldAIDeploy();
+            if (shouldDeploy) {
+                this.aiDeployTankStrategically();
+                // Dynamic deployment timing based on strategy
+                const baseDelay = this.aiStrategy.mode === 'aggressive' ? 2000 : 
+                                this.aiStrategy.mode === 'defensive' ? 5000 : 3500;
+                const randomDelay = GameHelpers.randomInt(-1000, 1500);
+                this.aiNextDeployment = currentTime + baseDelay + randomDelay;
+            }
         }
     }
 
-    aiDeployTank() {
-        // Choose a random tank from AI deck
-        const tankId = this.aiDeck[Math.floor(Math.random() * this.aiDeck.length)];
+    updateAIStrategy() {
+        // Analyze current battlefield situation
+        const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+        const playerBase = this.buildings.find(b => b.isPlayerBase);
+        const aiBase = this.buildings.find(b => !b.isPlayerBase);
+        
+        this.aiStrategy.playerTankCount = playerTanks.length;
+        this.aiStrategy.baseHealthPercent = aiBase ? aiBase.health / aiBase.maxHealth : 0;
+        
+        // Strategic mode switching
+        if (this.aiStrategy.baseHealthPercent < 0.3) {
+            // Base under threat - go defensive
+            this.aiStrategy.mode = 'defensive';
+            this.aiStrategy.defensiveMode = true;
+            this.aiStrategy.preferredTankTypes = ['tank_heavy_1', 'tank_medium_1'];
+        } else if (playerBase && playerBase.health / playerBase.maxHealth < 0.4) {
+            // Player base weak - go aggressive
+            this.aiStrategy.mode = 'aggressive';
+            this.aiStrategy.rushMode = true;
+            this.aiStrategy.preferredTankTypes = ['tank_light_1', 'tank_light_2', 'tank_medium_1'];
+        } else if (this.battleTime < 60) {
+            // Low time - final push
+            this.aiStrategy.mode = 'aggressive';
+            this.aiStrategy.rushMode = true;
+            this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_heavy_1'];
+        } else if (aiTanks.length < playerTanks.length - 1) {
+            // Outnumbered - defensive play
+            this.aiStrategy.mode = 'defensive';
+            this.aiStrategy.preferredTankTypes = ['tank_heavy_1', 'tank_medium_1'];
+        } else {
+            // Balanced gameplay
+            this.aiStrategy.mode = 'balanced';
+            this.aiStrategy.rushMode = false;
+            this.aiStrategy.defensiveMode = false;
+            this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_light_1'];
+        }
+        
+        // Update AI strategy display
+        this.updateAIStrategyDisplay();
+    }
+
+    updateAIStrategyDisplay() {
+        if (!this.aiStrategyText) return;
+        
+        const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+        const energyStatus = this.aiEnergy >= 6 ? 'HIGH' : this.aiEnergy >= 3 ? 'MED' : 'LOW';
+        
+        let strategyText = `AI: ${this.aiStrategy.mode.toUpperCase()}`;
+        
+        if (this.aiStrategy.rushMode) {
+            strategyText += ' - RUSHING!';
+            this.aiStrategyText.setFill('#ff4444');
+        } else if (this.aiStrategy.defensiveMode) {
+            strategyText += ' - DEFENDING';
+            this.aiStrategyText.setFill('#4444ff');
+        } else {
+            this.aiStrategyText.setFill('#ffaa00');
+        }
+        
+        strategyText += ` | Energy: ${energyStatus} | Tanks: ${aiTanks.length}`;
+        this.aiStrategyText.setText(strategyText);
+    }
+
+    shouldAIDeploy() {
+        const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+        
+        // Always deploy if we have no tanks
+        if (aiTanks.length === 0) return true;
+        
+        // Strategic deployment decisions
+        switch (this.aiStrategy.mode) {
+            case 'aggressive':
+                // Deploy frequently when aggressive
+                return this.aiEnergy >= 2 && aiTanks.length < 6;
+                
+            case 'defensive':
+                // Deploy when outnumbered or base threatened
+                return (playerTanks.length > aiTanks.length) || 
+                       (this.aiEnergy >= 4 && aiTanks.length < 3);
+                       
+            case 'balanced':
+            default:
+                // Maintain tank parity, save energy for good units
+                return (playerTanks.length >= aiTanks.length && this.aiEnergy >= 3) ||
+                       (this.aiEnergy >= 6);
+        }
+    }
+
+    aiDeployTankStrategically() {
+        // Choose tank based on current strategy
+        const tankId = this.chooseAITank();
         const tankData = TANK_DATA[tankId];
         
         if (this.aiEnergy < tankData.cost) return; // Not enough energy
         
-        // Deploy in enemy zone
-        const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
-        const deployX = enemyZone.x + Math.random() * enemyZone.width;
-        const deployY = enemyZone.y + Math.random() * enemyZone.height;
+        // Strategic deployment positioning
+        const deploymentPos = this.chooseAIDeploymentPosition(tankData);
         
         // Create AI tank
-        this.deployAITank(tankId, deployX, deployY);
+        this.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
         this.aiEnergy -= tankData.cost;
+    }
+
+    chooseAITank() {
+        // Filter deck by preferred types for current strategy
+        let availableTanks = this.aiDeck.filter(tankId => {
+            const tankData = TANK_DATA[tankId];
+            return this.aiEnergy >= tankData.cost;
+        });
+        
+        if (availableTanks.length === 0) {
+            // Fallback to cheapest available tank
+            availableTanks = this.aiDeck.filter(tankId => {
+                const tankData = TANK_DATA[tankId];
+                return tankData.cost <= this.aiEnergy;
+            });
+        }
+        
+        // Prefer strategy-appropriate tanks
+        const preferredTanks = availableTanks.filter(tankId => 
+            this.aiStrategy.preferredTankTypes.includes(tankId)
+        );
+        
+        if (preferredTanks.length > 0) {
+            // 70% chance to use preferred tank
+            if (Math.random() < 0.7) {
+                return preferredTanks[Math.floor(Math.random() * preferredTanks.length)];
+            }
+        }
+        
+        // Strategic tank selection based on situation
+        const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        const heavyPlayerTanks = playerTanks.filter(t => t.tankData.type === TANK_TYPES.HEAVY);
+        
+        if (heavyPlayerTanks.length > 0 && this.aiEnergy >= 4) {
+            // Counter heavy tanks with medium/heavy tanks
+            const counterTanks = availableTanks.filter(tankId => {
+                const tankData = TANK_DATA[tankId];
+                return tankData.type === TANK_TYPES.MEDIUM || tankData.type === TANK_TYPES.HEAVY;
+            });
+            if (counterTanks.length > 0) {
+                return counterTanks[Math.floor(Math.random() * counterTanks.length)];
+            }
+        }
+        
+        // Default random selection from available tanks
+        return availableTanks[Math.floor(Math.random() * availableTanks.length)];
+    }
+
+    chooseAIDeploymentPosition(tankData) {
+        const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        const playerBase = this.buildings.find(b => b.isPlayerBase);
+        const aiBase = this.buildings.find(b => !b.isPlayerBase);
+        
+        let baseX = enemyZone.x + enemyZone.width / 2;
+        let baseY = enemyZone.y + enemyZone.height / 2;
+        
+        // Strategic positioning based on tank type and strategy
+        if (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode) {
+            // Deploy closer to player base for faster attack
+            if (playerBase) {
+                const directionX = playerBase.x > baseX ? 1 : -1;
+                const directionY = playerBase.y > baseY ? 1 : -1;
+                baseX += directionX * 50;
+                baseY += directionY * 30;
+            }
+        } else if (this.aiStrategy.mode === 'defensive') {
+            // Deploy closer to our own base for defense
+            if (aiBase) {
+                const directionX = aiBase.x > baseX ? 1 : -1;
+                const directionY = aiBase.y > baseY ? 1 : -1;
+                baseX += directionX * 30;
+                baseY += directionY * 20;
+            }
+        }
+        
+        // Add some randomness to avoid predictable positioning
+        const randomOffsetX = GameHelpers.randomInt(-40, 40);
+        const randomOffsetY = GameHelpers.randomInt(-30, 30);
+        
+        const deployX = GameHelpers.clamp(
+            baseX + randomOffsetX, 
+            enemyZone.x + 10, 
+            enemyZone.x + enemyZone.width - 10
+        );
+        const deployY = GameHelpers.clamp(
+            baseY + randomOffsetY, 
+            enemyZone.y + 10, 
+            enemyZone.y + enemyZone.height - 10
+        );
+        
+        return { x: deployX, y: deployY };
+    }
+
+    aiDeployTank() {
+        // Legacy method - redirect to strategic deployment
+        this.aiDeployTankStrategically();
+    }
+
+    notifyAIOfPlayerAction(action, data) {
+        const currentTime = this.time.now;
+        this.aiStrategy.lastPlayerAction = currentTime;
+        
+        if (action === 'deploy') {
+            // React to player deployment
+            if (data.type === TANK_TYPES.HEAVY && this.aiEnergy >= 3) {
+                // Player deployed heavy tank - consider immediate counter
+                const nextDeploymentDelay = GameHelpers.randomInt(1000, 2500);
+                this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
+                
+                // Prioritize medium/heavy tanks to counter
+                this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_heavy_1'];
+            } else if (data.cost <= 2 && this.aiEnergy >= 4) {
+                // Player deployed cheap unit - might be rushing
+                this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_light_1'];
+                
+                // Deploy sooner to match aggression
+                const nextDeploymentDelay = GameHelpers.randomInt(1500, 3000);
+                this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
+            }
+        }
     }
 
     deployAITank(tankId, x, y) {
