@@ -61,7 +61,10 @@ const GameHelpers = {
     getDefaultGameState() {
         return {
             player: {
-                tanks: ['tank_light_1', 'tank_medium_1'], // Starting tanks
+                tanks: [
+                    'tank_light_1', 'tank_light_2', 'tank_medium_1', 'tank_medium_2',
+                    'tank_heavy_1', 'tank_light_1', 'tank_medium_1', 'tank_light_2'
+                ], // Starting 8-card deck
                 resources: { credits: 1000, research: 0 },
                 progress: { level: 1, xp: 0 },
                 research: { completed: [], active: null }

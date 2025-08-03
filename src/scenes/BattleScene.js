@@ -13,6 +13,12 @@ class BattleScene extends Phaser.Scene {
         this.selectedTank = null;
         this.cameraSpeed = 5;
         this.deploymentMode = true; // Toggle between deployment and movement modes
+        
+        // Card deck system
+        this.deck = [...this.gameState.player.tanks]; // Copy player's tanks
+        this.hand = [];
+        this.nextCardIndex = 0;
+        this.initializeDeck();
     }
 
     create() {
@@ -33,6 +39,9 @@ class BattleScene extends Phaser.Scene {
 
         // Start battle timer
         this.startBattleTimer();
+
+        // Start AI opponent
+        this.startAI();
 
         // Input handling
         this.input.on('pointerdown', this.onBattlefieldClick, this);
@@ -147,11 +156,11 @@ class BattleScene extends Phaser.Scene {
         const cardSpacing = 90;
         const startX = 300;
 
-        // Get player's available tanks
-        const availableTanks = this.gameState.player.tanks.slice(0, 4); // First 4 tanks
-
         this.tankCards = [];
-        availableTanks.forEach((tankId, index) => {
+        
+        // Create 4 cards from hand
+        for (let index = 0; index < 4; index++) {
+            const tankId = this.hand[index];
             const tankData = TANK_DATA[tankId];
             const cardX = startX + index * cardSpacing;
             const cardY = uiY + 20;
@@ -181,11 +190,20 @@ class BattleScene extends Phaser.Scene {
             }).setOrigin(1);
             costText.setScrollFactor(0);
 
+            // Card name (small text)
+            const nameText = this.add.text(cardX + cardWidth/2, cardY + 45, tankData.name, {
+                fontSize: '10px',
+                fill: '#ffffff',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+            nameText.setScrollFactor(0);
+
             // Store card info
             const cardInfo = {
                 container: card,
                 icon: tankIcon,
                 cost: costText,
+                name: nameText,
                 tankId: tankId,
                 tankData: tankData
             };
@@ -196,7 +214,22 @@ class BattleScene extends Phaser.Scene {
             card.on('pointerdown', () => {
                 this.selectTankCard(index);
             });
-        });
+
+            // Card hover effects
+            card.on('pointerover', () => {
+                if (this.energy >= tankData.cost) {
+                    card.setTint(0xdddddd);
+                } else {
+                    card.setTint(0x666666);
+                }
+                this.showCardTooltip(index, cardX, cardY);
+            });
+
+            card.on('pointerout', () => {
+                card.clearTint();
+                this.hideCardTooltip();
+            });
+        }
 
         this.selectedCard = 0;
         this.updateCardSelection();
@@ -211,10 +244,55 @@ class BattleScene extends Phaser.Scene {
         this.tankCards.forEach((card, index) => {
             if (index === this.selectedCard) {
                 card.container.setTint(0xffff00);
+                // Highlight border
+                if (!card.selectionBorder) {
+                    card.selectionBorder = this.add.graphics();
+                    card.selectionBorder.setScrollFactor(0);
+                }
+                card.selectionBorder.clear();
+                card.selectionBorder.lineStyle(3, 0xffff00);
+                card.selectionBorder.strokeRect(card.container.x - 2, card.container.y - 2, 84, 64);
             } else {
                 card.container.clearTint();
+                if (card.selectionBorder) {
+                    card.selectionBorder.clear();
+                }
             }
         });
+    }
+
+    showCardTooltip(cardIndex, x, y) {
+        const tankData = this.tankCards[cardIndex].tankData;
+        
+        this.cardTooltip = this.add.container(x, y - 100);
+        this.cardTooltip.setScrollFactor(0);
+        
+        // Tooltip background
+        const tooltipBg = this.add.graphics();
+        tooltipBg.fillStyle(0x000000, 0.8);
+        tooltipBg.fillRoundedRect(0, 0, 200, 80, 5);
+        tooltipBg.lineStyle(2, 0xffffff, 0.5);
+        tooltipBg.strokeRoundedRect(0, 0, 200, 80, 5);
+        
+        // Tank stats
+        const statsText = this.add.text(10, 10, 
+            `${tankData.name}\n` +
+            `HP: ${tankData.stats.hp}\n` +
+            `Damage: ${tankData.stats.damage}\n` +
+            `Speed: ${tankData.stats.speed}`, {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Arial'
+        });
+        
+        this.cardTooltip.add([tooltipBg, statsText]);
+    }
+
+    hideCardTooltip() {
+        if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+            this.cardTooltip = null;
+        }
     }
 
     createBases() {
@@ -265,9 +343,31 @@ class BattleScene extends Phaser.Scene {
                 if (this.energy < this.maxEnergy) {
                     this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
                     this.updateEnergyBar();
+                    
+                    // Visual feedback for energy gain
+                    this.showEnergyGainEffect();
                 }
             },
             loop: true
+        });
+    }
+
+    showEnergyGainEffect() {
+        // Create a small energy gain indicator
+        const energyGainText = this.add.text(240, GAME_CONFIG.HEIGHT - 70, '+1', {
+            fontSize: '14px',
+            fill: '#00ff00',
+            fontFamily: 'Arial'
+        });
+        energyGainText.setScrollFactor(0);
+        
+        this.tweens.add({
+            targets: energyGainText,
+            y: energyGainText.y - 20,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2',
+            onComplete: () => energyGainText.destroy()
         });
     }
 
@@ -317,6 +417,12 @@ class BattleScene extends Phaser.Scene {
                 this.deployTank(selectedCardData.tankId, pointer.x, pointer.y);
                 this.energy -= selectedCardData.tankData.cost;
                 this.updateEnergyBar();
+                
+                // Cycle the used card
+                this.cycleCard(this.selectedCard);
+            } else {
+                // Visual feedback for insufficient energy
+                this.showInsufficientEnergyFeedback();
             }
         } else {
             // Movement mode - select tank or move selected tank
@@ -354,12 +460,10 @@ class BattleScene extends Phaser.Scene {
         tank.lastShotTime = 0;
         tank.moveTarget = null; // For manual movement
         tank.manualControl = false; // Whether tank is under manual control
+        tank.lastTargetUpdate = 0; // For AI target selection
 
-        // Simple AI: move towards enemy base (only if not under manual control)
-        const enemyBase = this.buildings.find(b => !b.isPlayerBase);
-        if (enemyBase && !tank.manualControl) {
-            tank.target = enemyBase;
-        }
+        // AI behavior: find best target (closest enemy or enemy base)
+        this.updateTankAI(tank);
 
         this.tanks.push(tank);
         
@@ -385,7 +489,9 @@ class BattleScene extends Phaser.Scene {
         tank.healthFill.fillRect(tank.x - 20, tank.y - 30, 40 * healthPercent, 4);
     }
 
-    moveTankToTarget(tank) {
+    updateTankMovement(tank) {
+        this.updateTankAI(tank); // Update AI targeting
+        
         let targetPos = null;
         
         // Determine what to move towards
@@ -393,7 +499,7 @@ class BattleScene extends Phaser.Scene {
             // Manual movement target
             targetPos = tank.moveTarget;
         } else if (tank.target && !tank.manualControl) {
-            // AI target (enemy base)
+            // AI target
             targetPos = tank.target;
         } else {
             return;
@@ -417,12 +523,38 @@ class BattleScene extends Phaser.Scene {
             }
         }
 
-        // Move towards target
-        const angle = GameHelpers.angle(tank.x, tank.y, targetPos.x, targetPos.y);
-        const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame (assuming 60 FPS)
+        // Simple obstacle avoidance - check for other tanks nearby
+        const avoidanceRadius = 40;
+        let avoidanceX = 0;
+        let avoidanceY = 0;
         
-        tank.x += Math.cos(angle) * speed;
-        tank.y += Math.sin(angle) * speed;
+        this.tanks.forEach(otherTank => {
+            if (otherTank === tank || otherTank.health <= 0) return;
+            
+            const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
+            if (otherDistance < avoidanceRadius) {
+                // Calculate avoidance vector
+                const avoidAngle = GameHelpers.angle(otherTank.x, otherTank.y, tank.x, tank.y);
+                const avoidForce = (avoidanceRadius - otherDistance) / avoidanceRadius;
+                avoidanceX += Math.cos(avoidAngle) * avoidForce * 30;
+                avoidanceY += Math.sin(avoidAngle) * avoidForce * 30;
+            }
+        });
+
+        // Calculate movement direction
+        const targetAngle = GameHelpers.angle(tank.x, tank.y, targetPos.x, targetPos.y);
+        const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
+        
+        // Apply movement with avoidance
+        const moveX = Math.cos(targetAngle) * speed + avoidanceX * 0.1;
+        const moveY = Math.sin(targetAngle) * speed + avoidanceY * 0.1;
+        
+        tank.x += moveX;
+        tank.y += moveY;
+        
+        // Keep tanks within battlefield bounds
+        tank.x = GameHelpers.clamp(tank.x, 20, GAME_CONFIG.WORLD_WIDTH - 20);
+        tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 120);
         
         // Update health bar position
         if (tank.healthBg) {
@@ -442,14 +574,98 @@ class BattleScene extends Phaser.Scene {
         tank.moving = true;
     }
 
+    startAI() {
+        // AI configuration
+        this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
+        this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
+        this.aiDeck = ['tank_light_1', 'tank_medium_1', 'tank_heavy_1', 'tank_light_1'];
+        this.aiNextDeployment = this.time.now + GameHelpers.randomInt(3000, 6000);
+        
+        // AI energy regeneration
+        this.aiEnergyTimer = this.time.addEvent({
+            delay: 1000,
+            callback: () => {
+                if (this.aiEnergy < this.aiMaxEnergy) {
+                    this.aiEnergy = Math.min(this.aiEnergy + ENERGY_CONFIG.REGEN_RATE, this.aiMaxEnergy);
+                }
+            },
+            loop: true
+        });
+    }
+
+    updateAI() {
+        const currentTime = this.time.now;
+        
+        // Check if AI should deploy a tank
+        if (currentTime >= this.aiNextDeployment && this.aiEnergy >= 2) {
+            this.aiDeployTank();
+            // Schedule next deployment
+            this.aiNextDeployment = currentTime + GameHelpers.randomInt(4000, 8000);
+        }
+    }
+
+    aiDeployTank() {
+        // Choose a random tank from AI deck
+        const tankId = this.aiDeck[Math.floor(Math.random() * this.aiDeck.length)];
+        const tankData = TANK_DATA[tankId];
+        
+        if (this.aiEnergy < tankData.cost) return; // Not enough energy
+        
+        // Deploy in enemy zone
+        const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        const deployX = enemyZone.x + Math.random() * enemyZone.width;
+        const deployY = enemyZone.y + Math.random() * enemyZone.height;
+        
+        // Create AI tank
+        this.deployAITank(tankId, deployX, deployY);
+        this.aiEnergy -= tankData.cost;
+    }
+
+    deployAITank(tankId, x, y) {
+        const tankData = TANK_DATA[tankId];
+        
+        // Determine tank texture
+        let tankTexture = 'tank_light';
+        if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
+        if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
+
+        // Create tank sprite
+        const tank = this.add.image(x, y, tankTexture);
+        tank.setOrigin(0.5);
+        tank.setTint(0xff6666); // Red tint for enemy tanks
+        
+        // Tank properties
+        tank.tankId = tankId;
+        tank.tankData = tankData;
+        tank.health = tankData.stats.hp;
+        tank.maxHealth = tankData.stats.hp;
+        tank.isPlayerTank = false; // AI tank
+        tank.target = null;
+        tank.lastShotTime = 0;
+        tank.moveTarget = null;
+        tank.manualControl = false;
+        tank.lastTargetUpdate = 0;
+
+        // AI behavior: target player base and tanks
+        this.updateTankAI(tank);
+
+        this.tanks.push(tank);
+        
+        // Create health bar for tank
+        this.createTankHealthBar(tank);
+    }
+
     update() {
         // Handle camera movement
         this.handleCameraMovement();
         
+        // Update AI
+        this.updateAI();
+        
         // Update all tanks
         this.tanks.forEach(tank => {
             if (tank.health > 0) {
-                this.moveTankToTarget(tank);
+                this.updateTankMovement(tank);
                 this.checkTankCombat(tank);
             }
         });
@@ -561,6 +777,162 @@ class BattleScene extends Phaser.Scene {
         this.createMoveTargetIndicator(x, y);
     }
 
+    initializeDeck() {
+        // Ensure we have at least 4 different tanks by filling with available tanks
+        while (this.deck.length < 8) {
+            this.deck.push(...this.gameState.player.tanks);
+        }
+        
+        // Shuffle the deck
+        this.shuffleDeck();
+        
+        // Fill initial hand of 4 cards
+        for (let i = 0; i < 4; i++) {
+            this.hand.push(this.getNextCard());
+        }
+    }
+
+    shuffleDeck() {
+        // Fisher-Yates shuffle algorithm
+        for (let i = this.deck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
+        }
+        this.nextCardIndex = 0;
+    }
+
+    getNextCard() {
+        if (this.nextCardIndex >= this.deck.length) {
+            // Reshuffle when deck is exhausted
+            this.shuffleDeck();
+        }
+        
+        const card = this.deck[this.nextCardIndex];
+        this.nextCardIndex++;
+        return card;
+    }
+
+    cycleCard(usedCardIndex) {
+        // Replace used card with next card from deck
+        const newCard = this.getNextCard();
+        this.hand[usedCardIndex] = newCard;
+        
+        // Update the visual representation
+        this.updateCardDisplay(usedCardIndex);
+    }
+
+    updateCardDisplay(cardIndex) {
+        if (!this.tankCards[cardIndex]) return;
+        
+        const tankId = this.hand[cardIndex];
+        const tankData = TANK_DATA[tankId];
+        const card = this.tankCards[cardIndex];
+        
+        // Update tank icon
+        let tankTexture = 'tank_light';
+        if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
+        if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
+        
+        card.icon.setTexture(tankTexture);
+        
+        // Update cost
+        card.cost.setText(tankData.cost);
+        
+        // Update stored data
+        card.tankId = tankId;
+        card.tankData = tankData;
+        
+        // Brief highlight animation to show card changed
+        this.tweens.add({
+            targets: card.container,
+            scaleX: 1.1,
+            scaleY: 1.1,
+            duration: 150,
+            yoyo: true,
+            ease: 'Power2'
+        });
+    }
+
+    showInsufficientEnergyFeedback() {
+        // Flash the energy bar red
+        this.energyBarFill.clear();
+        this.energyBarFill.fillStyle(0xff0000);
+        this.energyBarFill.fillRect(20, GAME_CONFIG.HEIGHT - 80, 200 * (this.energy / this.maxEnergy), 20);
+        
+        // Flash the selected card
+        const selectedCard = this.tankCards[this.selectedCard];
+        this.tweens.add({
+            targets: selectedCard.container,
+            tint: 0xff0000,
+            duration: 200,
+            yoyo: true,
+            repeat: 1,
+            onComplete: () => {
+                selectedCard.container.clearTint();
+                this.updateCardSelection(); // Restore selection highlight
+                this.updateEnergyBar(); // Restore normal energy bar color
+            }
+        });
+        
+        // Show "Not Enough Energy" text
+        const errorText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 50, 'NOT ENOUGH ENERGY!', {
+            fontSize: '24px',
+            fill: '#ff0000',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        errorText.setScrollFactor(0);
+        
+        this.tweens.add({
+            targets: errorText,
+            alpha: 0,
+            y: errorText.y - 30,
+            duration: 1500,
+            ease: 'Power2',
+            onComplete: () => errorText.destroy()
+        });
+    }
+
+    updateTankAI(tank) {
+        if (tank.manualControl) return; // Don't override manual control
+        
+        const currentTime = this.time.now;
+        
+        // Update AI target every 2 seconds or if target is destroyed
+        if (currentTime - tank.lastTargetUpdate > 2000 || !tank.target || tank.target.health <= 0) {
+            tank.lastTargetUpdate = currentTime;
+            
+            // Find closest enemy target
+            let closestEnemy = null;
+            let closestDistance = Infinity;
+            
+            // Check enemy tanks first (higher priority)
+            const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+            enemyTanks.forEach(enemy => {
+                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+                if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
+                    closestDistance = distance;
+                    closestEnemy = enemy;
+                }
+            });
+            
+            // If no enemy tanks in range, target enemy buildings
+            if (!closestEnemy) {
+                const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+                enemyBuildings.forEach(building => {
+                    const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                    if (distance < closestDistance) {
+                        closestDistance = distance;
+                        closestEnemy = building;
+                    }
+                });
+            }
+            
+            tank.target = closestEnemy;
+        }
+    }
+
     createMoveTargetIndicator(x, y) {
         const indicator = this.add.graphics();
         indicator.lineStyle(2, 0x00ff00);
@@ -634,6 +1006,7 @@ class BattleScene extends Phaser.Scene {
         // Stop timers
         if (this.energyTimer) this.energyTimer.remove();
         if (this.battleTimer) this.battleTimer.remove();
+        if (this.aiEnergyTimer) this.aiEnergyTimer.remove();
 
         // Show result
         const resultText = result === 'victory' ? 'VICTORY!' : 
