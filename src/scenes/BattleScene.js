@@ -173,15 +173,10 @@ class BattleScene extends Phaser.Scene {
                 .setOrigin(0);
             card.setScrollFactor(0);
 
-            // Tank icon (simplified)
-            let tankTexture = 'tank_light';
-            if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
-            if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
-
-            const tankIcon = this.add.image(cardX + cardWidth/2, cardY + 20, tankTexture)
-                .setScale(0.8)
-                .setOrigin(0.5);
-            tankIcon.setScrollFactor(0);
+            // Tank icon - create miniature version of actual tank
+            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 20, tankData.type);
+            tankIcon.setScale(0.6);
+            card.tankIcon = tankIcon;
 
             // Cost
             const costText = this.add.text(cardX + cardWidth - 10, cardY + cardHeight - 10, tankData.cost, {
@@ -442,14 +437,8 @@ class BattleScene extends Phaser.Scene {
     deployTank(tankId, x, y) {
         const tankData = TANK_DATA[tankId];
         
-        // Determine tank texture
-        let tankTexture = 'tank_light';
-        if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
-        if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
-
-        // Create tank sprite
-        const tank = this.add.image(x, y, tankTexture);
-        tank.setOrigin(0.5);
+        // Create tank with custom graphics
+        const tank = this.createTankGraphics(x, y, tankData.type, true); // true = player tank
         
         // Tank properties
         tank.tankId = tankId;
@@ -476,6 +465,144 @@ class BattleScene extends Phaser.Scene {
         
         // Create health bar for tank
         this.createTankHealthBar(tank);
+    }
+
+    createTankGraphics(x, y, tankType, isPlayerTank) {
+        // Team colors
+        const playerColor = 0x2d7dd2; // Blue
+        const enemyColor = 0xd22d2d;  // Red
+        const accentColor = isPlayerTank ? 0x5599ff : 0xff5555;
+        const darkColor = isPlayerTank ? 0x1a5aa3 : 0xa31a1a;
+        
+        // Create a container for the tank
+        const tank = this.add.container(x, y);
+        
+        // Create graphics object for drawing
+        const graphics = this.add.graphics();
+        
+        if (tankType === TANK_TYPES.LIGHT) {
+            // Light Tank - Small, fast-looking
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-12, -8, 24, 16, 3);
+            
+            // Turret
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 6);
+            
+            // Barrel
+            graphics.fillRect(6, -1, 12, 2);
+            
+            // Side details
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-10, -6, 20, 2);
+            graphics.fillRect(-10, 4, 20, 2);
+            
+        } else if (tankType === TANK_TYPES.MEDIUM) {
+            // Medium Tank - Balanced design
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-15, -10, 30, 20, 4);
+            
+            // Turret
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 8);
+            
+            // Barrel
+            graphics.fillRect(8, -2, 15, 4);
+            
+            // Side armor plates
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-13, -8, 26, 3);
+            graphics.fillRect(-13, 5, 26, 3);
+            
+            // Front armor detail
+            graphics.fillRect(13, -6, 2, 12);
+            
+        } else if (tankType === TANK_TYPES.HEAVY) {
+            // Heavy Tank - Large, intimidating
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-18, -12, 36, 24, 5);
+            
+            // Turret
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 10);
+            
+            // Barrel (thicker)
+            graphics.fillRect(10, -3, 18, 6);
+            
+            // Heavy armor plates
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-16, -10, 32, 4);
+            graphics.fillRect(-16, 6, 32, 4);
+            
+            // Side armor details
+            graphics.fillRect(-16, -4, 4, 8);
+            graphics.fillRect(12, -4, 4, 8);
+            
+            // Front armor
+            graphics.fillRect(16, -8, 2, 16);
+        }
+        
+        // Add tracks/treads for all tanks
+        graphics.fillStyle(0x333333);
+        const trackWidth = tankType === TANK_TYPES.HEAVY ? 20 : tankType === TANK_TYPES.MEDIUM ? 16 : 12;
+        const trackHeight = tankType === TANK_TYPES.HEAVY ? 3 : 2;
+        
+        // Left track
+        graphics.fillRect(-trackWidth/2, -15, trackWidth, trackHeight);
+        // Right track
+        graphics.fillRect(-trackWidth/2, 13, trackWidth, trackHeight);
+        
+        // Add the graphics to the container
+        tank.add(graphics);
+        
+        return tank;
+    }
+
+    createMiniTankGraphics(x, y, tankType) {
+        // Create a simplified version for cards - always blue (player color)
+        const playerColor = 0x2d7dd2;
+        const accentColor = 0x5599ff;
+        const darkColor = 0x1a5aa3;
+        
+        const tank = this.add.container(x, y);
+        const graphics = this.add.graphics();
+        
+        if (tankType === TANK_TYPES.LIGHT) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-8, -5, 16, 10, 2);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 3);
+            graphics.fillRect(3, -1, 6, 2);
+        } else if (tankType === TANK_TYPES.MEDIUM) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-10, -6, 20, 12, 2);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 4);
+            graphics.fillRect(4, -1, 8, 2);
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-8, -4, 16, 1);
+            graphics.fillRect(-8, 3, 16, 1);
+        } else if (tankType === TANK_TYPES.HEAVY) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-12, -8, 24, 16, 3);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(0, 0, 5);
+            graphics.fillRect(5, -2, 10, 4);
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-10, -6, 20, 2);
+            graphics.fillRect(-10, 4, 20, 2);
+        }
+        
+        // Tracks
+        graphics.fillStyle(0x333333);
+        const trackWidth = tankType === TANK_TYPES.HEAVY ? 12 : tankType === TANK_TYPES.MEDIUM ? 10 : 8;
+        graphics.fillRect(-trackWidth/2, -10, trackWidth, 1);
+        graphics.fillRect(-trackWidth/2, 9, trackWidth, 1);
+        
+        tank.add(graphics);
+        tank.setScrollFactor(0);
+        
+        return tank;
     }
 
     createTankHealthBar(tank) {
@@ -643,15 +770,8 @@ class BattleScene extends Phaser.Scene {
     deployAITank(tankId, x, y) {
         const tankData = TANK_DATA[tankId];
         
-        // Determine tank texture
-        let tankTexture = 'tank_light';
-        if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
-        if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
-
-        // Create tank sprite
-        const tank = this.add.image(x, y, tankTexture);
-        tank.setOrigin(0.5);
-        tank.setTint(0xff6666); // Red tint for enemy tanks
+        // Create tank with custom graphics
+        const tank = this.createTankGraphics(x, y, tankData.type, false); // false = AI tank
         
         // Tank properties
         tank.tankId = tankId;
@@ -875,15 +995,22 @@ class BattleScene extends Phaser.Scene {
         const tankData = TANK_DATA[tankId];
         const card = this.tankCards[cardIndex];
         
-        // Update tank icon
-        let tankTexture = 'tank_light';
-        if (tankData.type === TANK_TYPES.MEDIUM) tankTexture = 'tank_medium';
-        if (tankData.type === TANK_TYPES.HEAVY) tankTexture = 'tank_heavy';
+        // Destroy old tank icon and create new one
+        if (card.icon) {
+            card.icon.destroy();
+        }
         
-        card.icon.setTexture(tankTexture);
+        // Create new tank icon with updated graphics
+        const cardX = card.container.x;
+        const cardY = card.container.y;
+        card.icon = this.createMiniTankGraphics(cardX + 40, cardY + 20, tankData.type);
+        card.icon.setScale(0.6);
         
         // Update cost
         card.cost.setText(tankData.cost);
+        
+        // Update name
+        card.name.setText(tankData.name);
         
         // Update stored data
         card.tankId = tankId;
@@ -1052,6 +1179,7 @@ class BattleScene extends Phaser.Scene {
         
         // Store bullet properties
         bullet.damage = attacker.tankData.stats.damage;
+        bullet.penetration = attacker.tankData.stats.penetration;
         bullet.attacker = attacker;
         bullet.target = target;
         bullet.speed = bulletSpeed;
@@ -1096,8 +1224,29 @@ class BattleScene extends Phaser.Scene {
         
         // Check if target still exists and has health
         if (bullet.target && bullet.target.health > 0) {
+            // Calculate damage with armor penetration
+            const baseDamage = bullet.damage;
+            const penetration = bullet.penetration || baseDamage; // Fallback for old bullets
+            const targetArmorData = bullet.target.tankData?.stats?.armor;
+            const targetArmor = targetArmorData ? 
+                (typeof targetArmorData === 'object' ? targetArmorData.front : targetArmorData) : 0;
+            
+            // Penetration formula: if penetration >= armor, full damage
+            // Otherwise, reduced damage based on armor effectiveness
+            let finalDamage;
+            if (penetration >= targetArmor) {
+                finalDamage = baseDamage;
+            } else {
+                // Armor reduces damage: damage = base * (penetration / armor)
+                const penetrationRatio = Math.max(0.1, penetration / targetArmor); // Minimum 10% damage
+                finalDamage = Math.floor(baseDamage * penetrationRatio);
+            }
+            
+            // Store previous health for destruction check
+            const previousHealth = bullet.target.health;
+            
             // Apply damage
-            bullet.target.health = Math.max(0, bullet.target.health - bullet.damage);
+            bullet.target.health = Math.max(0, bullet.target.health - finalDamage);
             
             // Update health display
             if (bullet.target.healthFill) {
@@ -1113,11 +1262,14 @@ class BattleScene extends Phaser.Scene {
                 if (bullet.target.isPlayerBase !== undefined) {
                     // Base destroyed - end battle
                     this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
+                } else if (previousHealth > 0) {
+                    // Tank destroyed - add destruction animation
+                    this.destroyTank(bullet.target);
                 }
             }
 
-            // Create hit effect
-            this.createHitEffect(bullet.target.x, bullet.target.y);
+            // Create hit effect with actual damage dealt
+            this.createHitEffect(bullet.target.x, bullet.target.y, finalDamage);
             
             // Play explosion sound
             const playExplosionSound = this.registry.get('playExplosionSound');
@@ -1154,7 +1306,7 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    createHitEffect(x, y) {
+    createHitEffect(x, y, damage = 30) {
         // Main explosion effect
         const explosion = this.add.graphics();
         explosion.fillStyle(0xff4444, 0.8);
@@ -1195,8 +1347,8 @@ class BattleScene extends Phaser.Scene {
             });
         }
         
-        // Damage number
-        const damageText = this.add.text(x, y - 20, `-${Math.floor(Math.random() * 50 + 30)}`, {
+        // Damage number - show actual damage dealt
+        const damageText = this.add.text(x, y - 20, `-${damage}`, {
             fontSize: '16px',
             fill: '#ff0000',
             fontFamily: 'Arial',
@@ -1212,6 +1364,91 @@ class BattleScene extends Phaser.Scene {
             ease: 'Power2',
             onComplete: () => damageText.destroy()
         });
+    }
+
+    destroyTank(tank) {
+        // Create dramatic destruction animation
+        const x = tank.x;
+        const y = tank.y;
+        
+        // Main explosion - larger than hit effect
+        const bigExplosion = this.add.graphics();
+        bigExplosion.fillStyle(0xff2200, 0.9);
+        bigExplosion.fillCircle(x, y, 25);
+        bigExplosion.lineStyle(5, 0xffaa00);
+        bigExplosion.strokeCircle(x, y, 25);
+        
+        // Big explosion animation
+        this.tweens.add({
+            targets: bigExplosion,
+            alpha: 0,
+            scaleX: 4,
+            scaleY: 4,
+            duration: 600,
+            ease: 'Power2',
+            onComplete: () => bigExplosion.destroy()
+        });
+        
+        // Multiple spark bursts
+        for (let burst = 0; burst < 3; burst++) {
+            this.time.delayedCall(burst * 100, () => {
+                for (let i = 0; i < 8; i++) {
+                    const spark = this.add.graphics();
+                    spark.fillStyle(0xffff00);
+                    spark.fillCircle(x, y, 3);
+                    
+                    const sparkAngle = (Math.PI * 2 * i) / 8;
+                    const sparkDistance = GameHelpers.randomInt(30, 60);
+                    const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
+                    const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
+                    
+                    this.tweens.add({
+                        targets: spark,
+                        x: sparkX,
+                        y: sparkY,
+                        alpha: 0,
+                        duration: 400 + burst * 100,
+                        ease: 'Power2',
+                        onComplete: () => spark.destroy()
+                    });
+                }
+            });
+        }
+        
+        // Tank wreckage effect - make tank darker and rotate
+        this.tweens.add({
+            targets: tank,
+            alpha: 0.3,
+            angle: tank.angle + GameHelpers.randomInt(-45, 45),
+            scaleX: 0.8,
+            scaleY: 0.8,
+            duration: 500,
+            ease: 'Power2'
+        });
+        
+        // Remove tank from battlefield after animation
+        this.time.delayedCall(1000, () => {
+            // Remove from tanks array
+            const tankIndex = this.tanks.indexOf(tank);
+            if (tankIndex !== -1) {
+                this.tanks.splice(tankIndex, 1);
+            }
+            
+            // Destroy tank sprite and health bar
+            if (tank.healthFill) tank.healthFill.destroy();
+            if (tank.healthBg) tank.healthBg.destroy();
+            if (tank.selectionCircle) tank.selectionCircle.destroy();
+            if (tank.rangeCircle) tank.rangeCircle.destroy();
+            tank.destroy();
+        });
+        
+        // Play destruction sound
+        const playExplosionSound = this.registry.get('playExplosionSound');
+        if (playExplosionSound) {
+            playExplosionSound();
+            // Play it twice for bigger effect
+            this.time.delayedCall(150, () => playExplosionSound());
+        }
     }
 
     endBattle(result) {
