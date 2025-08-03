@@ -141,44 +141,18 @@ class BattleScene extends Phaser.Scene {
     }
 
     createUI() {
-        const uiY = GAME_CONFIG.HEIGHT - 100;
+        // Redesigned UI layout: Base at y=680, Cards below it, Energy bar at bottom
         
-        // UI background - fixed to camera
-        const uiGraphics = this.add.graphics();
-        uiGraphics.fillStyle(0x1a1a1a, 0.9);
-        uiGraphics.fillRect(0, uiY, GAME_CONFIG.WIDTH, 100);
-        uiGraphics.setScrollFactor(0); // Fixed to camera
+        // Remove old UI background - we'll position elements individually
+        
+        // Tank cards positioned below the base
+        this.createTankCards();
 
-        // Energy bar
-        this.energyBarBg = this.add.graphics();
-        this.energyBarBg.fillStyle(0x333333);
-        this.energyBarBg.fillRect(20, uiY + 20, 200, 20);
-        this.energyBarBg.setScrollFactor(0);
-
-        this.energyBarFill = this.add.graphics();
-        this.energyBarFill.setScrollFactor(0);
-
-        // Energy text
-        this.energyText = this.add.text(230, uiY + 22, `${this.energy}/${this.maxEnergy}`, {
-            fontSize: '16px',
-            fill: '#ffffff',
-            fontFamily: 'Arial'
-        });
-        this.energyText.setScrollFactor(0);
-
-        // Update energy bar after creating the text
-        this.updateEnergyBar();
-
-        // Battle timer
-        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 100, uiY + 20, this.formatTime(this.battleTime), {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontFamily: 'Arial'
-        });
-        this.timerText.setScrollFactor(0);
-
-        // Tank cards (placeholder for now)
-        this.createTankCards(uiY);
+        // Energy bar positioned at the very bottom, centered
+        this.createEnergyBar();
+        
+        // Timer in top right corner
+        this.createTimer();
 
         // No mode indicator needed - always deployment in Clash Royale style
 
@@ -205,7 +179,137 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    createTankCards(uiY) {
+    createTankCards() {
+        // Position cards below the player base (which is at y=680)
+        const cardsY = 720; // 40px below the base
+        const cardWidth = 80;
+        const cardHeight = 60;
+        const cardSpacing = 90;
+        const totalWidth = (4 * cardSpacing) - (cardSpacing - cardWidth); // Account for spacing
+        const startX = (GAME_CONFIG.WIDTH - totalWidth) / 2; // Center horizontally
+
+        this.tankCards = [];
+        
+        // Create 4 cards from hand
+        for (let index = 0; index < 4; index++) {
+            const tankId = this.hand[index];
+            const tankData = TANK_DATA[tankId];
+            const cardX = startX + index * cardSpacing;
+
+            // Card background
+            const card = this.add.image(cardX, cardsY, 'card_bg')
+                .setDisplaySize(cardWidth, cardHeight)
+                .setInteractive()
+                .setOrigin(0);
+            card.setScrollFactor(0);
+
+            // Tank icon - create miniature version of actual tank
+            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardsY + 20, tankData.type);
+            tankIcon.setScale(0.6);
+            card.tankIcon = tankIcon;
+
+            // Cost
+            const costText = this.add.text(cardX + cardWidth - 5, cardsY + cardHeight - 5, tankData.cost, {
+                fontSize: '12px',
+                fill: '#ffff00',
+                fontFamily: 'Arial',
+                stroke: '#000000',
+                strokeThickness: 1
+            }).setOrigin(1);
+            costText.setScrollFactor(0);
+
+            // Card name (small text)
+            const nameText = this.add.text(cardX + cardWidth/2, cardsY + 45, tankData.name, {
+                fontSize: '9px',
+                fill: '#ffffff',
+                fontFamily: 'Arial'
+            }).setOrigin(0.5);
+            nameText.setScrollFactor(0);
+
+            // Selection border (initially hidden)
+            const selectionBorder = this.add.graphics();
+            selectionBorder.lineStyle(3, 0xffff00);
+            selectionBorder.strokeRect(cardX - 2, cardsY - 2, cardWidth + 4, cardHeight + 4);
+            selectionBorder.setVisible(false);
+            selectionBorder.setScrollFactor(0);
+
+            // Store references
+            card.index = index;
+            card.tankId = tankId;
+            card.tankData = tankData;
+            card.costText = costText;
+            card.nameText = nameText;
+            card.selectionBorder = selectionBorder;
+
+            // Click handler
+            card.on('pointerdown', () => {
+                this.selectTankCard(index);
+            });
+
+            // Hover effects
+            card.on('pointerover', () => {
+                if (index !== this.selectedCard) {
+                    card.setTint(0xcccccc);
+                }
+                this.showCardTooltip(index, cardX + cardWidth/2, cardsY - 10);
+            });
+
+            card.on('pointerout', () => {
+                if (index !== this.selectedCard) {
+                    card.clearTint();
+                }
+                this.hideCardTooltip();
+            });
+
+            this.tankCards.push(card);
+        }
+
+        // Select first card by default
+        this.selectTankCard(0);
+    }
+
+    createEnergyBar() {
+        // Position energy bar at the bottom center
+        const energyY = GAME_CONFIG.HEIGHT - 20;
+        const barWidth = 200;
+        const barHeight = 16;
+        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
+
+        // Energy bar background
+        this.energyBarBg = this.add.graphics();
+        this.energyBarBg.fillStyle(0x333333);
+        this.energyBarBg.fillRect(barX, energyY, barWidth, barHeight);
+        this.energyBarBg.setScrollFactor(0);
+
+        // Energy bar fill
+        this.energyBarFill = this.add.graphics();
+        this.energyBarFill.setScrollFactor(0);
+
+        // Energy text centered above the bar
+        this.energyText = this.add.text(GAME_CONFIG.WIDTH / 2, energyY - 8, `${this.energy}/${this.maxEnergy}`, {
+            fontSize: '14px',
+            fill: '#ffffff',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5, 1);
+        this.energyText.setScrollFactor(0);
+
+        // Update energy bar after creating
+        this.updateEnergyBar();
+    }
+
+    createTimer() {
+        // Timer in top right corner
+        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 20, 20, this.formatTime(this.battleTime), {
+            fontSize: '18px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(1, 0);
+        this.timerText.setScrollFactor(0);
+    }
+
+    createTankCards_OLD(uiY) {
         const cardWidth = 80;
         const cardHeight = 60;
         const cardSpacing = 90;
@@ -293,20 +397,11 @@ class BattleScene extends Phaser.Scene {
     updateCardSelection() {
         this.tankCards.forEach((card, index) => {
             if (index === this.selectedCard) {
-                card.container.setTint(0xffff00);
-                // Highlight border
-                if (!card.selectionBorder) {
-                    card.selectionBorder = this.add.graphics();
-                    card.selectionBorder.setScrollFactor(0);
-                }
-                card.selectionBorder.clear();
-                card.selectionBorder.lineStyle(3, 0xffff00);
-                card.selectionBorder.strokeRect(card.container.x - 2, card.container.y - 2, 84, 64);
+                card.setTint(0xffff00);
+                card.selectionBorder.setVisible(true);
             } else {
-                card.container.clearTint();
-                if (card.selectionBorder) {
-                    card.selectionBorder.clear();
-                }
+                card.clearTint();
+                card.selectionBorder.setVisible(false);
             }
         });
     }
@@ -346,8 +441,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBases() {
-        // Player base at bottom center (Clash Royale style)
-        const playerBase = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'base');
+        // Player base at bottom center but above UI area
+        const playerBase = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 120, 'base');
         playerBase.health = 1000;
         playerBase.maxHealth = 1000;
         playerBase.isPlayerBase = true;
@@ -454,9 +549,14 @@ class BattleScene extends Phaser.Scene {
 
     updateEnergyBar() {
         const energyPercent = this.energy / this.maxEnergy;
+        const barWidth = 200;
+        const barHeight = 16;
+        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
+        const energyY = GAME_CONFIG.HEIGHT - 20;
+        
         this.energyBarFill.clear();
         this.energyBarFill.fillStyle(0x4a90e2);
-        this.energyBarFill.fillRect(20, GAME_CONFIG.HEIGHT - 80, 200 * energyPercent, 20);
+        this.energyBarFill.fillRect(barX, energyY, barWidth * energyPercent, barHeight);
         
         if (this.energyText) {
             this.energyText.setText(`${this.energy}/${this.maxEnergy}`);
@@ -1552,29 +1652,30 @@ class BattleScene extends Phaser.Scene {
         const card = this.tankCards[cardIndex];
         
         // Destroy old tank icon and create new one
-        if (card.icon) {
-            card.icon.destroy();
+        if (card.tankIcon) {
+            card.tankIcon.destroy();
         }
         
         // Create new tank icon with updated graphics
-        const cardX = card.container.x;
-        const cardY = card.container.y;
-        card.icon = this.createMiniTankGraphics(cardX + 40, cardY + 20, tankData.type);
-        card.icon.setScale(0.6);
+        const cardX = card.x;
+        const cardY = card.y;
+        const cardWidth = 80;
+        card.tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 20, tankData.type);
+        card.tankIcon.setScale(0.6);
         
         // Update cost
-        card.cost.setText(tankData.cost);
+        card.costText.setText(tankData.cost);
         
         // Update name
-        card.name.setText(tankData.name);
+        card.nameText.setText(tankData.name);
         
-        // Update stored data
+        // Update card references
         card.tankId = tankId;
         card.tankData = tankData;
         
         // Brief highlight animation to show card changed
         this.tweens.add({
-            targets: card.container,
+            targets: card,
             scaleX: 1.1,
             scaleY: 1.1,
             duration: 150,
@@ -1585,20 +1686,24 @@ class BattleScene extends Phaser.Scene {
 
     showInsufficientEnergyFeedback() {
         // Flash the energy bar red
+        const barWidth = 200;
+        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
+        const energyY = GAME_CONFIG.HEIGHT - 20;
+        
         this.energyBarFill.clear();
         this.energyBarFill.fillStyle(0xff0000);
-        this.energyBarFill.fillRect(20, GAME_CONFIG.HEIGHT - 80, 200 * (this.energy / this.maxEnergy), 20);
+        this.energyBarFill.fillRect(barX, energyY, barWidth * (this.energy / this.maxEnergy), 16);
         
         // Flash the selected card
         const selectedCard = this.tankCards[this.selectedCard];
         this.tweens.add({
-            targets: selectedCard.container,
+            targets: selectedCard,
             tint: 0xff0000,
             duration: 200,
             yoyo: true,
             repeat: 1,
             onComplete: () => {
-                selectedCard.container.clearTint();
+                selectedCard.clearTint();
                 this.updateCardSelection(); // Restore selection highlight
                 this.updateEnergyBar(); // Restore normal energy bar color
             }

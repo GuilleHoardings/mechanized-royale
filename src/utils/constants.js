@@ -32,7 +32,7 @@ const ENERGY_CONFIG = {
 const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
     DEPLOYMENT_ZONES: {
-        PLAYER: { x: 0, y: 500, width: 600, height: 200 },    // Bottom area for player
+        PLAYER: { x: 0, y: 450, width: 600, height: 220 },    // Bottom area for player (above cards)
         ENEMY: { x: 0, y: 50, width: 600, height: 200 }       // Top area for enemy spawning
     }
 };
