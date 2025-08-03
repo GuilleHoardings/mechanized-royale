@@ -440,17 +440,21 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
+        // Convert screen coordinates to world coordinates
+        const worldX = pointer.x + this.cameras.main.scrollX;
+        const worldY = pointer.y + this.cameras.main.scrollY;
+        
         if (this.deploymentMode) {
             // Deployment mode - only allow deployment in player zone
             const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
-            if (!GameHelpers.pointInRect(pointer.x, pointer.y, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
+            if (!GameHelpers.pointInRect(worldX, worldY, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
                 return;
             }
 
             // Deploy selected tank if we have enough energy
             const selectedCardData = this.tankCards[this.selectedCard];
             if (this.energy >= selectedCardData.tankData.cost) {
-                this.deployTank(selectedCardData.tankId, pointer.x, pointer.y);
+                this.deployTank(selectedCardData.tankId, worldX, worldY);
                 this.energy -= selectedCardData.tankData.cost;
                 this.updateEnergyBar();
                 
@@ -462,14 +466,14 @@ class BattleScene extends Phaser.Scene {
             }
         } else {
             // Movement mode - select tank or move selected tank
-            const clickedTank = this.getTankAtPosition(pointer.x, pointer.y);
+            const clickedTank = this.getTankAtPosition(worldX, worldY);
             
             if (clickedTank && clickedTank.isPlayerTank) {
                 // Select this tank
                 this.selectTank(clickedTank);
             } else if (this.selectedTank) {
                 // Move selected tank to clicked position
-                this.moveSelectedTankTo(pointer.x, pointer.y);
+                this.moveSelectedTankTo(worldX, worldY);
             }
         }
     }
