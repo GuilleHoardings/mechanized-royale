@@ -15,6 +15,48 @@ class BattleScene extends Phaser.Scene {
         this.cameraSpeed = 5;
         this.deploymentMode = true; // Toggle between deployment and movement modes
         
+        // Enhanced battle statistics
+        this.battleStats = {
+            player: {
+                tanksDeployed: 0,
+                totalDamageDealt: 0,
+                totalDamageTaken: 0,
+                tanksDestroyed: 0,
+                tanksLost: 0,
+                shotsHit: 0,
+                shotsFired: 0,
+                energySpent: 0,
+                maxTanksAlive: 0,
+                criticalHits: 0,
+                buildingDamage: 0
+            },
+            ai: {
+                tanksDeployed: 0,
+                totalDamageDealt: 0,
+                totalDamageTaken: 0,
+                tanksDestroyed: 0,
+                tanksLost: 0,
+                shotsHit: 0,
+                shotsFired: 0,
+                energySpent: 0,
+                maxTanksAlive: 0,
+                criticalHits: 0,
+                buildingDamage: 0
+            },
+            battle: {
+                startTime: 0, // Will be set in create()
+                endTime: null,
+                overtimeActivated: false,
+                longestTankSurvival: 0,
+                totalProjectilesFired: 0,
+                totalDamageDealt: 0
+            }
+        };
+
+        // Enhanced battle timer settings
+        this.overtimeActive = false;
+        this.maxOvertimeSeconds = 60;
+        
         // Card deck system
         this.deck = [...this.gameState.player.tanks]; // Copy player's tanks
         this.hand = [];
@@ -23,6 +65,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     create() {
+        // Initialize battle start time for statistics
+        this.battleStats.battle.startTime = this.time.now;
+        
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
 
@@ -426,20 +471,152 @@ class BattleScene extends Phaser.Scene {
             delay: 1000,
             callback: () => {
                 this.battleTime--;
-                this.timerText.setText(this.formatTime(this.battleTime));
-                
-                // Change timer color when time is running low
-                if (this.battleTime <= 30) {
-                    this.timerText.setFill('#ff0000'); // Red
-                } else if (this.battleTime <= 60) {
-                    this.timerText.setFill('#ffff00'); // Yellow
-                }
+                this.updateTimerDisplay();
                 
                 if (this.battleTime <= 0) {
-                    this.endBattle('time');
+                    // Check if overtime is needed
+                    this.checkOvertimeConditions();
                 }
             },
             loop: true
+        });
+    }
+
+    updateTimerDisplay() {
+        let timeText;
+        let timeColor = '#ffffff';
+        
+        if (this.overtimeActive) {
+            // Overtime display
+            const overtimeSeconds = Math.abs(this.battleTime);
+            timeText = `+${this.formatTime(overtimeSeconds)}`;
+            timeColor = '#ff4444';
+            
+            // Pulse effect during overtime
+            this.tweens.add({
+                targets: this.timerText,
+                scaleX: 1.2,
+                scaleY: 1.2,
+                duration: 200,
+                yoyo: true,
+                ease: 'Power2'
+            });
+        } else {
+            timeText = this.formatTime(this.battleTime);
+            
+            // Change timer color when time is running low
+            if (this.battleTime <= 10) {
+                timeColor = '#ff0000'; // Red - Critical
+                // Flash effect for last 10 seconds
+                this.tweens.add({
+                    targets: this.timerText,
+                    alpha: 0.3,
+                    duration: 500,
+                    yoyo: true,
+                    ease: 'Power2'
+                });
+            } else if (this.battleTime <= 30) {
+                timeColor = '#ff0000'; // Red
+            } else if (this.battleTime <= 60) {
+                timeColor = '#ffff00'; // Yellow
+            }
+        }
+        
+        this.timerText.setText(timeText);
+        this.timerText.setFill(timeColor);
+    }
+
+    checkOvertimeConditions() {
+        const playerBase = this.buildings.find(b => b.isPlayerBase);
+        const enemyBase = this.buildings.find(b => !b.isPlayerBase);
+        
+        // If both bases alive and health is close, activate overtime
+        if (playerBase && enemyBase) {
+            const playerHealthPercent = playerBase.health / playerBase.maxHealth;
+            const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
+            const healthDiff = Math.abs(playerHealthPercent - enemyHealthPercent);
+            
+            if (healthDiff <= 0.1 && !this.overtimeActive) {
+                // Health difference <= 10% - activate overtime
+                this.activateOvertime();
+                return;
+            }
+        }
+        
+        // No overtime needed - end battle normally
+        this.endBattle('time');
+    }
+
+    activateOvertime() {
+        this.overtimeActive = true;
+        this.overtimeStartTime = this.time.now;
+        this.maxOvertimeSeconds = 60; // 1 minute overtime max
+        
+        // Show overtime notification
+        this.showOvertimeNotification();
+        
+        // Overtime timer continues counting down from 0
+        this.battleTime = 0;
+    }
+
+    showOvertimeNotification() {
+        const overtimeText = this.add.text(GAME_CONFIG.WIDTH / 2, 150, 'OVERTIME!', {
+            fontSize: '32px',
+            fill: '#ff4444',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        overtimeText.setScrollFactor(0);
+        overtimeText.setDepth(50);
+        
+        const subtitleText = this.add.text(GAME_CONFIG.WIDTH / 2, 180, 'First to gain advantage wins!', {
+            fontSize: '16px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        subtitleText.setScrollFactor(0);
+        subtitleText.setDepth(50);
+        
+        // Dramatic entrance animation
+        this.tweens.add({
+            targets: [overtimeText, subtitleText],
+            scaleX: { from: 0, to: 1 },
+            scaleY: { from: 0, to: 1 },
+            alpha: { from: 0, to: 1 },
+            duration: 500,
+            ease: 'Back.out',
+            onComplete: () => {
+                // Fade out after 3 seconds
+                this.time.delayedCall(3000, () => {
+                    this.tweens.add({
+                        targets: [overtimeText, subtitleText],
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => {
+                            overtimeText.destroy();
+                            subtitleText.destroy();
+                        }
+                    });
+                });
+            }
+        });
+        
+        // Screen flash effect
+        const flashOverlay = this.add.graphics();
+        flashOverlay.fillStyle(0xff4444, 0.3);
+        flashOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+        flashOverlay.setScrollFactor(0);
+        flashOverlay.setDepth(45);
+        
+        this.tweens.add({
+            targets: flashOverlay,
+            alpha: 0,
+            duration: 800,
+            onComplete: () => flashOverlay.destroy()
         });
     }
 
@@ -519,6 +696,18 @@ class BattleScene extends Phaser.Scene {
         
         // Create health bar for tank
         this.createTankHealthBar(tank);
+        
+        // Update statistics
+        this.battleStats.player.tanksDeployed++;
+        const cost = tankData.stats.cost;
+        this.battleStats.player.energySpent += cost;
+        this.playUISound('deploy');
+
+        // Track max tanks alive
+        const playerTanksAlive = this.tanks.filter(t => t.isPlayerTank && t.health > 0).length;
+        if (playerTanksAlive > this.battleStats.player.maxTanksAlive) {
+            this.battleStats.player.maxTanksAlive = playerTanksAlive;
+        }
         
         // Notify AI of player deployment for reactive strategy
         this.notifyAIOfPlayerAction('deploy', tankData);
@@ -930,7 +1119,20 @@ class BattleScene extends Phaser.Scene {
     aiDeployTankStrategically() {
         // Choose tank based on current strategy
         const tankId = this.chooseAITank();
+        
+        // Check if we got a valid tank ID
+        if (!tankId) {
+            console.warn('AI could not choose a tank to deploy');
+            return;
+        }
+        
         const tankData = TANK_DATA[tankId];
+        
+        // Check if tank data exists
+        if (!tankData) {
+            console.warn('Tank data not found for ID:', tankId);
+            return;
+        }
         
         if (this.aiEnergy < tankData.cost) return; // Not enough energy
         
@@ -946,15 +1148,38 @@ class BattleScene extends Phaser.Scene {
         // Filter deck by preferred types for current strategy
         let availableTanks = this.aiDeck.filter(tankId => {
             const tankData = TANK_DATA[tankId];
-            return this.aiEnergy >= tankData.cost;
+            return tankData && this.aiEnergy >= tankData.cost;
         });
         
         if (availableTanks.length === 0) {
             // Fallback to cheapest available tank
             availableTanks = this.aiDeck.filter(tankId => {
                 const tankData = TANK_DATA[tankId];
-                return tankData.cost <= this.aiEnergy;
+                return tankData && tankData.cost <= this.aiEnergy;
             });
+        }
+        
+        // If still no tanks available, find the absolute cheapest tank
+        if (availableTanks.length === 0) {
+            // Get all valid tank IDs and find the cheapest one
+            const allValidTanks = this.aiDeck.filter(tankId => TANK_DATA[tankId]);
+            if (allValidTanks.length > 0) {
+                const cheapestTank = allValidTanks.reduce((cheapest, tankId) => {
+                    const tankData = TANK_DATA[tankId];
+                    const cheapestData = TANK_DATA[cheapest];
+                    return tankData.cost < cheapestData.cost ? tankId : cheapest;
+                });
+                
+                // If we can afford the cheapest tank, use it
+                if (TANK_DATA[cheapestTank] && this.aiEnergy >= TANK_DATA[cheapestTank].cost) {
+                    availableTanks = [cheapestTank];
+                }
+            }
+        }
+        
+        // If we still have no available tanks, return null
+        if (availableTanks.length === 0) {
+            return null;
         }
         
         // Prefer strategy-appropriate tanks
@@ -977,7 +1202,7 @@ class BattleScene extends Phaser.Scene {
             // Counter heavy tanks with medium/heavy tanks
             const counterTanks = availableTanks.filter(tankId => {
                 const tankData = TANK_DATA[tankId];
-                return tankData.type === TANK_TYPES.MEDIUM || tankData.type === TANK_TYPES.HEAVY;
+                return tankData && (tankData.type === TANK_TYPES.MEDIUM || tankData.type === TANK_TYPES.HEAVY);
             });
             if (counterTanks.length > 0) {
                 return counterTanks[Math.floor(Math.random() * counterTanks.length)];
@@ -1121,10 +1346,25 @@ class BattleScene extends Phaser.Scene {
         // Remove destroyed tanks
         this.tanks = this.tanks.filter(tank => {
             if (tank.health <= 0) {
+                // Track tank destruction statistics
+                if (tank.isPlayerTank) {
+                    this.battleStats.player.tanksLost++;
+                    // AI gets credit for destroying player tank
+                    this.battleStats.ai.tanksDestroyed++;
+                } else {
+                    this.battleStats.ai.tanksLost++;
+                    // Player gets credit for destroying AI tank
+                    this.battleStats.player.tanksDestroyed++;
+                }
+                
                 // If this was the selected tank, deselect it
                 if (this.selectedTank === tank) {
                     this.selectedTank = null;
                 }
+                
+                // Create destruction effect
+                this.createExplosionEffect(tank.x, tank.y, 1.2);
+                this.playExplosionSound('medium');
                 
                 tank.destroy();
                 if (tank.healthBg) tank.healthBg.destroy();
@@ -1664,12 +1904,19 @@ class BattleScene extends Phaser.Scene {
         bullet.target = target;
         bullet.speed = bulletSpeed;
         
+        // Track shots fired statistics
+        if (attacker.isPlayerTank) {
+            this.battleStats.player.shotsFired++;
+        } else {
+            this.battleStats.ai.shotsFired++;
+        }
+        this.battleStats.battle.totalProjectilesFired++;
+        
         // Add to projectiles array
         this.projectiles.push(bullet);
         
         // Play shoot sound
-        const playShootSound = this.registry.get('playShootSound');
-        if (playShootSound) playShootSound();
+        this.playShootSound(attacker.tankData.type);
         
         // Animate bullet movement
         this.tweens.add({
@@ -1714,19 +1961,67 @@ class BattleScene extends Phaser.Scene {
             // Penetration formula: if penetration >= armor, full damage
             // Otherwise, reduced damage based on armor effectiveness
             let finalDamage;
+            let penetrationRatio = 1.0; // Default to full penetration
+            
             if (penetration >= targetArmor) {
                 finalDamage = baseDamage;
+                penetrationRatio = 1.0;
             } else {
                 // Armor reduces damage: damage = base * (penetration / armor)
-                const penetrationRatio = Math.max(0.1, penetration / targetArmor); // Minimum 10% damage
+                penetrationRatio = Math.max(0.1, penetration / targetArmor); // Minimum 10% damage
                 finalDamage = Math.floor(baseDamage * penetrationRatio);
             }
             
             // Store previous health for destruction check
             const previousHealth = bullet.target.health;
             
-            // Apply damage
+            // Apply damage and track statistics
             bullet.target.health = Math.max(0, bullet.target.health - finalDamage);
+            
+            // Update battle statistics
+            if (bullet.attacker) {
+                // Track shots hit
+                if (bullet.attacker.isPlayerTank) {
+                    this.battleStats.player.shotsHit++;
+                    this.battleStats.player.totalDamageDealt += finalDamage;
+                    if (bullet.target.isPlayerTank !== undefined) {
+                        // Tank target
+                        if (!bullet.target.isPlayerTank) {
+                            // Player hit enemy tank
+                            this.battleStats.ai.totalDamageTaken += finalDamage;
+                        }
+                    } else {
+                        // Building target
+                        this.battleStats.player.buildingDamage += finalDamage;
+                    }
+                    
+                    // Track critical hits (high penetration)
+                    if (penetrationRatio >= 0.8) {
+                        this.battleStats.player.criticalHits++;
+                    }
+                } else {
+                    this.battleStats.ai.shotsHit++;
+                    this.battleStats.ai.totalDamageDealt += finalDamage;
+                    if (bullet.target.isPlayerTank !== undefined) {
+                        // Tank target
+                        if (bullet.target.isPlayerTank) {
+                            // AI hit player tank
+                            this.battleStats.player.totalDamageTaken += finalDamage;
+                        }
+                    } else {
+                        // Building target
+                        this.battleStats.ai.buildingDamage += finalDamage;
+                    }
+                    
+                    // Track AI critical hits
+                    if (penetrationRatio >= 0.8) {
+                        this.battleStats.ai.criticalHits++;
+                    }
+                }
+            }
+            
+            // Track total battle damage
+            this.battleStats.battle.totalDamageDealt += finalDamage;
             
             // Update health display
             if (bullet.target.healthFill) {
@@ -1747,8 +2042,10 @@ class BattleScene extends Phaser.Scene {
                         this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
                     });
                 } else if (previousHealth > 0) {
-                    // Tank destroyed - add destruction animation
-                    this.destroyTank(bullet.target);
+                    // Tank destroyed - the update() method will handle cleanup
+                    // Just create a destruction effect here
+                    this.createExplosionEffect(bullet.target.x, bullet.target.y, 1.5);
+                    this.playExplosionSound('large');
                 }
             }
 
@@ -1791,36 +2088,51 @@ class BattleScene extends Phaser.Scene {
     }
 
     createHitEffect(x, y, damage = 30, isFromBase = false) {
-        // Main explosion effect - enhanced for base projectiles
+        // Enhanced main explosion effect
         const explosion = this.add.graphics();
         const explosionColor = isFromBase ? 0xffaa00 : 0xff4444;
-        const explosionSize = isFromBase ? 20 : 15;
+        const explosionSize = isFromBase ? 25 : 18;
         
-        explosion.fillStyle(explosionColor, 0.8);
+        explosion.fillStyle(explosionColor, 0.9);
         explosion.fillCircle(x, y, explosionSize);
         explosion.lineStyle(3, isFromBase ? 0xff6600 : 0xffaa00);
         explosion.strokeCircle(x, y, explosionSize);
         
-        // Explosion animation
+        // Enhanced explosion animation with better scaling
         this.tweens.add({
             targets: explosion,
             alpha: 0,
-            scaleX: isFromBase ? 3.0 : 2.5,
-            scaleY: isFromBase ? 3.0 : 2.5,
-            duration: 400,
-            ease: 'Power2',
+            scaleX: isFromBase ? 3.5 : 3.0,
+            scaleY: isFromBase ? 3.5 : 3.0,
+            duration: 450,
+            ease: 'Power2.out',
             onComplete: () => explosion.destroy()
         });
         
-        // Sparks effect - more for base projectiles
-        const sparkCount = isFromBase ? 8 : 6;
+        // Secondary explosion ring for extra impact
+        const ring = this.add.graphics();
+        ring.lineStyle(4, isFromBase ? 0xffcc00 : 0xff8800, 0.8);
+        ring.strokeCircle(x, y, explosionSize - 5);
+        
+        this.tweens.add({
+            targets: ring,
+            scaleX: isFromBase ? 4.0 : 3.5,
+            scaleY: isFromBase ? 4.0 : 3.5,
+            alpha: 0,
+            duration: 600,
+            ease: 'Power2.out',
+            onComplete: () => ring.destroy()
+        });
+        
+        // Enhanced sparks effect with better distribution
+        const sparkCount = isFromBase ? 12 : 8;
         for (let i = 0; i < sparkCount; i++) {
             const spark = this.add.graphics();
-            spark.fillStyle(isFromBase ? 0xffcc00 : 0xffff00);
-            spark.fillCircle(x, y, isFromBase ? 3 : 2);
+            spark.fillStyle(isFromBase ? 0xffcc00 : 0xffff00, 0.9);
+            spark.fillCircle(x, y, isFromBase ? 4 : 3);
             
-            const sparkAngle = (Math.PI * 2 * i) / sparkCount;
-            const sparkDistance = GameHelpers.randomInt(isFromBase ? 30 : 20, isFromBase ? 50 : 40);
+            const sparkAngle = (Math.PI * 2 * i) / sparkCount + (Math.random() - 0.5) * 0.5;
+            const sparkDistance = GameHelpers.randomInt(isFromBase ? 35 : 25, isFromBase ? 60 : 45);
             const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
             const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
             
@@ -1829,31 +2141,227 @@ class BattleScene extends Phaser.Scene {
                 x: sparkX,
                 y: sparkY,
                 alpha: 0,
-                duration: 300,
-                ease: 'Power2',
+                scaleX: 0.1,
+                scaleY: 0.1,
+                duration: 350 + Math.random() * 200,
+                ease: 'Power2.out',
                 onComplete: () => spark.destroy()
             });
         }
         
-        // Damage number - show actual damage dealt with base colors
+        // Enhanced damage number with better animation
         const damageColor = isFromBase ? '#ffaa00' : '#ff0000';
-        const damageText = this.add.text(x, y - 20, `-${Math.floor(damage)}`, {
-            fontSize: isFromBase ? '18px' : '16px',
+        const damageText = this.add.text(x, y - 25, `-${Math.floor(damage)}`, {
+            fontSize: isFromBase ? '20px' : '18px',
             fill: damageColor,
             fontFamily: 'Arial',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 3
         }).setOrigin(0.5);
         
+        // Bounce effect for damage numbers
         this.tweens.add({
             targets: damageText,
-            y: damageText.y - 30,
+            y: damageText.y - 40,
+            scaleX: { from: 0.5, to: 1.2 },
+            scaleY: { from: 0.5, to: 1.2 },
             alpha: 0,
-            duration: 1000,
-            ease: 'Power2',
+            duration: 1200,
+            ease: 'Back.out',
             onComplete: () => damageText.destroy()
         });
+        
+        // Audio feedback
+        this.playHitSound(isFromBase, damage);
+    }
+
+    playHitSound(isFromBase, damage) {
+        // Enhanced audio feedback based on hit type and damage
+        if (isFromBase) {
+            // Base/turret hit - deeper, more impactful sounds
+            if (damage > 50) {
+                console.log('🔊 Playing: Heavy Cannon Impact');
+                // this.sound.play('heavyCannonHit', { volume: 0.7 });
+            } else {
+                console.log('🔊 Playing: Cannon Impact');
+                // this.sound.play('cannonHit', { volume: 0.6 });
+            }
+        } else {
+            // Tank hit - metallic impact sounds
+            if (damage > 80) {
+                console.log('🔊 Playing: Armor Penetration');
+                // this.sound.play('armorPenetration', { volume: 0.8 });
+            } else if (damage > 40) {
+                console.log('🔊 Playing: Heavy Tank Hit');
+                // this.sound.play('heavyTankHit', { volume: 0.6 });
+            } else {
+                console.log('🔊 Playing: Tank Hit');
+                // this.sound.play('tankHit', { volume: 0.5 });
+            }
+        }
+    }
+
+    createExplosionEffect(x, y, scale = 1.0) {
+        // Large explosion effect for tank/building destruction
+        const explosionSize = 30 * scale;
+        
+        // Main explosion blast
+        const explosion = this.add.graphics();
+        explosion.fillStyle(0xff4400, 0.95);
+        explosion.fillCircle(x, y, explosionSize);
+        explosion.lineStyle(4, 0xffaa00);
+        explosion.strokeCircle(x, y, explosionSize);
+        
+        // Explosion animation with powerful scaling
+        this.tweens.add({
+            targets: explosion,
+            alpha: 0,
+            scaleX: 4.0 * scale,
+            scaleY: 4.0 * scale,
+            duration: 600,
+            ease: 'Power2.out',
+            onComplete: () => explosion.destroy()
+        });
+        
+        // Secondary shockwave ring
+        const shockwave = this.add.graphics();
+        shockwave.lineStyle(6, 0xff6600, 0.8);
+        shockwave.strokeCircle(x, y, explosionSize - 8);
+        
+        this.tweens.add({
+            targets: shockwave,
+            scaleX: 5.0 * scale,
+            scaleY: 5.0 * scale,
+            alpha: 0,
+            duration: 800,
+            ease: 'Power2.out',
+            onComplete: () => shockwave.destroy()
+        });
+        
+        // Debris particles for destruction effect
+        const debrisCount = Math.floor(15 * scale);
+        for (let i = 0; i < debrisCount; i++) {
+            const debris = this.add.graphics();
+            debris.fillStyle(0x666666, 0.9);
+            debris.fillRect(x - 3, y - 3, 6, 6);
+            
+            const debrisAngle = (Math.PI * 2 * i) / debrisCount + (Math.random() - 0.5) * 0.8;
+            const debrisDistance = GameHelpers.randomInt(40, 80) * scale;
+            const debrisX = x + Math.cos(debrisAngle) * debrisDistance;
+            const debrisY = y + Math.sin(debrisAngle) * debrisDistance;
+            
+            this.tweens.add({
+                targets: debris,
+                x: debrisX,
+                y: debrisY,
+                rotation: Math.random() * Math.PI * 2,
+                alpha: 0,
+                scaleX: 0.1,
+                scaleY: 0.1,
+                duration: 400 + Math.random() * 300,
+                ease: 'Power2.out',
+                onComplete: () => debris.destroy()
+            });
+        }
+        
+        // Fire sparks effect
+        const sparkCount = Math.floor(20 * scale);
+        for (let i = 0; i < sparkCount; i++) {
+            const spark = this.add.graphics();
+            spark.fillStyle(0xffdd00, 0.9);
+            spark.fillCircle(x, y, 3);
+            
+            const sparkAngle = Math.random() * Math.PI * 2;
+            const sparkDistance = GameHelpers.randomInt(50, 100) * scale;
+            const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
+            const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
+            
+            this.tweens.add({
+                targets: spark,
+                x: sparkX,
+                y: sparkY,
+                alpha: 0,
+                scaleX: 0.1,
+                scaleY: 0.1,
+                duration: 500 + Math.random() * 300,
+                ease: 'Power2.out',
+                onComplete: () => spark.destroy()
+            });
+        }
+    }
+
+    playShootSound(tankType) {
+        // Enhanced shooting sounds based on tank type
+        switch (tankType) {
+            case 'light':
+                console.log('🔊 Playing: Light Tank Fire');
+                // this.sound.play('lightTankFire', { volume: 0.4 });
+                break;
+            case 'medium':
+                console.log('🔊 Playing: Medium Tank Fire');
+                // this.sound.play('mediumTankFire', { volume: 0.5 });
+                break;
+            case 'heavy':
+                console.log('🔊 Playing: Heavy Tank Fire');
+                // this.sound.play('heavyTankFire', { volume: 0.6 });
+                break;
+            case 'artillery':
+                console.log('🔊 Playing: Artillery Fire');
+                // this.sound.play('artilleryFire', { volume: 0.7 });
+                break;
+            default:
+                console.log('🔊 Playing: Tank Fire');
+                // this.sound.play('tankFire', { volume: 0.5 });
+        }
+    }
+
+    playExplosionSound(size = 'medium') {
+        // Different explosion sounds based on size/impact
+        switch (size) {
+            case 'small':
+                console.log('🔊 Playing: Small Explosion');
+                // this.sound.play('smallExplosion', { volume: 0.4 });
+                break;
+            case 'medium':
+                console.log('🔊 Playing: Medium Explosion');
+                // this.sound.play('mediumExplosion', { volume: 0.6 });
+                break;
+            case 'large':
+                console.log('🔊 Playing: Large Explosion');
+                // this.sound.play('largeExplosion', { volume: 0.8 });
+                break;
+            case 'building':
+                console.log('🔊 Playing: Building Destruction');
+                // this.sound.play('buildingDestroyed', { volume: 0.9 });
+                break;
+        }
+    }
+
+    playUISound(action) {
+        // UI feedback sounds
+        switch (action) {
+            case 'deploy':
+                console.log('🔊 Playing: Tank Deploy');
+                // this.sound.play('tankDeploy', { volume: 0.3 });
+                break;
+            case 'select':
+                console.log('🔊 Playing: UI Select');
+                // this.sound.play('uiSelect', { volume: 0.2 });
+                break;
+            case 'error':
+                console.log('🔊 Playing: Error Beep');
+                // this.sound.play('errorBeep', { volume: 0.3 });
+                break;
+            case 'victory':
+                console.log('🔊 Playing: Victory Fanfare');
+                // this.sound.play('victoryFanfare', { volume: 0.8 });
+                break;
+            case 'defeat':
+                console.log('🔊 Playing: Defeat Sound');
+                // this.sound.play('defeatSound', { volume: 0.6 });
+                break;
+        }
     }
 
     destroyBuilding(building) {
@@ -1885,9 +2393,6 @@ class BattleScene extends Phaser.Scene {
             });
         }
         
-        // Shake the screen
-        this.cameras.main.shake(1000, 0.02);
-        
         // Remove building from buildings array
         const index = this.buildings.indexOf(building);
         if (index > -1) {
@@ -1909,6 +2414,17 @@ class BattleScene extends Phaser.Scene {
     }
 
     endBattle(result) {
+        // Record battle end time and finalize statistics
+        this.battleStats.battle.endTime = this.time.now;
+        this.battleStats.battle.overtimeActivated = this.overtimeActive;
+        
+        // Play result sound
+        if (result === 'victory') {
+            this.playUISound('victory');
+        } else {
+            this.playUISound('defeat');
+        }
+        
         // Stop all timers
         if (this.battleTimer) this.battleTimer.destroy();
         if (this.energyTimer) this.energyTimer.destroy();
@@ -1917,11 +2433,11 @@ class BattleScene extends Phaser.Scene {
         // Pause all game activity
         this.physics.pause();
         
-        // Create victory/defeat overlay
-        this.createBattleResultScreen(result);
+        // Create enhanced victory/defeat overlay with statistics
+        this.createEnhancedBattleResultScreen(result);
     }
 
-    createBattleResultScreen(result) {
+    createEnhancedBattleResultScreen(result) {
         // Dark overlay
         const overlay = this.add.graphics();
         overlay.fillStyle(0x000000, 0.8);
@@ -1934,15 +2450,15 @@ class BattleScene extends Phaser.Scene {
         container.setScrollFactor(0);
         container.setDepth(101);
         
-        // Result background
+        // Enhanced result background
         const resultBg = this.add.graphics();
-        resultBg.fillStyle(result === 'victory' ? 0x004400 : 0x440000, 0.9);
-        resultBg.fillRoundedRect(-200, -150, 400, 300, 20);
-        resultBg.lineStyle(4, result === 'victory' ? 0x00ff00 : 0xff0000);
-        resultBg.strokeRoundedRect(-200, -150, 400, 300, 20);
+        resultBg.fillStyle(result === 'victory' ? 0x004400 : 0x440000, 0.95);
+        resultBg.fillRoundedRect(-300, -250, 600, 500, 25);
+        resultBg.lineStyle(6, result === 'victory' ? 0x00ff00 : 0xff0000);
+        resultBg.strokeRoundedRect(-300, -250, 600, 500, 25);
         container.add(resultBg);
         
-        // Title text
+        // Title text with enhanced effects
         let titleText, titleColor;
         if (result === 'victory') {
             titleText = 'VICTORY!';
@@ -1951,7 +2467,7 @@ class BattleScene extends Phaser.Scene {
             titleText = 'DEFEAT!';
             titleColor = '#ff0000';
         } else if (result === 'time') {
-            // Determine winner based on base health
+            // Determine winner based on base health or other criteria
             const playerBase = this.buildings.find(b => b.isPlayerBase);
             const enemyBase = this.buildings.find(b => !b.isPlayerBase);
             
@@ -1967,7 +2483,7 @@ class BattleScene extends Phaser.Scene {
                 titleColor = '#00ff00';
                 result = 'victory';
             } else {
-                // Both bases alive - compare health
+                // Compare base health percentages
                 const playerHealthPercent = playerBase.health / playerBase.maxHealth;
                 const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
                 
@@ -1982,12 +2498,11 @@ class BattleScene extends Phaser.Scene {
                 } else {
                     titleText = 'DRAW!';
                     titleColor = '#ffff00';
-                    result = 'draw';
                 }
             }
         }
         
-        const titleTextObj = this.add.text(0, -80, titleText, {
+        const title = this.add.text(0, -200, titleText, {
             fontSize: '48px',
             fill: titleColor,
             fontFamily: 'Arial',
@@ -1995,192 +2510,136 @@ class BattleScene extends Phaser.Scene {
             stroke: '#000000',
             strokeThickness: 4
         }).setOrigin(0.5);
-        container.add(titleTextObj);
+        container.add(title);
         
-        // Battle stats
-        const playerTanksDeployed = this.tanks.filter(t => t.isPlayerTank).length;
-        const enemyTanksDeployed = this.tanks.filter(t => !t.isPlayerTank).length;
-        const battleDuration = BATTLE_CONFIG.DURATION - this.battleTime;
+        // Calculate battle statistics
+        const battleDuration = (this.battleStats.battle.endTime - this.battleStats.battle.startTime) / 1000; // Convert to seconds
+        const playerAccuracy = this.battleStats.player.shotsFired > 0 ? 
+            ((this.battleStats.player.shotsHit / this.battleStats.player.shotsFired) * 100).toFixed(1) : 0;
+        const aiAccuracy = this.battleStats.ai.shotsFired > 0 ? 
+            ((this.battleStats.ai.shotsHit / this.battleStats.ai.shotsFired) * 100).toFixed(1) : 0;
         
-        const statsText = this.add.text(0, -20, 
-            `Battle Duration: ${this.formatTime(battleDuration)}\n` +
-            `Player Tanks Deployed: ${playerTanksDeployed}\n` +
-            `Enemy Tanks Deployed: ${enemyTanksDeployed}`, {
-            fontSize: '16px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            align: 'center'
-        }).setOrigin(0.5);
-        container.add(statsText);
-        
-        // Reward text (placeholder for future progression system)
-        if (result === 'victory') {
-            const rewardText = this.add.text(0, 40, 
-                '+ 100 XP\n+ 50 Credits\n+ Research Points', {
-                fontSize: '18px',
-                fill: '#ffff00',
-                fontFamily: 'Arial',
-                fontStyle: 'bold',
-                align: 'center'
-            }).setOrigin(0.5);
-            container.add(rewardText);
-        } else if (result === 'draw') {
-            const rewardText = this.add.text(0, 40, 
-                '+ 25 XP\n+ 10 Credits', {
-                fontSize: '18px',
-                fill: '#ffff00',
-                fontFamily: 'Arial',
-                fontStyle: 'bold',
-                align: 'center'
-            }).setOrigin(0.5);
-            container.add(rewardText);
-        }
-        
-        // Buttons
-        const continueButton = this.add.text(0, 100, '→ CONTINUE', {
+        // Battle Statistics Header
+        const statsTitle = this.add.text(0, -140, 'BATTLE STATISTICS', {
             fontSize: '24px',
             fill: '#ffffff',
             fontFamily: 'Arial',
-            backgroundColor: '#333333',
-            padding: { x: 20, y: 10 }
-        }).setOrigin(0.5).setInteractive();
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(statsTitle);
         
-        continueButton.on('pointerover', () => {
-            continueButton.setTint(0xcccccc);
+        // Create two-column statistics display
+        const leftColumn = [];
+        const rightColumn = [];
+        
+        // Player stats (left column)
+        leftColumn.push('PLAYER PERFORMANCE');
+        leftColumn.push(`Tanks Deployed: ${this.battleStats.player.tanksDeployed}`);
+        leftColumn.push(`Tanks Destroyed: ${this.battleStats.player.tanksDestroyed}`);
+        leftColumn.push(`Tanks Lost: ${this.battleStats.player.tanksLost}`);
+        leftColumn.push(`Accuracy: ${playerAccuracy}%`);
+        leftColumn.push(`Damage Dealt: ${this.battleStats.player.totalDamageDealt.toLocaleString()}`);
+        leftColumn.push(`Damage Taken: ${this.battleStats.player.totalDamageTaken.toLocaleString()}`);
+        leftColumn.push(`Critical Hits: ${this.battleStats.player.criticalHits}`);
+        leftColumn.push(`Energy Spent: ${this.battleStats.player.energySpent}`);
+        
+        // AI stats (right column)
+        rightColumn.push('AI PERFORMANCE');
+        rightColumn.push(`Tanks Deployed: ${this.battleStats.ai.tanksDeployed}`);
+        rightColumn.push(`Tanks Destroyed: ${this.battleStats.ai.tanksDestroyed}`);
+        rightColumn.push(`Tanks Lost: ${this.battleStats.ai.tanksLost}`);
+        rightColumn.push(`Accuracy: ${aiAccuracy}%`);
+        rightColumn.push(`Damage Dealt: ${this.battleStats.ai.totalDamageDealt.toLocaleString()}`);
+        rightColumn.push(`Damage Taken: ${this.battleStats.ai.totalDamageTaken.toLocaleString()}`);
+        rightColumn.push(`Critical Hits: ${this.battleStats.ai.criticalHits}`);
+        rightColumn.push(`Energy Spent: ${this.battleStats.ai.energySpent}`);
+        
+        // Display left column
+        leftColumn.forEach((text, index) => {
+            const isHeader = index === 0;
+            const yPos = -100 + (index * 20);
+            const textColor = isHeader ? '#00aaff' : '#ffffff';
+            const fontSize = isHeader ? '16px' : '14px';
+            
+            const statText = this.add.text(-140, yPos, text, {
+                fontSize: fontSize,
+                fill: textColor,
+                fontFamily: 'Arial',
+                fontStyle: isHeader ? 'bold' : 'normal'
+            }).setOrigin(0, 0.5);
+            container.add(statText);
         });
         
-        continueButton.on('pointerout', () => {
-            continueButton.clearTint();
+        // Display right column
+        rightColumn.forEach((text, index) => {
+            const isHeader = index === 0;
+            const yPos = -100 + (index * 20);
+            const textColor = isHeader ? '#ff6666' : '#ffffff';
+            const fontSize = isHeader ? '16px' : '14px';
+            
+            const statText = this.add.text(20, yPos, text, {
+                fontSize: fontSize,
+                fill: textColor,
+                fontFamily: 'Arial',
+                fontStyle: isHeader ? 'bold' : 'normal'
+            }).setOrigin(0, 0.5);
+            container.add(statText);
         });
         
-        continueButton.on('pointerdown', () => {
-            this.scene.start('MenuScene');
-        });
+        // Battle Summary at bottom
+        const summaryText = `Battle Duration: ${Math.floor(battleDuration / 60)}:${(battleDuration % 60).toFixed(0).padStart(2, '0')}`;
+        const summary = this.add.text(0, 110, summaryText, {
+            fontSize: '16px',
+            fill: '#cccccc',
+            fontFamily: 'Arial'
+        }).setOrigin(0.5);
+        container.add(summary);
         
-        container.add(continueButton);
+        if (this.overtimeActive) {
+            const overtimeText = this.add.text(0, 130, 'OVERTIME ACTIVATED!', {
+                fontSize: '14px',
+                fill: '#ff4444',
+                fontFamily: 'Arial',
+                fontStyle: 'bold'
+            }).setOrigin(0.5);
+            container.add(overtimeText);
+        }
         
-        // Animate the result screen in
-        container.setAlpha(0);
-        container.setScale(0.5);
+        // Continue button
+        const continueBtn = this.add.text(0, 180, 'Click to Continue', {
+            fontSize: '20px',
+            fill: '#ffff00',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        container.add(continueBtn);
         
+        // Animate entrance
+        container.setScale(0);
         this.tweens.add({
             targets: container,
-            alpha: 1,
             scaleX: 1,
             scaleY: 1,
             duration: 500,
             ease: 'Back.out'
         });
-    }
-
-    destroyTank(tank) {
-        // Create dramatic destruction animation
-        const x = tank.x;
-        const y = tank.y;
         
-        // Main explosion - larger than hit effect
-        const bigExplosion = this.add.graphics();
-        bigExplosion.fillStyle(0xff2200, 0.9);
-        bigExplosion.fillCircle(x, y, 25);
-        bigExplosion.lineStyle(5, 0xffaa00);
-        bigExplosion.strokeCircle(x, y, 25);
-        
-        // Big explosion animation
-        this.tweens.add({
-            targets: bigExplosion,
-            alpha: 0,
-            scaleX: 4,
-            scaleY: 4,
-            duration: 600,
-            ease: 'Power2',
-            onComplete: () => bigExplosion.destroy()
-        });
-        
-        // Multiple spark bursts
-        for (let burst = 0; burst < 3; burst++) {
-            this.time.delayedCall(burst * 100, () => {
-                for (let i = 0; i < 8; i++) {
-                    const spark = this.add.graphics();
-                    spark.fillStyle(0xffff00);
-                    spark.fillCircle(x, y, 3);
-                    
-                    const sparkAngle = (Math.PI * 2 * i) / 8;
-                    const sparkDistance = GameHelpers.randomInt(30, 60);
-                    const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
-                    const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
-                    
-                    this.tweens.add({
-                        targets: spark,
-                        x: sparkX,
-                        y: sparkY,
-                        alpha: 0,
-                        duration: 400 + burst * 100,
-                        ease: 'Power2',
-                        onComplete: () => spark.destroy()
-                    });
-                }
-            });
-        }
-        
-        // Tank wreckage effect - make tank darker and rotate
-        this.tweens.add({
-            targets: tank,
-            alpha: 0.3,
-            angle: tank.angle + GameHelpers.randomInt(-45, 45),
-            scaleX: 0.8,
-            scaleY: 0.8,
-            duration: 500,
-            ease: 'Power2'
-        });
-        
-        // Remove tank from battlefield after animation
-        this.time.delayedCall(1000, () => {
-            // Remove from tanks array
-            const tankIndex = this.tanks.indexOf(tank);
-            if (tankIndex !== -1) {
-                this.tanks.splice(tankIndex, 1);
+        // Make clickable to continue
+        overlay.setInteractive();
+        overlay.once('pointerdown', () => {
+            // Update player progress
+            if (result === 'victory') {
+                this.gameState.player.experience += 100;
+                this.gameState.player.wins++;
+            } else if (result === 'defeat') {
+                this.gameState.player.experience += 25;
+                this.gameState.player.losses++;
             }
             
-            // Destroy tank sprite and health bar
-            if (tank.healthFill) tank.healthFill.destroy();
-            if (tank.healthBg) tank.healthBg.destroy();
-            if (tank.selectionCircle) tank.selectionCircle.destroy();
-            if (tank.rangeCircle) tank.rangeCircle.destroy();
-            tank.destroy();
-        });
-        
-        // Play destruction sound
-        const playExplosionSound = this.registry.get('playExplosionSound');
-        if (playExplosionSound) {
-            playExplosionSound();
-            // Play it twice for bigger effect
-            this.time.delayedCall(150, () => playExplosionSound());
-        }
-    }
-
-    endBattle(result) {
-        // Stop timers
-        if (this.energyTimer) this.energyTimer.remove();
-        if (this.battleTimer) this.battleTimer.remove();
-        if (this.aiEnergyTimer) this.aiEnergyTimer.remove();
-
-        // Show result
-        const resultText = result === 'victory' ? 'VICTORY!' : 
-                          result === 'defeat' ? 'DEFEAT!' : 'TIME UP!';
-        
-        const resultColor = result === 'victory' ? '#00ff00' : '#ff0000';
-
-        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2, resultText, {
-            fontSize: '48px',
-            fill: resultColor,
-            fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
-
-        // Return to menu after delay
-        this.time.delayedCall(3000, () => {
-            this.scene.start('MenuScene');
+            // Save battle statistics to game state for potential future features
+            this.gameState.lastBattleStats = this.battleStats;
+            
+            this.scene.start('MenuScene', { gameState: this.gameState });
         });
     }
 }
