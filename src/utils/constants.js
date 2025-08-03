@@ -10,7 +10,10 @@ const GAME_CONFIG = {
 const TANK_TYPES = {
     LIGHT: 'light',
     MEDIUM: 'medium',
-    HEAVY: 'heavy'
+    HEAVY: 'heavy',
+    TANK_DESTROYER: 'tank_destroyer',
+    ARTILLERY: 'artillery',
+    FAST_ATTACK: 'fast_attack'
 };
 
 const GAME_STATES = {

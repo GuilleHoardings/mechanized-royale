@@ -69,13 +69,16 @@ This roadmap breaks down development into small, playable iterations. Each phase
 ## Phase 3: Tank Variety (Week 5-6)
 **Goal**: Add different tank types with unique properties
 
-### Milestone 3.1: Tank Types (Day 29-32)
-- [ ] Create light, medium, heavy tank classes
-- [ ] Implement different stats (HP, damage, speed, cost)
-- [ ] Add unique sprites for each type
-- [ ] Balance different tank roles
+### Milestone 3.1: Tank Types (Day 29-32) ✅ COMPLETED
+- [x] Create light, medium, heavy tank classes
+- [x] Implement different stats (HP, damage, speed, cost)
+- [x] Add unique sprites for each type
+- [x] Balance different tank roles
+- [x] Added 6 additional tank types (9 total): Tank Destroyer, Artillery, Fast Attack variants
+- [x] Implemented visual differentiation for all tank types
+- [x] Expanded abilities system with specialized tank capabilities
 
-**Deliverable**: 3-4 different tank types to deploy
+**Deliverable**: 9 different tank types to deploy (exceeded goal of 3-4)
 
 ### Milestone 3.2: Advanced Combat (Day 33-35)
 - [ ] Add armor mechanics (front/side/rear)

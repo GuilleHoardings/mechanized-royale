@@ -109,6 +109,63 @@ const TANK_DATA = {
         cost: 7,
         abilities: ['siege_mode'],
         description: 'Ultimate heavy tank with devastating firepower'
+    },
+
+    // Tank Destroyers - New class for Milestone 3.1
+    tank_destroyer_1: {
+        id: 'tank_destroyer_1',
+        name: 'Jaguar',
+        type: TANK_TYPES.TANK_DESTROYER,
+        tier: 3,
+        stats: {
+            hp: 350,
+            damage: 110,
+            speed: 40,
+            range: 220,
+            armor: { front: 50, side: 25, rear: 15 },
+            penetration: 130
+        },
+        cost: 4,
+        abilities: ['ambush'],
+        description: 'Long-range tank destroyer with high penetration'
+    },
+
+    // Artillery - New support class
+    tank_artillery_1: {
+        id: 'tank_artillery_1',
+        name: 'Howitzer',
+        type: TANK_TYPES.ARTILLERY,
+        tier: 3,
+        stats: {
+            hp: 300,
+            damage: 95,
+            speed: 35,
+            range: 300,
+            armor: { front: 25, side: 20, rear: 15 },
+            penetration: 75
+        },
+        cost: 5,
+        abilities: ['artillery_strike'],
+        description: 'Long-range artillery with area damage'
+    },
+
+    // Fast Attack Vehicle
+    tank_light_3: {
+        id: 'tank_light_3',
+        name: 'Raptor',
+        type: TANK_TYPES.FAST_ATTACK,
+        tier: 3,
+        stats: {
+            hp: 180,
+            damage: 45,
+            speed: 100,
+            range: 140,
+            armor: { front: 18, side: 12, rear: 8 },
+            penetration: 55
+        },
+        cost: 3,
+        abilities: ['hit_and_run'],
+        description: 'Ultra-fast hit-and-run specialist'
     }
 };
 
@@ -139,6 +196,33 @@ const ABILITIES = {
         cooldown: 40,
         duration: 15,
         effect: 'damage_range_boost'
+    },
+
+    ambush: {
+        id: 'ambush',
+        name: 'Ambush',
+        description: 'First shot from cover deals +100% damage',
+        cooldown: 35,
+        duration: 0,
+        effect: 'first_shot_bonus'
+    },
+
+    artillery_strike: {
+        id: 'artillery_strike',
+        name: 'Artillery Strike',
+        description: 'Call down area bombardment',
+        cooldown: 45,
+        duration: 0,
+        effect: 'area_damage'
+    },
+
+    hit_and_run: {
+        id: 'hit_and_run',
+        name: 'Hit and Run',
+        description: 'Gain speed boost after dealing damage',
+        cooldown: 20,
+        duration: 5,
+        effect: 'speed_boost_on_hit'
     }
 };
 
@@ -150,7 +234,7 @@ const RESEARCH_TREE = {
             trees: {
                 light: {
                     name: 'Light Tank Line',
-                    tanks: ['tank_light_1', 'tank_light_2']
+                    tanks: ['tank_light_1', 'tank_light_2', 'tank_light_3']
                 },
                 medium: {
                     name: 'Medium Tank Line',
@@ -159,6 +243,14 @@ const RESEARCH_TREE = {
                 heavy: {
                     name: 'Heavy Tank Line',
                     tanks: ['tank_heavy_1', 'tank_heavy_2']
+                },
+                tank_destroyer: {
+                    name: 'Tank Destroyer Line',
+                    tanks: ['tank_destroyer_1']
+                },
+                artillery: {
+                    name: 'Artillery Line',
+                    tanks: ['tank_artillery_1']
                 }
             }
         }

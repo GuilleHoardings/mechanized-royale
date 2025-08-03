@@ -786,12 +786,89 @@ class BattleScene extends Phaser.Scene {
             
             // Front armor
             graphics.fillRect(16, -8, 2, 16);
+            
+        } else if (tankType === TANK_TYPES.TANK_DESTROYER) {
+            // Tank Destroyer - Low profile, long barrel
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-16, -8, 32, 16, 3);
+            
+            // Low profile turret
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(2, 0, 6);
+            
+            // Very long barrel
+            graphics.fillRect(8, -1, 22, 2);
+            
+            // Sloped front armor
+            graphics.fillStyle(accentColor);
+            graphics.fillTriangle(16, -8, 16, 8, 20, 0);
+            
+            // Side armor details
+            graphics.fillRect(-14, -6, 28, 2);
+            graphics.fillRect(-14, 4, 28, 2);
+            
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            // Artillery - Large, boxy, huge barrel
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-20, -10, 40, 20, 4);
+            
+            // Large turret base
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(-2, 0, 9);
+            
+            // Massive barrel (thicker and longer)
+            graphics.fillRect(7, -4, 25, 8);
+            
+            // Equipment boxes
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-18, -8, 6, 6);
+            graphics.fillRect(-18, 2, 6, 6);
+            graphics.fillRect(14, -6, 4, 4);
+            graphics.fillRect(14, 2, 4, 4);
+            
+            // Stabilizer supports
+            graphics.fillRect(-22, -2, 4, 4);
+            graphics.fillRect(18, -2, 4, 4);
+            
+        } else if (tankType === TANK_TYPES.FAST_ATTACK) {
+            // Fast Attack - Very small, angular
+            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+            graphics.fillRoundedRect(-10, -6, 20, 12, 2);
+            
+            // Small, offset turret
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(3, 0, 4);
+            
+            // Short barrel
+            graphics.fillRect(7, -1, 8, 2);
+            
+            // Angular front
+            graphics.fillStyle(accentColor);
+            graphics.fillTriangle(10, -6, 10, 6, 14, 0);
+            
+            // Speed stripes
+            graphics.fillRect(-8, -4, 16, 1);
+            graphics.fillRect(-8, 0, 16, 1);
+            graphics.fillRect(-8, 3, 16, 1);
         }
         
         // Add tracks/treads for all tanks
         graphics.fillStyle(0x333333);
-        const trackWidth = tankType === TANK_TYPES.HEAVY ? 20 : tankType === TANK_TYPES.MEDIUM ? 16 : 12;
-        const trackHeight = tankType === TANK_TYPES.HEAVY ? 3 : 2;
+        let trackWidth, trackHeight;
+        
+        if (tankType === TANK_TYPES.HEAVY) {
+            trackWidth = 20;
+            trackHeight = 3;
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            trackWidth = 22;
+            trackHeight = 3;
+        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
+            trackWidth = 16;
+            trackHeight = 2;
+        } else { // LIGHT and FAST_ATTACK
+            trackWidth = 12;
+            trackHeight = 2;
+        }
         
         // Left track
         graphics.fillRect(-trackWidth/2, -15, trackWidth, trackHeight);
@@ -837,11 +914,48 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(accentColor);
             graphics.fillRect(-10, -6, 20, 2);
             graphics.fillRect(-10, 4, 20, 2);
+            
+        } else if (tankType === TANK_TYPES.TANK_DESTROYER) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-10, -5, 20, 10, 2);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(1, 0, 3);
+            graphics.fillRect(4, 0, 12, 1);
+            graphics.fillStyle(accentColor);
+            graphics.fillTriangle(10, -5, 10, 5, 12, 0);
+            
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-12, -6, 24, 12, 2);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(-1, 0, 4);
+            graphics.fillRect(3, -2, 14, 4);
+            graphics.fillStyle(accentColor);
+            graphics.fillRect(-10, -4, 3, 3);
+            graphics.fillRect(-10, 1, 3, 3);
+            
+        } else if (tankType === TANK_TYPES.FAST_ATTACK) {
+            graphics.fillStyle(playerColor);
+            graphics.fillRoundedRect(-8, -4, 16, 8, 1);
+            graphics.fillStyle(darkColor);
+            graphics.fillCircle(2, 0, 2);
+            graphics.fillRect(4, 0, 6, 1);
+            graphics.fillStyle(accentColor);
+            graphics.fillTriangle(8, -4, 8, 4, 10, 0);
         }
         
         // Tracks
         graphics.fillStyle(0x333333);
-        const trackWidth = tankType === TANK_TYPES.HEAVY ? 12 : tankType === TANK_TYPES.MEDIUM ? 10 : 8;
+        let trackWidth;
+        if (tankType === TANK_TYPES.HEAVY) {
+            trackWidth = 12;
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            trackWidth = 14;
+        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
+            trackWidth = 10;
+        } else { // LIGHT and FAST_ATTACK
+            trackWidth = 8;
+        }
         graphics.fillRect(-trackWidth/2, -10, trackWidth, 1);
         graphics.fillRect(-trackWidth/2, 9, trackWidth, 1);
         
