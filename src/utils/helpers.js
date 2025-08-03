@@ -35,6 +35,52 @@ const GameHelpers = {
         return Math.random() * (max - min) + min;
     },
 
+    // Tile-based coordinate conversion functions
+    
+    // Convert world coordinates to tile coordinates
+    worldToTile(worldX, worldY) {
+        return {
+            tileX: Math.floor(worldX / GAME_CONFIG.TILE_SIZE),
+            tileY: Math.floor(worldY / GAME_CONFIG.TILE_SIZE)
+        };
+    },
+
+    // Convert tile coordinates to world coordinates (center of tile)
+    tileToWorld(tileX, tileY) {
+        return {
+            worldX: (tileX + 0.5) * GAME_CONFIG.TILE_SIZE,
+            worldY: (tileY + 0.5) * GAME_CONFIG.TILE_SIZE
+        };
+    },
+
+    // Snap world coordinates to nearest tile center
+    snapToTile(worldX, worldY) {
+        const tile = this.worldToTile(worldX, worldY);
+        return this.tileToWorld(tile.tileX, tile.tileY);
+    },
+
+    // Check if tile coordinates are within deployment zone
+    isValidDeploymentTile(tileX, tileY, isPlayer = true) {
+        const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        
+        return tileX >= zone.tileX && 
+               tileX < zone.tileX + zone.tilesWidth &&
+               tileY >= zone.tileY && 
+               tileY < zone.tileY + zone.tilesHeight;
+    },
+
+    // Convert deployment zone to world coordinates
+    getDeploymentZoneWorldCoords(isPlayer = true) {
+        const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        
+        return {
+            x: zone.tileX * GAME_CONFIG.TILE_SIZE,
+            y: zone.tileY * GAME_CONFIG.TILE_SIZE,
+            width: zone.tilesWidth * GAME_CONFIG.TILE_SIZE,
+            height: zone.tilesHeight * GAME_CONFIG.TILE_SIZE
+        };
+    },
+
     // Save game state to localStorage
     saveGameState(gameState) {
         try {

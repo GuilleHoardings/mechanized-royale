@@ -4,7 +4,11 @@ const GAME_CONFIG = {
     HEIGHT: 800,
     BACKGROUND_COLOR: '#2c5234',
     WORLD_WIDTH: 600,  // No scrolling - world matches viewport
-    WORLD_HEIGHT: 800  // No scrolling - world matches viewport
+    WORLD_HEIGHT: 800, // No scrolling - world matches viewport
+    // Tile system (Clash Royale style)
+    TILES_X: 18,
+    TILES_Y: 32,
+    TILE_SIZE: 600 / 18  // 33.33px per tile
 };
 
 const TANK_TYPES = {
@@ -31,8 +35,20 @@ const ENERGY_CONFIG = {
 
 const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
+    // Tile-based deployment zones (in tile coordinates)
+    // Battlefield uses approximately 20 tiles (680px) with UI taking bottom space
     DEPLOYMENT_ZONES: {
-        PLAYER: { x: 0, y: 450, width: 600, height: 220 },    // Bottom area for player (above cards)
-        ENEMY: { x: 0, y: 50, width: 600, height: 200 }       // Top area for enemy spawning
+        PLAYER: { 
+            tileX: 0, 
+            tileY: 11, 
+            tilesWidth: 18, 
+            tilesHeight: 9    // Bottom half minus 1 row buffer (rows 11-19)
+        },
+        ENEMY: { 
+            tileX: 0, 
+            tileY: 0, 
+            tilesWidth: 18, 
+            tilesHeight: 9    // Top half minus 1 row buffer (rows 0-8)
+        }
     }
 };

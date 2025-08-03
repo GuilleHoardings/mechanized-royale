@@ -100,41 +100,49 @@ class BattleScene extends Phaser.Scene {
         // Set world bounds to match viewport - no scrolling needed
         this.physics.world.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
         
-        // Create center line to divide player and enemy areas
+        // Create tile-based grid (Clash Royale style)
         const graphics = this.add.graphics();
+        
+        // Draw tile grid
+        graphics.lineStyle(1, 0x556b2f, 0.2);
+        
+        // Vertical tile lines
+        for (let tileX = 0; tileX <= GAME_CONFIG.TILES_X; tileX++) {
+            const x = tileX * GAME_CONFIG.TILE_SIZE;
+            graphics.lineBetween(x, 0, x, GAME_CONFIG.TILES_Y * GAME_CONFIG.TILE_SIZE);
+        }
+        
+        // Horizontal tile lines
+        for (let tileY = 0; tileY <= GAME_CONFIG.TILES_Y; tileY++) {
+            const y = tileY * GAME_CONFIG.TILE_SIZE;
+            graphics.lineBetween(0, y, GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
+        }
+
+        // Center line to divide battlefield
         graphics.lineStyle(3, 0x888888, 0.8);
-        graphics.lineBetween(0, GAME_CONFIG.HEIGHT / 2, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT / 2);
+        const centerY = (GAME_CONFIG.TILES_Y / 2) * GAME_CONFIG.TILE_SIZE;
+        graphics.lineBetween(0, centerY, GAME_CONFIG.WIDTH, centerY);
 
-        // Simple grid background
-        graphics.lineStyle(1, 0x556b2f, 0.3);
+        // Deployment zones with tile-based boundaries
+        const playerZone = GameHelpers.getDeploymentZoneWorldCoords(true);
+        const enemyZone = GameHelpers.getDeploymentZoneWorldCoords(false);
         
-        // Vertical lines
-        for (let x = 0; x <= GAME_CONFIG.WORLD_WIDTH; x += 50) {
-            graphics.lineBetween(x, 0, x, GAME_CONFIG.WORLD_HEIGHT - 100); // -100 for UI space
-        }
-        
-        // Horizontal lines
-        for (let y = 0; y <= GAME_CONFIG.WORLD_HEIGHT - 100; y += 50) {
-            graphics.lineBetween(0, y, GAME_CONFIG.WORLD_WIDTH, y);
-        }
-
-        // Deployment zones with clearer visual separation
-        graphics.lineStyle(3, 0x4a90e2, 0.6);  // Player zone - blue
-        const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
+        // Player zone (bottom)
+        graphics.lineStyle(3, 0x4a90e2, 0.6);
         graphics.fillStyle(0x4a90e2, 0.1);
         graphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         graphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         
         // Add player zone label
-        this.add.text(GAME_CONFIG.WIDTH / 2, playerZone.y + 10, 'DEPLOYMENT ZONE', {
-            fontSize: '16px',
+        this.add.text(GAME_CONFIG.WIDTH / 2, playerZone.y + 20, 'DEPLOYMENT ZONE', {
+            fontSize: '14px',
             fill: '#4a90e2',
             fontFamily: 'Arial',
             fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        graphics.lineStyle(3, 0xd22d2d, 0.6);  // Enemy area - red
-        const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        // Enemy zone (top)
+        graphics.lineStyle(3, 0xd22d2d, 0.6);
         graphics.fillStyle(0xd22d2d, 0.1);
         graphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
         graphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
@@ -441,8 +449,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBases() {
-        // Player base at bottom center but above UI area
-        const playerBase = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 120, 'base');
+        // Player base at bottom center, tile-aligned (well behind deployment zone like Clash Royale)
+        const playerBaseTile = GameHelpers.tileToWorld(9, 18); // Near back of player area (row 18, col 9)
+        const playerBase = this.add.image(playerBaseTile.worldX, playerBaseTile.worldY, 'base');
         playerBase.health = 1000;
         playerBase.maxHealth = 1000;
         playerBase.isPlayerBase = true;
@@ -451,8 +460,9 @@ class BattleScene extends Phaser.Scene {
         playerBase.lastTargetUpdate = 0;
         this.buildings.push(playerBase);
 
-        // Enemy base at top center (Clash Royale style)
-        const enemyBase = this.add.image(GAME_CONFIG.WIDTH / 2, 50, 'base');
+        // Enemy base at top center, tile-aligned (well behind deployment zone like Clash Royale)
+        const enemyBaseTile = GameHelpers.tileToWorld(9, 1); // Near back of enemy area (row 1, col 9)
+        const enemyBase = this.add.image(enemyBaseTile.worldX, enemyBaseTile.worldY, 'base');
         enemyBase.health = 1000;
         enemyBase.maxHealth = 1000;
         enemyBase.isPlayerBase = false;
@@ -724,20 +734,23 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
-        // Convert screen coordinates to world coordinates (no camera offset needed)
+        // Convert screen coordinates to tile coordinates
         const worldX = pointer.x;
         const worldY = pointer.y;
+        const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
-        // Only deployment mode in Clash Royale style - allow deployment in player zone
-        const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
-        if (!GameHelpers.pointInRect(worldX, worldY, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
+        // Only allow deployment in player zone using tile-based checking
+        if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true)) {
             return;
         }
+
+        // Snap to tile center for precise positioning
+        const snappedPos = GameHelpers.tileToWorld(tileCoords.tileX, tileCoords.tileY);
 
         // Deploy selected tank if we have enough energy
         const selectedCardData = this.tankCards[this.selectedCard];
         if (this.energy >= selectedCardData.tankData.cost) {
-            this.deployTank(selectedCardData.tankId, worldX, worldY);
+            this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
             this.energy -= selectedCardData.tankData.cost;
             this.updateEnergyBar();
             
@@ -1411,48 +1424,40 @@ class BattleScene extends Phaser.Scene {
     }
 
     chooseAIDeploymentPosition(tankData) {
-        const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords('enemy');
         const playerBase = this.buildings.find(b => b.isPlayerBase);
         const aiBase = this.buildings.find(b => !b.isPlayerBase);
         
-        let baseX = enemyZone.x + enemyZone.width / 2;
-        let baseY = enemyZone.y + enemyZone.height / 2;
+        // Get center tile of enemy deployment zone
+        let baseTileX = Math.floor(GAME_CONFIG.TILES_X / 2); // Center column (9 for 18-wide grid)
+        let baseTileY = Math.floor((BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight) / 2); // Center row of enemy zone
         
         // Strategic positioning based on tank type and strategy
         if (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode) {
-            // Deploy closer to player base for faster attack
-            if (playerBase) {
-                const directionX = playerBase.x > baseX ? 1 : -1;
-                const directionY = playerBase.y > baseY ? 1 : -1;
-                baseX += directionX * 50;
-                baseY += directionY * 30;
-            }
+            // Deploy closer to player base for faster attack (further down)
+            baseTileY = Math.min(baseTileY + 2, BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight - 1);
         } else if (this.aiStrategy.mode === 'defensive') {
-            // Deploy closer to our own base for defense
-            if (aiBase) {
-                const directionX = aiBase.x > baseX ? 1 : -1;
-                const directionY = aiBase.y > baseY ? 1 : -1;
-                baseX += directionX * 30;
-                baseY += directionY * 20;
-            }
+            // Deploy closer to our own base for defense (further up)
+            baseTileY = Math.max(baseTileY - 2, BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY);
         }
         
         // Add some randomness to avoid predictable positioning
-        const randomOffsetX = GameHelpers.randomInt(-40, 40);
-        const randomOffsetY = GameHelpers.randomInt(-30, 30);
+        const randomOffsetX = GameHelpers.randomInt(-3, 3);
+        const randomOffsetY = GameHelpers.randomInt(-2, 2);
         
-        const deployX = GameHelpers.clamp(
-            baseX + randomOffsetX, 
-            enemyZone.x + 10, 
-            enemyZone.x + enemyZone.width - 10
+        const deployTileX = GameHelpers.clamp(
+            baseTileX + randomOffsetX, 
+            0, 
+            GAME_CONFIG.TILES_X - 1
         );
-        const deployY = GameHelpers.clamp(
-            baseY + randomOffsetY, 
-            enemyZone.y + 10, 
-            enemyZone.y + enemyZone.height - 10
+        const deployTileY = GameHelpers.clamp(
+            baseTileY + randomOffsetY, 
+            BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY, 
+            BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight - 1
         );
         
-        return { x: deployX, y: deployY };
+        // Convert tile coordinates to world coordinates
+        return GameHelpers.tileToWorld(deployTileX, deployTileY);
     }
 
     aiDeployTank() {
