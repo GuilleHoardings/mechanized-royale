@@ -1,10 +1,10 @@
 // Game constants
 const GAME_CONFIG = {
-    WIDTH: 800,
-    HEIGHT: 600,
+    WIDTH: 600,
+    HEIGHT: 800,
     BACKGROUND_COLOR: '#2c5234',
-    WORLD_WIDTH: 1200,
-    WORLD_HEIGHT: 900
+    WORLD_WIDTH: 600,  // No scrolling - world matches viewport
+    WORLD_HEIGHT: 800  // No scrolling - world matches viewport
 };
 
 const TANK_TYPES = {
@@ -32,7 +32,7 @@ const ENERGY_CONFIG = {
 const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
     DEPLOYMENT_ZONES: {
-        PLAYER: { x: 50, y: 400, width: 200, height: 150 },
-        ENEMY: { x: 950, y: 50, width: 200, height: 150 }
+        PLAYER: { x: 0, y: 500, width: 600, height: 200 },    // Bottom area for player
+        ENEMY: { x: 0, y: 50, width: 600, height: 200 }       // Top area for enemy spawning
     }
 };

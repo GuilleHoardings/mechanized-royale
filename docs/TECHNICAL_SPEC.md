@@ -4,6 +4,14 @@
 
 Tank Tactics is a **client-only browser game** built with Phaser 3 and vanilla JavaScript. No server required - everything runs locally in the browser with AI opponents providing the challenge.
 
+### Game Style
+
+**Clash Royale-inspired vertical battlefield**:
+- Fixed camera view (no scrolling)
+- Vertical layout: Player base at bottom, enemy base at top
+- Deploy-only gameplay (no manual unit control)
+- Units automatically advance and engage enemies
+
 ### Core Systems
 
 ```
@@ -144,7 +152,7 @@ class CombatSystem {
 }
 ```
 
-### Deployment System
+### Deployment System (Clash Royale Style)
 ```javascript
 class DeploymentManager {
   constructor() {
@@ -167,9 +175,11 @@ class DeploymentManager {
     return false;
   }
   
-  // Camera-aware deployment zones
+  // Vertical deployment zones - no camera movement needed
   isValidPosition(worldPos) {
-    return worldPos.x < GAME_CONFIG.WORLD_WIDTH / 2; // Player side only
+    // Player can deploy in bottom half of screen
+    return worldPos.y >= GAME_CONFIG.HEIGHT / 2 && 
+           worldPos.y <= GAME_CONFIG.HEIGHT - 100; // Leave space for UI
   }
 }
 ```

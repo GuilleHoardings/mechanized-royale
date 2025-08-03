@@ -2,21 +2,21 @@
 
 ## Executive Summary
 
-Tank Tactics is a single-player real-time strategy game that merges Clash Royale's accessible deployment mechanics with World of Tanks' authentic tank warfare and progression systems. Players battle against AI opponents in campaign missions and skirmish modes.
+Tank Tactics is a single-player real-time strategy game inspired by Clash Royale's vertical battlefield and deployment mechanics, combined with World of Tanks' authentic tank warfare and progression systems. Players battle against AI opponents using strategic deployment and tank variety.
 
 ## Core Gameplay Loop
 
 ### Battle Flow
-1. **Preparation Phase** (30 seconds)
-   - Review AI enemy base layout
+1. **Preparation Phase** (Battle Setup)
+   - View vertical battlefield: player base at bottom, enemy at top
    - Select 8 tank cards from collection
-   - Choose deployment strategy
+   - No camera control needed - entire battlefield visible
 
 2. **Combat Phase** (3 minutes)
-   - Deploy tanks using energy/elixir system
-   - Tanks auto-navigate and engage AI enemies
-   - Use special abilities and support items
-   - Destroy AI base while protecting your own
+   - Deploy tanks in bottom half using energy system
+   - Tanks automatically advance toward enemy base
+   - AI handles all unit movement and engagement
+   - Focus on strategic deployment timing and positioning
 
 3. **Resolution**
    - Gain XP, credits, and research points
@@ -25,11 +25,12 @@ Tank Tactics is a single-player real-time strategy game that merges Clash Royale
 
 ### Core Mechanics
 
-#### Deployment System (Clash Royale inspired)
+#### Deployment System (Clash Royale Style)
+- **Fixed Camera**: Vertical battlefield, no scrolling needed
 - **Energy System**: Regenerating resource for deploying units
 - **Card Hand**: 4 visible cards, cycle through 8-card deck
-- **Deployment Zones**: Specific areas where tanks can be placed
-- **Cost Management**: Balance expensive heavy tanks vs cheap scouts
+- **Deploy-Only Control**: Click to deploy tanks, they move automatically
+- **Strategic Positioning**: Deploy anywhere in bottom half of battlefield
 
 #### Tank Combat (World of Tanks inspired)
 - **Armor Mechanics**: Frontal armor > side armor > rear armor

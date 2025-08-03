@@ -13,7 +13,7 @@ class BattleScene extends Phaser.Scene {
         this.projectiles = [];
         this.selectedTank = null;
         this.cameraSpeed = 5;
-        this.deploymentMode = true; // Toggle between deployment and movement modes
+        // Only deployment mode - Clash Royale style
         
         // Enhanced battle statistics
         this.battleStats = {
@@ -92,21 +92,20 @@ class BattleScene extends Phaser.Scene {
         // Input handling
         this.input.on('pointerdown', this.onBattlefieldClick, this);
         
-        // Keyboard controls for camera
-        this.cursors = this.input.keyboard.createCursorKeys();
-        this.wasd = this.input.keyboard.addKeys('W,S,A,D');
-        
-        // Mode toggle key (Space)
-        this.input.keyboard.on('keydown-SPACE', this.toggleMode, this);
+        // No camera controls needed - fixed view like Clash Royale
+        // Only deployment mode - no manual tank movement
     }
 
     createBattlefield() {
-        // Set world bounds larger than viewport for camera movement
+        // Set world bounds to match viewport - no scrolling needed
         this.physics.world.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-        this.cameras.main.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+        
+        // Create center line to divide player and enemy areas
+        const graphics = this.add.graphics();
+        graphics.lineStyle(3, 0x888888, 0.8);
+        graphics.lineBetween(0, GAME_CONFIG.HEIGHT / 2, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT / 2);
 
         // Simple grid background
-        const graphics = this.add.graphics();
         graphics.lineStyle(1, 0x556b2f, 0.3);
         
         // Vertical lines
@@ -119,13 +118,25 @@ class BattleScene extends Phaser.Scene {
             graphics.lineBetween(0, y, GAME_CONFIG.WORLD_WIDTH, y);
         }
 
-        // Deployment zones
-        graphics.lineStyle(2, 0x00ff00, 0.8);
+        // Deployment zones with clearer visual separation
+        graphics.lineStyle(3, 0x4a90e2, 0.6);  // Player zone - blue
         const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
+        graphics.fillStyle(0x4a90e2, 0.1);
+        graphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         graphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         
-        graphics.lineStyle(2, 0xff0000, 0.8);
+        // Add player zone label
+        this.add.text(GAME_CONFIG.WIDTH / 2, playerZone.y + 10, 'DEPLOYMENT ZONE', {
+            fontSize: '16px',
+            fill: '#4a90e2',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(0.5);
+        
+        graphics.lineStyle(3, 0xd22d2d, 0.6);  // Enemy area - red
         const enemyZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        graphics.fillStyle(0xd22d2d, 0.1);
+        graphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
         graphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
     }
 
@@ -169,21 +180,7 @@ class BattleScene extends Phaser.Scene {
         // Tank cards (placeholder for now)
         this.createTankCards(uiY);
 
-        // Mode indicator
-        this.modeText = this.add.text(GAME_CONFIG.WIDTH / 2, uiY + 10, 'DEPLOY MODE - Press SPACE to toggle', {
-            fontSize: '16px',
-            fill: '#ffffff',
-            fontFamily: 'Arial'
-        }).setOrigin(0.5);
-        this.modeText.setScrollFactor(0);
-
-        // Camera instructions
-        const instructionsText = this.add.text(GAME_CONFIG.WIDTH - 200, 50, 'Camera: Arrow Keys or WASD', {
-            fontSize: '12px',
-            fill: '#cccccc',
-            fontFamily: 'Arial'
-        });
-        instructionsText.setScrollFactor(0);
+        // No mode indicator needed - always deployment in Clash Royale style
 
         // AI Strategy indicator
         this.aiStrategyText = this.add.text(20, 50, 'AI: Analyzing...', {
@@ -349,8 +346,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBases() {
-        // Player base
-        const playerBase = this.add.image(150, 500, 'base');
+        // Player base at bottom center (Clash Royale style)
+        const playerBase = this.add.image(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'base');
         playerBase.health = 1000;
         playerBase.maxHealth = 1000;
         playerBase.isPlayerBase = true;
@@ -359,8 +356,8 @@ class BattleScene extends Phaser.Scene {
         playerBase.lastTargetUpdate = 0;
         this.buildings.push(playerBase);
 
-        // Enemy base
-        const enemyBase = this.add.image(1050, 150, 'base');
+        // Enemy base at top center (Clash Royale style)
+        const enemyBase = this.add.image(GAME_CONFIG.WIDTH / 2, 50, 'base');
         enemyBase.health = 1000;
         enemyBase.maxHealth = 1000;
         enemyBase.isPlayerBase = false;
@@ -627,41 +624,28 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
-        // Convert screen coordinates to world coordinates
-        const worldX = pointer.x + this.cameras.main.scrollX;
-        const worldY = pointer.y + this.cameras.main.scrollY;
+        // Convert screen coordinates to world coordinates (no camera offset needed)
+        const worldX = pointer.x;
+        const worldY = pointer.y;
         
-        if (this.deploymentMode) {
-            // Deployment mode - only allow deployment in player zone
-            const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
-            if (!GameHelpers.pointInRect(worldX, worldY, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
-                return;
-            }
+        // Only deployment mode in Clash Royale style - allow deployment in player zone
+        const playerZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER;
+        if (!GameHelpers.pointInRect(worldX, worldY, playerZone.x, playerZone.y, playerZone.width, playerZone.height)) {
+            return;
+        }
 
-            // Deploy selected tank if we have enough energy
-            const selectedCardData = this.tankCards[this.selectedCard];
-            if (this.energy >= selectedCardData.tankData.cost) {
-                this.deployTank(selectedCardData.tankId, worldX, worldY);
-                this.energy -= selectedCardData.tankData.cost;
-                this.updateEnergyBar();
-                
-                // Cycle the used card
-                this.cycleCard(this.selectedCard);
-            } else {
-                // Visual feedback for insufficient energy
-                this.showInsufficientEnergyFeedback();
-            }
-        } else {
-            // Movement mode - select tank or move selected tank
-            const clickedTank = this.getTankAtPosition(worldX, worldY);
+        // Deploy selected tank if we have enough energy
+        const selectedCardData = this.tankCards[this.selectedCard];
+        if (this.energy >= selectedCardData.tankData.cost) {
+            this.deployTank(selectedCardData.tankId, worldX, worldY);
+            this.energy -= selectedCardData.tankData.cost;
+            this.updateEnergyBar();
             
-            if (clickedTank && clickedTank.isPlayerTank) {
-                // Select this tank
-                this.selectTank(clickedTank);
-            } else if (this.selectedTank) {
-                // Move selected tank to clicked position
-                this.moveSelectedTankTo(worldX, worldY);
-            }
+            // Cycle the used card
+            this.cycleCard(this.selectedCard);
+        } else {
+            // Visual feedback for insufficient energy
+            this.showInsufficientEnergyFeedback();
         }
     }
 
@@ -679,14 +663,13 @@ class BattleScene extends Phaser.Scene {
         tank.isPlayerTank = true;
         tank.target = null;
         tank.lastShotTime = 0;
-        tank.moveTarget = null; // For manual movement
-        tank.manualControl = false; // Whether tank is under manual control
+        tank.moveTarget = null; // Not used in Clash Royale style
+        tank.manualControl = false; // Always AI controlled in Clash Royale style
         tank.lastTargetUpdate = 0; // For AI target selection
 
-        // Face towards the center of the battlefield initially
-        const centerX = GAME_CONFIG.WORLD_WIDTH / 2;
-        const centerY = GAME_CONFIG.WORLD_HEIGHT / 2;
-        const initialAngle = GameHelpers.angle(x, y, centerX, centerY);
+        // Face towards the enemy base initially
+        const enemyBase = this.buildings.find(b => !b.isPlayerBase);
+        const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
         tank.setRotation(initialAngle);
 
         // AI behavior: find best target (closest enemy or enemy base)
@@ -1435,8 +1418,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     update() {
-        // Handle camera movement
-        this.handleCameraMovement();
+        // No camera movement in Clash Royale style
         
         // Update AI
         this.updateAI();
@@ -1501,41 +1483,9 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    toggleMode() {
-        this.deploymentMode = !this.deploymentMode;
-        const modeText = this.deploymentMode ? 'DEPLOY MODE - Press SPACE to toggle' : 'MOVE MODE - Press SPACE to toggle';
-        this.modeText.setText(modeText);
-        
-        // Clear selection when switching modes
-        if (this.selectedTank) {
-            this.selectTank(null);
-        }
-    }
+    // No mode switching in Clash Royale style - only deployment
 
-    handleCameraMovement() {
-        const camera = this.cameras.main;
-        
-        // Arrow keys or WASD movement
-        if (this.cursors.left.isDown || this.wasd.A.isDown) {
-            camera.scrollX -= this.cameraSpeed;
-        }
-        if (this.cursors.right.isDown || this.wasd.D.isDown) {
-            camera.scrollX += this.cameraSpeed;
-        }
-        if (this.cursors.up.isDown || this.wasd.W.isDown) {
-            camera.scrollY -= this.cameraSpeed;
-        }
-        if (this.cursors.down.isDown || this.wasd.S.isDown) {
-            camera.scrollY += this.cameraSpeed;
-        }
-
-        // Keep camera within world bounds
-        const maxScrollX = GAME_CONFIG.WORLD_WIDTH - GAME_CONFIG.WIDTH;
-        const maxScrollY = GAME_CONFIG.WORLD_HEIGHT - GAME_CONFIG.HEIGHT;
-        
-        camera.scrollX = GameHelpers.clamp(camera.scrollX, 0, maxScrollX);
-        camera.scrollY = GameHelpers.clamp(camera.scrollY, 0, maxScrollY);
-    }
+    // No camera movement in Clash Royale style - fixed view
 
     getTankAtPosition(x, y) {
         // Find tank at clicked position
@@ -1548,58 +1498,7 @@ class BattleScene extends Phaser.Scene {
         return null;
     }
 
-    selectTank(tank) {
-        // Remove previous selection
-        if (this.selectedTank && this.selectedTank.selectionCircle) {
-            this.selectedTank.selectionCircle.destroy();
-            this.selectedTank.selectionCircle = null;
-        }
-        
-        if (this.selectedTank && this.selectedTank.rangeCircle) {
-            this.selectedTank.rangeCircle.destroy();
-            this.selectedTank.rangeCircle = null;
-        }
-
-        this.selectedTank = tank;
-
-        if (tank) {
-            // Create selection indicator
-            const selectionCircle = this.add.graphics();
-            selectionCircle.lineStyle(3, 0xffff00);
-            selectionCircle.strokeCircle(tank.x, tank.y, 35);
-            tank.selectionCircle = selectionCircle;
-
-            // Show tank range
-            const rangeCircle = this.add.graphics();
-            rangeCircle.lineStyle(2, 0x00ff00, 0.3);
-            rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
-            tank.rangeCircle = rangeCircle;
-
-            // Put tank under manual control
-            tank.manualControl = true;
-            tank.moveTarget = null;
-        }
-    }
-
-    moveSelectedTankTo(x, y) {
-        if (!this.selectedTank) return;
-
-        // Set manual movement target
-        this.selectedTank.moveTarget = { x: x, y: y };
-        this.selectedTank.manualControl = true;
-
-        // Update selection circle position over time
-        if (this.selectedTank.selectionCircle) {
-            this.selectedTank.selectionCircle.destroy();
-            const selectionCircle = this.add.graphics();
-            selectionCircle.lineStyle(3, 0xffff00);
-            selectionCircle.strokeCircle(this.selectedTank.x, this.selectedTank.y, 35);
-            this.selectedTank.selectionCircle = selectionCircle;
-        }
-
-        // Visual feedback for move target
-        this.createMoveTargetIndicator(x, y);
-    }
+    // Tank selection removed - no manual control in Clash Royale style
 
     initializeDeck() {
         // Ensure we have at least 4 different tanks by filling with available tanks
