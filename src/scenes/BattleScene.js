@@ -70,6 +70,9 @@ class BattleScene extends Phaser.Scene {
         this.overtimeActive = false;
         this.maxOvertimeSeconds = 60;
         
+        // Battle control flag
+        this.battleEnded = false;
+        
         // Card deck system
         this.deck = [...this.gameState.player.tanks]; // Copy player's tanks
         this.hand = [];
@@ -414,6 +417,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     selectTankCard(index) {
+        // Prevent card selection if battle has ended
+        if (this.battleEnded) {
+            return;
+        }
+        
         this.selectedCard = index;
         this.updateCardSelection();
     }
@@ -856,6 +864,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
+        // Prevent interactions if battle has ended
+        if (this.battleEnded) {
+            return;
+        }
+        
         // Convert screen coordinates to world coordinates
         const worldX = pointer.worldX;
         const worldY = pointer.worldY;
@@ -1410,6 +1423,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateAI() {
+        // Don't update AI if battle has ended
+        if (this.battleEnded) {
+            return;
+        }
+        
         const currentTime = this.time.now;
         
         // Update AI strategy every 3 seconds
@@ -1718,6 +1736,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     update() {
+        // Stop all game updates if battle has ended
+        if (this.battleEnded) {
+            return;
+        }
+        
         // Update AI
         this.updateAI();
         
@@ -2851,6 +2874,10 @@ class BattleScene extends Phaser.Scene {
     }
 
     endBattle(result) {
+        // Prevent multiple calls to endBattle
+        if (this.battleEnded) return;
+        this.battleEnded = true;
+        
         // Record battle end time and finalize statistics
         this.battleStats.battle.endTime = this.time.now;
         this.battleStats.battle.overtimeActivated = this.overtimeActive;
