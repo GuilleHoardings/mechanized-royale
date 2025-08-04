@@ -113,8 +113,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBattlefield() {
-        // Set world bounds to match viewport - no scrolling needed
-        this.physics.world.setBounds(0, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+        // Calculate offset to center the battlefield horizontally
+        const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
+        
+        // Set world bounds to match the actual battlefield size
+        this.physics.world.setBounds(offsetX, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
         
         // Create tile-based grid (Clash Royale style)
         const graphics = this.add.graphics();
@@ -124,26 +127,26 @@ class BattleScene extends Phaser.Scene {
         
         // Vertical tile lines
         for (let tileX = 0; tileX <= GAME_CONFIG.TILES_X; tileX++) {
-            const x = tileX * GAME_CONFIG.TILE_SIZE;
+            const x = offsetX + tileX * GAME_CONFIG.TILE_SIZE;
             graphics.lineBetween(x, 0, x, GAME_CONFIG.TILES_Y * GAME_CONFIG.TILE_SIZE);
         }
         
         // Horizontal tile lines
         for (let tileY = 0; tileY <= GAME_CONFIG.TILES_Y; tileY++) {
             const y = tileY * GAME_CONFIG.TILE_SIZE;
-            graphics.lineBetween(0, y, GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
+            graphics.lineBetween(offsetX, y, offsetX + GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
         }
 
-        // Center line to divide battlefield
+        // Center line to divide battlefield - at row 21.5 (between rows 21 and 22)
         graphics.lineStyle(3, 0x888888, 0.8);
-        const centerY = (GAME_CONFIG.TILES_Y / 2) * GAME_CONFIG.TILE_SIZE;
-        graphics.lineBetween(0, centerY, GAME_CONFIG.WIDTH, centerY);
+        const centerY = 21.5 * GAME_CONFIG.TILE_SIZE;
+        graphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
 
         // Deployment zones with tile-based boundaries
         const playerZone = GameHelpers.getDeploymentZoneWorldCoords(true);
         const enemyZone = GameHelpers.getDeploymentZoneWorldCoords(false);
         
-        // Player zone (bottom)
+        // Player zone (bottom) - coordinates already include offset
         graphics.lineStyle(3, 0x4a90e2, 0.6);
         graphics.fillStyle(0x4a90e2, 0.1);
         graphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
@@ -157,71 +160,54 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         
-        // Enemy zone (top)
+        // Enemy zone (top) - coordinates already include offset
         graphics.lineStyle(3, 0xd22d2d, 0.6);
         graphics.fillStyle(0xd22d2d, 0.1);
         graphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
         graphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
 
         // Add river and bridges
-        this.createRiverAndBridges(graphics);
+        this.createRiverAndBridges(graphics, offsetX);
     }
 
-    createRiverAndBridges(graphics) {
-        // River parameters
-        const riverY = GAME_CONFIG.WORLD_HEIGHT / 2 - 40;
-        const riverHeight = 80;
+    createRiverAndBridges(graphics, offsetX = 0) {
+        // River parameters - rows 21-22
+        const riverTopY = 21 * GAME_CONFIG.TILE_SIZE;
+        const riverBottomY = 22 * GAME_CONFIG.TILE_SIZE;
+        const riverHeight = riverBottomY - riverTopY + GAME_CONFIG.TILE_SIZE;
         const riverWidth = GAME_CONFIG.WORLD_WIDTH;
 
         // Draw river
         graphics.fillStyle(0x4169e1, 0.6); // Royal blue for water
-        graphics.fillRect(0, riverY, riverWidth, riverHeight);
+        graphics.fillRect(offsetX, riverTopY, riverWidth, riverHeight);
         
         // River borders
         graphics.lineStyle(2, 0x1e3a8a, 0.8); // Darker blue borders
-        graphics.lineBetween(0, riverY, riverWidth, riverY);
-        graphics.lineBetween(0, riverY + riverHeight, riverWidth, riverY + riverHeight);
+        graphics.lineBetween(offsetX, riverTopY, offsetX + riverWidth, riverTopY);
+        graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
 
-        // Bridge 1 (left side)
-        const bridge1X = GAME_CONFIG.WORLD_WIDTH / 4 - 30;
-        const bridge1Width = 60;
+        // Bridge spans columns 6-11
+        const bridgeLeftX = offsetX + 6 * GAME_CONFIG.TILE_SIZE;
+        const bridgeRightX = offsetX + 11 * GAME_CONFIG.TILE_SIZE;
+        const bridgeWidth = bridgeRightX - bridgeLeftX + GAME_CONFIG.TILE_SIZE;
         
         // Bridge deck
         graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(bridge1X, riverY, bridge1Width, riverHeight);
+        graphics.fillRect(bridgeLeftX, riverTopY, bridgeWidth, riverHeight);
         
         // Bridge borders
         graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(bridge1X, riverY, bridge1Width, riverHeight);
+        graphics.strokeRect(bridgeLeftX, riverTopY, bridgeWidth, riverHeight);
         
         // Bridge supports
         graphics.fillStyle(0x654321);
-        for (let i = 0; i < 3; i++) {
-            const supportX = bridge1X + (i + 1) * bridge1Width / 4;
-            graphics.fillRect(supportX - 2, riverY, 4, riverHeight);
-        }
-
-        // Bridge 2 (right side)
-        const bridge2X = GAME_CONFIG.WORLD_WIDTH * 3 / 4 - 30;
-        const bridge2Width = 60;
-        
-        // Bridge deck
-        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(bridge2X, riverY, bridge2Width, riverHeight);
-        
-        // Bridge borders
-        graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(bridge2X, riverY, bridge2Width, riverHeight);
-        
-        // Bridge supports
-        graphics.fillStyle(0x654321);
-        for (let i = 0; i < 3; i++) {
-            const supportX = bridge2X + (i + 1) * bridge2Width / 4;
-            graphics.fillRect(supportX - 2, riverY, 4, riverHeight);
+        for (let i = 0; i < 4; i++) {
+            const supportX = bridgeLeftX + (i + 1) * bridgeWidth / 5;
+            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
         }
 
         // Add river label
-        this.add.text(GAME_CONFIG.WIDTH / 2, riverY + riverHeight / 2, 'RIVER', {
+        this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, riverTopY + riverHeight / 2, 'RIVER', {
             fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -230,17 +216,8 @@ class BattleScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
 
-        // Add bridge labels
-        this.add.text(bridge1X + bridge1Width / 2, riverY + riverHeight / 2, 'BRIDGE', {
-            fontSize: '12px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#654321',
-            strokeThickness: 1
-        }).setOrigin(0.5);
-        
-        this.add.text(bridge2X + bridge2Width / 2, riverY + riverHeight / 2, 'BRIDGE', {
+        // Add bridge label
+        this.add.text(bridgeLeftX + bridgeWidth / 2, riverTopY + riverHeight / 2, 'BRIDGE', {
             fontSize: '12px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -290,8 +267,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTankCards() {
-        // Position cards below the player base (which is at y=680)
-        const cardsY = 720; // 40px below the base
+        // Position cards below the battlefield tiles (outside the game area)
+        // Battlefield height is GAME_CONFIG.WORLD_HEIGHT (44 * 19 = 836px)
+        const cardsY = GAME_CONFIG.WORLD_HEIGHT + 10; // 10px margin below battlefield
         const cardWidth = 80;
         const cardHeight = 60;
         const cardSpacing = 90;
@@ -623,7 +601,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileY
         );
         const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
-        leftTower.setScale(0.8); // Make side towers smaller than main tower
+        leftTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
         leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.isPlayerBase = true;
@@ -640,7 +618,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileY
         );
         const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
-        rightTower.setScale(0.8); // Make side towers smaller than main tower
+        rightTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
         rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.isPlayerBase = true;
@@ -657,6 +635,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.MAIN.tileY
         );
         const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
+        mainTower.setDisplaySize(4 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Main tower: 3x4 tiles
         mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
         mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
         mainTower.isPlayerBase = true;
@@ -676,7 +655,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileY
         );
         const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
-        leftTower.setScale(0.8); // Make side towers smaller than main tower
+        leftTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
         leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.isPlayerBase = false;
@@ -693,7 +672,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileY
         );
         const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
-        rightTower.setScale(0.8); // Make side towers smaller than main tower
+        rightTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
         rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.isPlayerBase = false;
@@ -710,6 +689,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.MAIN.tileY
         );
         const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
+        mainTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 4 * GAME_CONFIG.TILE_SIZE); // Main tower: 3x4 tiles
         mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
         mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
         mainTower.isPlayerBase = false;

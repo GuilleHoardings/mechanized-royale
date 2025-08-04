@@ -3,26 +3,26 @@
 class Pathfinding {
     static needsPathfinding(startPos, endPos) {
         // Check if both positions are on the same side of the river
-        const riverY = GAME_CONFIG.WORLD_HEIGHT / 2;
-        const startSide = startPos.y < riverY ? 'top' : 'bottom';
-        const endSide = endPos.y < riverY ? 'top' : 'bottom';
+        // River is at rows 21-22, so check which side of row 21 positions are on
+        const riverRowTop = 21;
+        const startSide = startPos.y < riverRowTop * GAME_CONFIG.TILE_SIZE ? 'top' : 'bottom';
+        const endSide = endPos.y < riverRowTop * GAME_CONFIG.TILE_SIZE ? 'top' : 'bottom';
         
         // If they're on the same side, simple movement is fine
         return startSide !== endSide;
     }
 
     static #isWalkable(tileX, tileY, tank) {
-        const riverTopTileY = Math.floor((GAME_CONFIG.WORLD_HEIGHT / 2 - 40) / GAME_CONFIG.TILE_SIZE);
-        const riverBottomTileY = Math.floor((GAME_CONFIG.WORLD_HEIGHT / 2 + 40) / GAME_CONFIG.TILE_SIZE);
+        // River spans rows 21-22
+        const riverTopTileY = 21;
+        const riverBottomTileY = 22;
 
         if (tileY >= riverTopTileY && tileY <= riverBottomTileY) {
-            const bridge1LeftTileX = Math.floor((GAME_CONFIG.WORLD_WIDTH / 4 - 30) / GAME_CONFIG.TILE_SIZE);
-            const bridge1RightTileX = Math.floor((GAME_CONFIG.WORLD_WIDTH / 4 + 30) / GAME_CONFIG.TILE_SIZE);
-            const bridge2LeftTileX = Math.floor((GAME_CONFIG.WORLD_WIDTH * 3 / 4 - 30) / GAME_CONFIG.TILE_SIZE);
-            const bridge2RightTileX = Math.floor((GAME_CONFIG.WORLD_WIDTH * 3 / 4 + 30) / GAME_CONFIG.TILE_SIZE);
+            // Bridges span columns 6-11 across the river
+            const bridgeLeftTileX = 6;
+            const bridgeRightTileX = 11;
 
-            if ((tileX >= bridge1LeftTileX && tileX <= bridge1RightTileX) ||
-                (tileX >= bridge2LeftTileX && tileX <= bridge2RightTileX)) {
+            if (tileX >= bridgeLeftTileX && tileX <= bridgeRightTileX) {
                 return true; // It's a bridge
             }
             return false; // It's water

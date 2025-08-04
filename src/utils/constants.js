@@ -1,14 +1,14 @@
 // Game constants
 const GAME_CONFIG = {
     WIDTH: 600,
-    HEIGHT: 850,
+    HEIGHT: 800,  // Reduced from 850 to fit better in 1080p displays
     BACKGROUND_COLOR: '#2c5234',
-    WORLD_WIDTH: 600,  // No scrolling - world matches viewport
-    WORLD_HEIGHT: 850, // No scrolling - world matches viewport
-    // Tile system (Clash Royale style)
+    // Tile system (Clash Royale style) - calculate tile size to fit everything in viewport
     TILES_X: 18,
-    TILES_Y: 32,
-    TILE_SIZE: 600 / 18  // 33.33px per tile
+    TILES_Y: 44,  // Updated to match new layout: 0-21 (P1), 21-22 (river), 23-43 (P2)
+    TILE_SIZE: Math.floor(710 / 44),  // ~16px per tile to leave room for UI (cards + energy bar)
+    get WORLD_WIDTH() { return this.TILES_X * this.TILE_SIZE; },  // Calculate width based on tile size
+    get WORLD_HEIGHT() { return this.TILES_Y * this.TILE_SIZE; }  // Calculate height based on tile size
 };
 
 const TANK_TYPES = {
@@ -36,19 +36,18 @@ const ENERGY_CONFIG = {
 const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
     // Tile-based deployment zones (in tile coordinates)
-    // Battlefield uses approximately 20 tiles (680px) with UI taking bottom space
     DEPLOYMENT_ZONES: {
         PLAYER: { 
             tileX: 0, 
-            tileY: 11, 
+            tileY: 23, 
             tilesWidth: 18, 
-            tilesHeight: 9    // Bottom half minus 1 row buffer (rows 11-19)
+            tilesHeight: 15    // Player 2 side: rows 23-37 (leaving space for towers at 38-43)
         },
         ENEMY: { 
             tileX: 0, 
-            tileY: 0, 
+            tileY: 6, 
             tilesWidth: 18, 
-            tilesHeight: 9    // Top half minus 1 row buffer (rows 0-8)
+            tilesHeight: 15    // Player 1 side: rows 6-20 (leaving space for towers at 0-5)
         }
     },
     // Tower system (Clash Royale style)
@@ -57,14 +56,14 @@ const BATTLE_CONFIG = {
         MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
         POSITIONS: {
             PLAYER: {
-                LEFT: { tileX: 3, tileY: 17 },   // Left side tower (moved forward)
-                RIGHT: { tileX: 15, tileY: 17 }, // Right side tower (moved forward)
-                MAIN: { tileX: 9, tileY: 19 }    // Main tower (center, back)
+                LEFT: { tileX: 4, tileY: 38 },   // Arena tower at (5, 4) from player perspective
+                RIGHT: { tileX: 13, tileY: 38 }, // Arena tower at (5, 13) from player perspective
+                MAIN: { tileX: 8, tileY: 41 }    // King tower around (2, 8) from player perspective
             },
             ENEMY: {
-                LEFT: { tileX: 3, tileY: 5 },    // Left side tower (moved down for visibility)
-                RIGHT: { tileX: 15, tileY: 5 },  // Right side tower (moved down for visibility)
-                MAIN: { tileX: 9, tileY: 3 }     // Main tower (moved down for visibility)
+                LEFT: { tileX: 4, tileY: 5 },    // Arena tower at (38, 4) from enemy perspective
+                RIGHT: { tileX: 13, tileY: 5 },  // Arena tower at (38, 13) from enemy perspective
+                MAIN: { tileX: 8, tileY: 2 }     // King tower around (41, 8) from enemy perspective
             }
         }
     }

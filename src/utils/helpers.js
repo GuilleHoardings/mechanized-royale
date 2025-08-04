@@ -37,18 +37,25 @@ const GameHelpers = {
 
     // Tile-based coordinate conversion functions
     
+    // Get the horizontal offset for centering the battlefield
+    getBattlefieldOffset() {
+        return (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
+    },
+    
     // Convert world coordinates to tile coordinates
     worldToTile(worldX, worldY) {
+        const offsetX = this.getBattlefieldOffset();
         return {
-            tileX: Math.floor(worldX / GAME_CONFIG.TILE_SIZE),
+            tileX: Math.floor((worldX - offsetX) / GAME_CONFIG.TILE_SIZE),
             tileY: Math.floor(worldY / GAME_CONFIG.TILE_SIZE)
         };
     },
 
     // Convert tile coordinates to world coordinates (center of tile)
     tileToWorld(tileX, tileY) {
+        const offsetX = this.getBattlefieldOffset();
         return {
-            worldX: (tileX + 0.5) * GAME_CONFIG.TILE_SIZE,
+            worldX: offsetX + (tileX + 0.5) * GAME_CONFIG.TILE_SIZE,
             worldY: (tileY + 0.5) * GAME_CONFIG.TILE_SIZE
         };
     },
@@ -72,9 +79,10 @@ const GameHelpers = {
     // Convert deployment zone to world coordinates
     getDeploymentZoneWorldCoords(isPlayer = true) {
         const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        const offsetX = this.getBattlefieldOffset();
         
         return {
-            x: zone.tileX * GAME_CONFIG.TILE_SIZE,
+            x: offsetX + zone.tileX * GAME_CONFIG.TILE_SIZE,
             y: zone.tileY * GAME_CONFIG.TILE_SIZE,
             width: zone.tilesWidth * GAME_CONFIG.TILE_SIZE,
             height: zone.tilesHeight * GAME_CONFIG.TILE_SIZE
