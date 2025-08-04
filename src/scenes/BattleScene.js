@@ -913,9 +913,10 @@ class BattleScene extends Phaser.Scene {
     }
 
     onBattlefieldClick(pointer) {
-        // Convert screen coordinates to tile coordinates
-        const worldX = pointer.x;
-        const worldY = pointer.y;
+        // Convert screen coordinates to world coordinates
+        // Use worldX/worldY which account for camera transformations
+        const worldX = pointer.worldX;
+        const worldY = pointer.worldY;
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
         // Only allow deployment in player zone using tile-based checking
