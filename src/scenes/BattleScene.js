@@ -338,7 +338,7 @@ class BattleScene extends Phaser.Scene {
 
     createTowerStatusDisplay() {
         // Player tower status (bottom left)
-        this.playerTowerStatus = this.add.text(20, GAME_CONFIG.HEIGHT - 100, '', {
+        this.playerTowerStatus = this.add.text(20, GAME_CONFIG.HEIGHT - 150, '', {
             fontSize: '12px',
             fill: '#4a90e2',
             fontFamily: 'Arial',
@@ -537,6 +537,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileY
         );
         const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
+        leftTower.setScale(0.8); // Make side towers smaller than main tower
         leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.isPlayerBase = true;
@@ -553,6 +554,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileY
         );
         const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
+        rightTower.setScale(0.8); // Make side towers smaller than main tower
         rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.isPlayerBase = true;
@@ -588,6 +590,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileY
         );
         const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
+        leftTower.setScale(0.8); // Make side towers smaller than main tower
         leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         leftTower.isPlayerBase = false;
@@ -604,6 +607,7 @@ class BattleScene extends Phaser.Scene {
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileY
         );
         const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
+        rightTower.setScale(0.8); // Make side towers smaller than main tower
         rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         rightTower.isPlayerBase = false;
