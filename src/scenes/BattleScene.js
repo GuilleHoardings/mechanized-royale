@@ -1386,8 +1386,9 @@ class BattleScene extends Phaser.Scene {
             }
         }
         
-        // Keep tanks within battlefield bounds
-        tank.x = GameHelpers.clamp(tank.x, 20, GAME_CONFIG.WORLD_WIDTH - 20);
+        // Keep tanks within battlefield bounds (account for offset)
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        tank.x = GameHelpers.clamp(tank.x, offsetX + 20, offsetX + GAME_CONFIG.WORLD_WIDTH - 20);
         tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 120);
         
         // Update health bar position
@@ -1663,7 +1664,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     chooseAIDeploymentPosition(tankData) {
-        const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords('enemy');
+        const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords(false); // false = enemy zone
         const playerBase = this.buildings.find(b => b.isPlayerBase);
         const aiBase = this.buildings.find(b => !b.isPlayerBase);
         
@@ -1751,8 +1752,9 @@ class BattleScene extends Phaser.Scene {
         tank.pathIndex = 0;
         tank.needsNewPath = true;
 
-        // Face towards the player side initially
-        const playerSideX = GAME_CONFIG.WORLD_WIDTH / 4;
+        // Face towards the player side initially (account for battlefield offset)
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        const playerSideX = offsetX + GAME_CONFIG.WORLD_WIDTH / 2;
         const playerSideY = GAME_CONFIG.WORLD_HEIGHT * 3 / 4;
         const initialAngle = GameHelpers.angle(x, y, playerSideX, playerSideY);
         tank.setRotation(initialAngle);
@@ -1822,8 +1824,9 @@ class BattleScene extends Phaser.Scene {
         });
 
         // Clean up any stray projectiles that might have missed their targets
+        const offsetX = GameHelpers.getBattlefieldOffset();
         this.projectiles = this.projectiles.filter(projectile => {
-            if (!projectile.scene || projectile.x < -100 || projectile.x > GAME_CONFIG.WORLD_WIDTH + 100 || 
+            if (!projectile.scene || projectile.x < offsetX - 100 || projectile.x > offsetX + GAME_CONFIG.WORLD_WIDTH + 100 || 
                 projectile.y < -100 || projectile.y > GAME_CONFIG.WORLD_HEIGHT + 100) {
                 if (projectile.destroy) projectile.destroy();
                 return false;
