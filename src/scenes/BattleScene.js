@@ -652,21 +652,30 @@ class BattleScene extends Phaser.Scene {
     }
 
     createHealthBars() {
+        const config = UI_CONFIG.HEALTH_BARS.TOWER;
+        
         this.buildings.forEach(building => {
-            // Health bar background - larger for bases
+            // Health bar background
             const healthBg = this.add.graphics();
-            healthBg.fillStyle(0x333333);
-            healthBg.fillRect(building.x - 50, building.y - 60, 100, 10);
-            healthBg.setDepth(1000); // Bring to front
+            healthBg.fillStyle(config.BACKGROUND_COLOR);
+            healthBg.fillRect(
+                building.x - config.OFFSET_X, 
+                building.y - config.OFFSET_Y, 
+                config.WIDTH, 
+                config.HEIGHT
+            );
+            healthBg.setDepth(1000);
             building.healthBg = healthBg;
 
             // Health bar fill
             const healthFill = this.add.graphics();
-            healthFill.setDepth(1001); // Above background
+            healthFill.setDepth(1001);
             building.healthFill = healthFill;
             
             // Health percentage text
-            const healthText = this.add.text(building.x, building.y - 75, 
+            const healthText = this.add.text(
+                building.x, 
+                building.y - config.OFFSET_Y - 15, 
                 `${building.health}/${building.maxHealth}`, {
                 fontSize: '14px',
                 fill: '#ffffff',
@@ -674,7 +683,7 @@ class BattleScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 2
             }).setOrigin(0.5);
-            healthText.setDepth(1002); // Above everything
+            healthText.setDepth(1002);
             building.healthText = healthText;
             
             this.updateBuildingHealth(building);
@@ -682,22 +691,35 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateBuildingHealth(building) {
+        const config = UI_CONFIG.HEALTH_BARS.TOWER;
         const healthPercent = building.health / building.maxHealth;
+        
         building.healthFill.clear();
         
-        // Color based on health percentage
-        let healthColor = 0x00ff00; // Green
-        if (healthPercent <= 0.25) healthColor = 0xff0000; // Red
-        else if (healthPercent <= 0.5) healthColor = 0xffff00; // Yellow
-        else if (healthPercent <= 0.75) healthColor = 0xffa500; // Orange
+        // Use configured color thresholds for towers
+        let healthColor;
+        if (healthPercent > 0.75) {
+            healthColor = config.COLORS.HIGH;
+        } else if (healthPercent > 0.5) {
+            healthColor = config.COLORS.MEDIUM_HIGH;
+        } else if (healthPercent > 0.25) {
+            healthColor = config.COLORS.MEDIUM;
+        } else {
+            healthColor = config.COLORS.LOW;
+        }
         
         building.healthFill.fillStyle(healthColor);
-        building.healthFill.fillRect(building.x - 50, building.y - 60, 100 * healthPercent, 10);
+        building.healthFill.fillRect(
+            building.x - config.OFFSET_X, 
+            building.y - config.OFFSET_Y, 
+            config.WIDTH * healthPercent, 
+            config.HEIGHT
+        );
         
         // Update health text
         if (building.healthText) {
             building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
-            building.healthText.setFill(healthColor === 0xff0000 ? '#ff0000' : '#ffffff');
+            building.healthText.setFill(healthColor === config.COLORS.LOW ? '#ff0000' : '#ffffff');
         }
     }
 
@@ -919,13 +941,17 @@ class BattleScene extends Phaser.Scene {
         const worldY = pointer.worldY;
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
+        console.log('Click at world:', worldX, worldY, 'converted to tile:', tileCoords.tileX, tileCoords.tileY);
+        
         // Only allow deployment in player zone using tile-based checking
         if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true)) {
+            console.log('Invalid deployment tile:', tileCoords);
             return;
         }
 
         // Snap to tile center for precise positioning
         const snappedPos = GameHelpers.tileToWorld(tileCoords.tileX, tileCoords.tileY);
+        console.log('Snapped position:', snappedPos);
 
         // Deploy selected tank if we have enough energy
         const selectedCardData = this.tankCards[this.selectedCard];
@@ -967,8 +993,15 @@ class BattleScene extends Phaser.Scene {
 
         // Face towards the enemy base initially
         const enemyBase = this.buildings.find(b => !b.isPlayerBase);
-        const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
-        tank.setRotation(initialAngle);
+        if (enemyBase) {
+            const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
+            tank.setRotation(initialAngle);
+            console.log('Tank deployed at:', x, y, 'facing enemy base at:', enemyBase.x, enemyBase.y, 'angle:', initialAngle);
+        } else {
+            // If no enemy base found, face upward (towards enemy side)
+            tank.setRotation(-Math.PI / 2); // -90 degrees = upward
+            console.log('No enemy base found, tank facing upward');
+        }
 
         // AI behavior: find best target (closest enemy or enemy base)
         this.updateTankAI(tank);
@@ -1247,9 +1280,16 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTankHealthBar(tank) {
+        const config = UI_CONFIG.HEALTH_BARS.TANK;
+        
         const healthBg = this.add.graphics();
-        healthBg.fillStyle(0x333333);
-        healthBg.fillRect(tank.x - 20, tank.y - 30, 40, 4);
+        healthBg.fillStyle(config.BACKGROUND_COLOR);
+        healthBg.fillRect(
+            tank.x - config.OFFSET_X, 
+            tank.y - config.OFFSET_Y, 
+            config.WIDTH, 
+            config.HEIGHT
+        );
         tank.healthBg = healthBg;
 
         const healthFill = this.add.graphics();
@@ -1258,10 +1298,28 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateTankHealth(tank) {
+        const config = UI_CONFIG.HEALTH_BARS.TANK;
         const healthPercent = tank.health / tank.maxHealth;
+        
         tank.healthFill.clear();
-        tank.healthFill.fillStyle(healthPercent > 0.5 ? 0x00ff00 : healthPercent > 0.25 ? 0xffff00 : 0xff0000);
-        tank.healthFill.fillRect(tank.x - 20, tank.y - 30, 40 * healthPercent, 4);
+        
+        // Use configured color thresholds
+        let healthColor;
+        if (healthPercent > 0.5) {
+            healthColor = config.COLORS.HIGH;
+        } else if (healthPercent > 0.25) {
+            healthColor = config.COLORS.MEDIUM;
+        } else {
+            healthColor = config.COLORS.LOW;
+        }
+        
+        tank.healthFill.fillStyle(healthColor);
+        tank.healthFill.fillRect(
+            tank.x - config.OFFSET_X, 
+            tank.y - config.OFFSET_Y, 
+            config.WIDTH * healthPercent, 
+            config.HEIGHT
+        );
     }
 
     updateTankMovement(tank) {
@@ -2001,13 +2059,13 @@ class BattleScene extends Phaser.Scene {
                 const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
                 enemyTanks.forEach(enemy => {
                     const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                    if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
+                    if (distance < closestDistance) {
                         closestDistance = distance;
                         closestEnemy = enemy;
                     }
                 });
                 
-                // If no enemy tanks in range, target enemy towers (prioritize side towers)
+                // If no enemy tanks found, target enemy towers (prioritize side towers)
                 if (!closestEnemy) {
                     const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
                     
@@ -2040,13 +2098,13 @@ class BattleScene extends Phaser.Scene {
                 const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
                 playerTanks.forEach(enemy => {
                     const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                    if (distance < closestDistance && distance <= tank.tankData.stats.range * 2) {
+                    if (distance < closestDistance) {
                         closestDistance = distance;
                         closestEnemy = enemy;
                     }
                 });
                 
-                // If no player tanks in range, target player towers (prioritize side towers)
+                // If no player tanks found, target player towers (prioritize side towers)
                 if (!closestEnemy) {
                     const playerBuildings = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
                     

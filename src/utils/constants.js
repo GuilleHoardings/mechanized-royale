@@ -68,3 +68,59 @@ const BATTLE_CONFIG = {
         }
     }
 };
+
+const UI_CONFIG = {
+    HEALTH_BARS: {
+        TANK: {
+            WIDTH: 40,
+            HEIGHT: 4,
+            OFFSET_X: 20,
+            OFFSET_Y: 30,
+            BACKGROUND_COLOR: 0x333333,
+            COLORS: {
+                HIGH: 0x00ff00,    // > 50% health
+                MEDIUM: 0xffff00,  // 25-50% health  
+                LOW: 0xff0000      // < 25% health
+            }
+        },
+        TOWER: {
+            WIDTH: 50,
+            HEIGHT: 10,
+            OFFSET_X: 25,
+            OFFSET_Y: 60,
+            BACKGROUND_COLOR: 0x333333,
+            COLORS: {
+                HIGH: 0x00ff00,
+                MEDIUM_HIGH: 0xffa500,  // 50-75% health
+                MEDIUM: 0xffff00,       // 25-50% health
+                LOW: 0xff0000           // < 25% health
+            }
+        }
+    },
+    CARDS: {
+        WIDTH: 80,
+        HEIGHT: 60,
+        SPACING: 90,
+        MARGIN_BELOW_BATTLEFIELD: 10,
+        SELECTION_BORDER_WIDTH: 3,
+        SELECTION_BORDER_COLOR: 0xffff00,
+        COST_TEXT: {
+            FONT_SIZE: '12px',
+            COLOR: '#ffff00',
+            STROKE_COLOR: '#000000',
+            STROKE_THICKNESS: 1
+        },
+        NAME_TEXT: {
+            FONT_SIZE: '9px',
+            COLOR: '#ffffff'
+        }
+    },
+    ENERGY_BAR: {
+        WIDTH: 200,
+        HEIGHT: 16,
+        BOTTOM_MARGIN: 20,
+        TEXT_OFFSET_Y: 8,
+        BACKGROUND_COLOR: 0x333333,
+        FILL_COLOR: 0x4a90e2
+    }
+};
