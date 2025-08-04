@@ -961,7 +961,7 @@ class BattleScene extends Phaser.Scene {
         
         // Update statistics
         this.battleStats.player.tanksDeployed++;
-        const cost = tankData.stats.cost;
+        const cost = tankData.cost;
         this.battleStats.player.energySpent += cost;
         this.playUISound('deploy');
 
@@ -1755,6 +1755,16 @@ class BattleScene extends Phaser.Scene {
         
         // Create health bar for tank
         this.createTankHealthBar(tank);
+        
+        // Update AI statistics
+        this.battleStats.ai.tanksDeployed++;
+        this.battleStats.ai.energySpent += tankData.cost;
+        
+        // Track max tanks alive
+        const aiTanksAlive = this.tanks.filter(t => !t.isPlayerTank && t.health > 0).length;
+        if (aiTanksAlive > this.battleStats.ai.maxTanksAlive) {
+            this.battleStats.ai.maxTanksAlive = aiTanksAlive;
+        }
     }
 
     update() {
