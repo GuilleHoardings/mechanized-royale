@@ -1300,7 +1300,7 @@ class BattleScene extends Phaser.Scene {
         // Keep tanks within battlefield bounds (account for offset)
         const offsetX = GameHelpers.getBattlefieldOffset();
         tank.x = GameHelpers.clamp(tank.x, offsetX + 20, offsetX + GAME_CONFIG.WORLD_WIDTH - 20);
-        tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 120);
+        tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 20);
         
         // Update health bar position
         if (tank.healthBg) {
