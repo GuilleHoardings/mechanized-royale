@@ -56,14 +56,14 @@ const BATTLE_CONFIG = {
         MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
         POSITIONS: {
             PLAYER: {
-                LEFT: { tileX: 4, tileY: 38 },   // Arena tower at (5, 4) from player perspective
-                RIGHT: { tileX: 13, tileY: 38 }, // Arena tower at (5, 13) from player perspective
-                MAIN: { tileX: 8, tileY: 41 }    // King tower around (2, 8) from player perspective
+                LEFT: { tileX: 3, tileY: 38 },
+                RIGHT: { tileX: 14, tileY: 38 },
+                MAIN: { tileX: 8, tileY: 41 }
             },
             ENEMY: {
-                LEFT: { tileX: 4, tileY: 5 },    // Arena tower at (38, 4) from enemy perspective
-                RIGHT: { tileX: 13, tileY: 5 },  // Arena tower at (38, 13) from enemy perspective
-                MAIN: { tileX: 8, tileY: 2 }     // King tower around (41, 8) from enemy perspective
+                LEFT: { tileX: 3, tileY: 5 },
+                RIGHT: { tileX: 14, tileY: 5 },
+                MAIN: { tileX: 8, tileY: 2 }
             }
         }
     }

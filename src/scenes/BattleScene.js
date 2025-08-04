@@ -176,12 +176,12 @@ class BattleScene extends Phaser.Scene {
         graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
 
         // Two bridges aligned with side towers
-        // Left bridge (aligned with left towers at column 4) - spans columns 3-5
-        const leftBridgeStartX = offsetX + 3 * GAME_CONFIG.TILE_SIZE;
+        // Left bridge (aligned with left towers)
+        const leftBridgeStartX = offsetX + BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX * GAME_CONFIG.TILE_SIZE;
         const leftBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
         
-        // Right bridge (aligned with right towers at column 13) - spans columns 12-14
-        const rightBridgeStartX = offsetX + 12 * GAME_CONFIG.TILE_SIZE;
+        // Right bridge (aligned with right towers)
+        const rightBridgeStartX = offsetX + (BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX - 1) * GAME_CONFIG.TILE_SIZE;
         const rightBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
         
         // Draw left bridge
@@ -548,6 +548,9 @@ class BattleScene extends Phaser.Scene {
         // Main towers get golden tint
         if (isMainTower) {
             tower.setTint(0xffdd00);
+
+            // Move the tower half a tile up to center it
+            tower.x += GAME_CONFIG.TILE_SIZE / 2;
         }
         
         // Add to buildings array
