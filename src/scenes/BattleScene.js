@@ -162,6 +162,92 @@ class BattleScene extends Phaser.Scene {
         graphics.fillStyle(0xd22d2d, 0.1);
         graphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
         graphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
+
+        // Add river and bridges
+        this.createRiverAndBridges(graphics);
+    }
+
+    createRiverAndBridges(graphics) {
+        // River parameters
+        const riverY = GAME_CONFIG.WORLD_HEIGHT / 2 - 40;
+        const riverHeight = 80;
+        const riverWidth = GAME_CONFIG.WORLD_WIDTH;
+
+        // Draw river
+        graphics.fillStyle(0x4169e1, 0.6); // Royal blue for water
+        graphics.fillRect(0, riverY, riverWidth, riverHeight);
+        
+        // River borders
+        graphics.lineStyle(2, 0x1e3a8a, 0.8); // Darker blue borders
+        graphics.lineBetween(0, riverY, riverWidth, riverY);
+        graphics.lineBetween(0, riverY + riverHeight, riverWidth, riverY + riverHeight);
+
+        // Bridge 1 (left side)
+        const bridge1X = GAME_CONFIG.WORLD_WIDTH / 4 - 30;
+        const bridge1Width = 60;
+        
+        // Bridge deck
+        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
+        graphics.fillRect(bridge1X, riverY, bridge1Width, riverHeight);
+        
+        // Bridge borders
+        graphics.lineStyle(2, 0x654321);
+        graphics.strokeRect(bridge1X, riverY, bridge1Width, riverHeight);
+        
+        // Bridge supports
+        graphics.fillStyle(0x654321);
+        for (let i = 0; i < 3; i++) {
+            const supportX = bridge1X + (i + 1) * bridge1Width / 4;
+            graphics.fillRect(supportX - 2, riverY, 4, riverHeight);
+        }
+
+        // Bridge 2 (right side)
+        const bridge2X = GAME_CONFIG.WORLD_WIDTH * 3 / 4 - 30;
+        const bridge2Width = 60;
+        
+        // Bridge deck
+        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
+        graphics.fillRect(bridge2X, riverY, bridge2Width, riverHeight);
+        
+        // Bridge borders
+        graphics.lineStyle(2, 0x654321);
+        graphics.strokeRect(bridge2X, riverY, bridge2Width, riverHeight);
+        
+        // Bridge supports
+        graphics.fillStyle(0x654321);
+        for (let i = 0; i < 3; i++) {
+            const supportX = bridge2X + (i + 1) * bridge2Width / 4;
+            graphics.fillRect(supportX - 2, riverY, 4, riverHeight);
+        }
+
+        // Add river label
+        this.add.text(GAME_CONFIG.WIDTH / 2, riverY + riverHeight / 2, 'RIVER', {
+            fontSize: '16px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000080',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+
+        // Add bridge labels
+        this.add.text(bridge1X + bridge1Width / 2, riverY + riverHeight / 2, 'BRIDGE', {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#654321',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        
+        this.add.text(bridge2X + bridge2Width / 2, riverY + riverHeight / 2, 'BRIDGE', {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#654321',
+            strokeThickness: 1
+        }).setOrigin(0.5);
     }
 
     createUI() {
@@ -943,6 +1029,11 @@ class BattleScene extends Phaser.Scene {
         tank.moveTarget = null; // Not used in Clash Royale style
         tank.manualControl = false; // Always AI controlled in Clash Royale style
         tank.lastTargetUpdate = 0; // For AI target selection
+        
+        // Pathfinding properties
+        tank.path = null;
+        tank.pathIndex = 0;
+        tank.needsNewPath = true;
 
         // Face towards the enemy base initially
         const enemyBase = this.buildings.find(b => !b.isPlayerBase);
@@ -1277,38 +1368,92 @@ class BattleScene extends Phaser.Scene {
             }
         }
 
-        // Simple obstacle avoidance - check for other tanks nearby
-        const avoidanceRadius = 40;
-        let avoidanceX = 0;
-        let avoidanceY = 0;
-        
-        this.tanks.forEach(otherTank => {
-            if (otherTank === tank || otherTank.health <= 0) return;
+        // Check if we need a new path (target changed or no path exists)
+        if (tank.needsNewPath || !tank.path || tank.pathIndex >= tank.path.length) {
+            const currentPos = { x: tank.x, y: tank.y };
             
-            const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
-            if (otherDistance < avoidanceRadius) {
-                // Calculate avoidance vector
-                const avoidAngle = GameHelpers.angle(otherTank.x, otherTank.y, tank.x, tank.y);
-                const avoidForce = (avoidanceRadius - otherDistance) / avoidanceRadius;
-                avoidanceX += Math.cos(avoidAngle) * avoidForce * 30;
-                avoidanceY += Math.sin(avoidAngle) * avoidForce * 30;
+            // Check if pathfinding is needed (crossing river)
+            if (Pathfinding.needsPathfinding(currentPos, targetPos)) {
+                try {
+                    tank.path = Pathfinding.findPath(currentPos, targetPos, tank);
+                } catch (error) {
+                    console.warn('Pathfinding error:', error);
+                    tank.path = null;
+                }
+            } else {
+                // Simple direct movement if no river crossing needed
+                tank.path = [
+                    { worldX: currentPos.x, worldY: currentPos.y },
+                    { worldX: targetPos.x, worldY: targetPos.y }
+                ];
             }
-        });
+            
+            tank.pathIndex = 0;
+            tank.needsNewPath = false;
+            
+            // If no path found, use simple direct movement as fallback
+            if (!tank.path || tank.path.length === 0) {
+                tank.path = [
+                    { worldX: currentPos.x, worldY: currentPos.y },
+                    { worldX: targetPos.x, worldY: targetPos.y }
+                ];
+                tank.pathIndex = 0;
+            }
+        }
 
-        // Calculate movement direction
-        const targetAngle = GameHelpers.angle(tank.x, tank.y, targetPos.x, targetPos.y);
-        const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
-        
-        // Apply movement with avoidance
-        const moveX = Math.cos(targetAngle) * speed + avoidanceX * 0.1;
-        const moveY = Math.sin(targetAngle) * speed + avoidanceY * 0.1;
-        
-        tank.x += moveX;
-        tank.y += moveY;
-        
-        // Face movement direction (but only if moving significantly)
-        if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
-            tank.setRotation(targetAngle);
+        // Follow the path
+        if (tank.path && tank.pathIndex < tank.path.length) {
+            const currentWaypoint = tank.path[tank.pathIndex];
+            const waypointDistance = GameHelpers.distance(tank.x, tank.y, currentWaypoint.worldX, currentWaypoint.worldY);
+            
+            // If close enough to current waypoint, move to next one
+            if (waypointDistance <= 15) {
+                tank.pathIndex++;
+                if (tank.pathIndex >= tank.path.length) {
+                    // Reached end of path
+                    tank.moving = false;
+                    return;
+                }
+            }
+            
+            // Move towards current waypoint
+            if (tank.pathIndex < tank.path.length) {
+                const waypoint = tank.path[tank.pathIndex];
+                
+                // Simple obstacle avoidance - check for other tanks nearby
+                const avoidanceRadius = 40;
+                let avoidanceX = 0;
+                let avoidanceY = 0;
+                
+                this.tanks.forEach(otherTank => {
+                    if (otherTank === tank || otherTank.health <= 0) return;
+                    
+                    const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
+                    if (otherDistance < avoidanceRadius) {
+                        // Calculate avoidance vector
+                        const avoidAngle = GameHelpers.angle(otherTank.x, otherTank.y, tank.x, tank.y);
+                        const avoidForce = (avoidanceRadius - otherDistance) / avoidanceRadius;
+                        avoidanceX += Math.cos(avoidAngle) * avoidForce * 30;
+                        avoidanceY += Math.sin(avoidAngle) * avoidForce * 30;
+                    }
+                });
+
+                // Calculate movement direction towards waypoint
+                const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
+                const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
+                
+                // Apply movement with avoidance
+                const moveX = Math.cos(targetAngle) * speed + avoidanceX * 0.1;
+                const moveY = Math.sin(targetAngle) * speed + avoidanceY * 0.1;
+                
+                tank.x += moveX;
+                tank.y += moveY;
+                
+                // Face movement direction (but only if moving significantly)
+                if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
+                    tank.setRotation(targetAngle);
+                }
+            }
         }
         
         // Keep tanks within battlefield bounds
@@ -1670,6 +1815,11 @@ class BattleScene extends Phaser.Scene {
         tank.moveTarget = null;
         tank.manualControl = false;
         tank.lastTargetUpdate = 0;
+        
+        // Pathfinding properties
+        tank.path = null;
+        tank.pathIndex = 0;
+        tank.needsNewPath = true;
 
         // Face towards the player side initially
         const playerSideX = GAME_CONFIG.WORLD_WIDTH / 4;
@@ -1907,6 +2057,8 @@ class BattleScene extends Phaser.Scene {
         if (currentTime - tank.lastTargetUpdate > 2000 || !tank.target || tank.target.health <= 0) {
             tank.lastTargetUpdate = currentTime;
             
+            const oldTarget = tank.target;
+            
             // Find closest enemy target
             let closestEnemy = null;
             let closestDistance = Infinity;
@@ -1992,6 +2144,11 @@ class BattleScene extends Phaser.Scene {
             }
             
             tank.target = closestEnemy;
+            
+            // If target changed, request new path
+            if (oldTarget !== tank.target) {
+                tank.needsNewPath = true;
+            }
         }
     }
 
