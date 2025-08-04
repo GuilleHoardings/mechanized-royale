@@ -460,8 +460,8 @@ class BattleScene extends Phaser.Scene {
         playerBase.lastTargetUpdate = 0;
         this.buildings.push(playerBase);
 
-        // Enemy base at top center, tile-aligned (well behind deployment zone like Clash Royale)
-        const enemyBaseTile = GameHelpers.tileToWorld(9, 1); // Near back of enemy area (row 1, col 9)
+        // Enemy base at top center, tile-aligned (positioned lower to allow health bar visibility)
+        const enemyBaseTile = GameHelpers.tileToWorld(9, 4); // Move down to row 4 instead of row 1
         const enemyBase = this.add.image(enemyBaseTile.worldX, enemyBaseTile.worldY, 'base');
         enemyBase.health = 1000;
         enemyBase.maxHealth = 1000;
@@ -481,10 +481,12 @@ class BattleScene extends Phaser.Scene {
             const healthBg = this.add.graphics();
             healthBg.fillStyle(0x333333);
             healthBg.fillRect(building.x - 50, building.y - 60, 100, 10);
+            healthBg.setDepth(1000); // Bring to front
             building.healthBg = healthBg;
 
             // Health bar fill
             const healthFill = this.add.graphics();
+            healthFill.setDepth(1001); // Above background
             building.healthFill = healthFill;
             
             // Health percentage text
@@ -496,6 +498,7 @@ class BattleScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 2
             }).setOrigin(0.5);
+            healthText.setDepth(1002); // Above everything
             building.healthText = healthText;
             
             this.updateBuildingHealth(building);
