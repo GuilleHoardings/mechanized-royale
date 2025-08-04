@@ -595,111 +595,60 @@ class BattleScene extends Phaser.Scene {
     }
 
     createPlayerTowers() {
-        // Player left tower
-        const leftTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileY
-        );
-        const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
-        leftTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
-        leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        leftTower.isPlayerBase = true;
-        leftTower.isMainTower = false;
-        leftTower.towerType = 'left';
-        leftTower.lastShotTime = 0;
-        leftTower.target = null;
-        leftTower.lastTargetUpdate = 0;
-        this.buildings.push(leftTower);
-
-        // Player right tower
-        const rightTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileY
-        );
-        const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
-        rightTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
-        rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        rightTower.isPlayerBase = true;
-        rightTower.isMainTower = false;
-        rightTower.towerType = 'right';
-        rightTower.lastShotTime = 0;
-        rightTower.target = null;
-        rightTower.lastTargetUpdate = 0;
-        this.buildings.push(rightTower);
-
-        // Player main tower (only accessible after at least one side tower is destroyed)
-        const mainTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.MAIN.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.MAIN.tileY
-        );
-        const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
-        mainTower.setDisplaySize(4 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Main tower: 3x4 tiles
-        mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
-        mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
-        mainTower.isPlayerBase = true;
-        mainTower.isMainTower = true;
-        mainTower.towerType = 'main';
-        mainTower.lastShotTime = 0;
-        mainTower.target = null;
-        mainTower.lastTargetUpdate = 0;
-        mainTower.setTint(0xffdd00); // Golden tint to distinguish main tower
-        this.buildings.push(mainTower);
+        this.createTowerSet(true); // true = player towers
     }
 
     createEnemyTowers() {
-        // Enemy left tower
-        const leftTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileY
-        );
-        const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
-        leftTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
-        leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        leftTower.isPlayerBase = false;
-        leftTower.isMainTower = false;
-        leftTower.towerType = 'left';
-        leftTower.lastShotTime = 0;
-        leftTower.target = null;
-        leftTower.lastTargetUpdate = 0;
-        this.buildings.push(leftTower);
+        this.createTowerSet(false); // false = enemy towers
+    }
 
-        // Enemy right tower
-        const rightTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileY
-        );
-        const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
-        rightTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE); // Side towers: 3x3 tiles
-        rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        rightTower.isPlayerBase = false;
-        rightTower.isMainTower = false;
-        rightTower.towerType = 'right';
-        rightTower.lastShotTime = 0;
-        rightTower.target = null;
-        rightTower.lastTargetUpdate = 0;
-        this.buildings.push(rightTower);
+    createTowerSet(isPlayerTeam) {
+        const teamConfig = isPlayerTeam ? 
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER : 
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY;
 
-        // Enemy main tower (only accessible after at least one side tower is destroyed)
-        const mainTowerTile = GameHelpers.tileToWorld(
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.MAIN.tileX,
-            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.MAIN.tileY
+        this.createTower(teamConfig.LEFT, 'left', isPlayerTeam, false);
+        this.createTower(teamConfig.RIGHT, 'right', isPlayerTeam, false);
+        this.createTower(teamConfig.MAIN, 'main', isPlayerTeam, true);
+    }
+
+    createTower(positionConfig, towerType, isPlayerTeam, isMainTower) {
+        // Get world position from tile coordinates
+        const towerTile = GameHelpers.tileToWorld(
+            positionConfig.tileX,
+            positionConfig.tileY
         );
-        const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
-        mainTower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 4 * GAME_CONFIG.TILE_SIZE); // Main tower: 3x4 tiles
-        mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
-        mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
-        mainTower.isPlayerBase = false;
-        mainTower.isMainTower = true;
-        mainTower.towerType = 'main';
-        mainTower.lastShotTime = 0;
-        mainTower.target = null;
-        mainTower.lastTargetUpdate = 0;
-        mainTower.setTint(0xffdd00); // Golden tint to distinguish main tower
-        this.buildings.push(mainTower);
+        
+        // Create the tower image
+        const tower = this.add.image(towerTile.worldX, towerTile.worldY, 'base');
+        
+        // Set display size based on tower type
+        if (isMainTower) {
+            // Main towers are larger and have different orientations
+            tower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 4 * GAME_CONFIG.TILE_SIZE); // Enemy main: 3x4
+        } else {
+            // Side towers are 3x3
+            tower.setDisplaySize(3 * GAME_CONFIG.TILE_SIZE, 3 * GAME_CONFIG.TILE_SIZE);
+        }
+        
+        // Set tower properties
+        const health = isMainTower ? BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH : BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        tower.health = health;
+        tower.maxHealth = health;
+        tower.isPlayerBase = isPlayerTeam;
+        tower.isMainTower = isMainTower;
+        tower.towerType = towerType;
+        tower.lastShotTime = 0;
+        tower.target = null;
+        tower.lastTargetUpdate = 0;
+        
+        // Main towers get golden tint
+        if (isMainTower) {
+            tower.setTint(0xffdd00);
+        }
+        
+        // Add to buildings array
+        this.buildings.push(tower);
     }
 
     createHealthBars() {
