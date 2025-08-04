@@ -658,8 +658,20 @@ class BattleScene extends Phaser.Scene {
                 this.updateTimerDisplay();
                 
                 if (this.battleTime <= 0) {
-                    // Check if overtime is needed
-                    this.checkOvertimeConditions();
+                    if (!this.overtimeActive) {
+                        // Check if overtime is needed
+                        this.checkOvertimeConditions();
+                    } else {
+                        // Already in overtime - check if max overtime reached
+                        const overtimeSeconds = Math.abs(this.battleTime);
+                        if (overtimeSeconds >= this.maxOvertimeSeconds) {
+                            // Max overtime reached - end battle
+                            this.endBattle('time');
+                        } else {
+                            // Continue checking for overtime victory conditions
+                            this.checkOvertimeVictoryConditions();
+                        }
+                    }
                 }
             },
             loop: true
@@ -802,6 +814,39 @@ class BattleScene extends Phaser.Scene {
             duration: 800,
             onComplete: () => flashOverlay.destroy()
         });
+    }
+
+    checkOvertimeVictoryConditions() {
+        const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
+        const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+        
+        // Check for tower destruction advantage
+        const playerTowersDestroyed = 3 - playerTowers.length;
+        const enemyTowersDestroyed = 3 - enemyTowers.length;
+        
+        if (playerTowersDestroyed > enemyTowersDestroyed) {
+            this.endBattle('victory'); // Player has destroyed more towers
+        } else if (enemyTowersDestroyed > playerTowersDestroyed) {
+            this.endBattle('defeat'); // Enemy has destroyed more towers
+        } else {
+            // Same number of towers destroyed, check health advantage
+            const playerBase = this.buildings.find(b => b.isPlayerBase && b.isMainTower);
+            const enemyBase = this.buildings.find(b => !b.isPlayerBase && b.isMainTower);
+            
+            if (playerBase && enemyBase) {
+                const playerHealthPercent = playerBase.health / playerBase.maxHealth;
+                const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
+                const healthDiff = playerHealthPercent - enemyHealthPercent;
+                
+                // Need at least 5% health advantage to win during overtime
+                if (healthDiff >= 0.05) {
+                    this.endBattle('victory'); // Player has health advantage
+                } else if (healthDiff <= -0.05) {
+                    this.endBattle('defeat'); // Enemy has health advantage
+                }
+                // If health difference is too small (< 5%), continue overtime
+            }
+        }
     }
 
     formatTime(seconds) {
