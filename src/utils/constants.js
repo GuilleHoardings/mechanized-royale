@@ -50,5 +50,22 @@ const BATTLE_CONFIG = {
             tilesWidth: 18, 
             tilesHeight: 9    // Top half minus 1 row buffer (rows 0-8)
         }
+    },
+    // Tower system (Clash Royale style)
+    TOWERS: {
+        SIDE_TOWER_HEALTH: 600,    // Side towers have less health
+        MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
+        POSITIONS: {
+            PLAYER: {
+                LEFT: { tileX: 3, tileY: 18 },   // Left side tower
+                RIGHT: { tileX: 15, tileY: 18 }, // Right side tower  
+                MAIN: { tileX: 9, tileY: 19 }    // Main tower (center, back)
+            },
+            ENEMY: {
+                LEFT: { tileX: 3, tileY: 2 },    // Left side tower
+                RIGHT: { tileX: 15, tileY: 2 },  // Right side tower
+                MAIN: { tileX: 9, tileY: 1 }     // Main tower (center, back)
+            }
+        }
     }
 };

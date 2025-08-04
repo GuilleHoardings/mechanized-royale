@@ -15,6 +15,22 @@ class BattleScene extends Phaser.Scene {
         this.cameraSpeed = 5;
         // Only deployment mode - Clash Royale style
         
+        // Tower tracking for victory conditions
+        this.towerStats = {
+            player: {
+                towersDestroyed: 0,
+                mainTowerDestroyed: false,
+                leftTowerDestroyed: false,
+                rightTowerDestroyed: false
+            },
+            enemy: {
+                towersDestroyed: 0,
+                mainTowerDestroyed: false,
+                leftTowerDestroyed: false,
+                rightTowerDestroyed: false
+            }
+        };
+        
         // Enhanced battle statistics
         this.battleStats = {
             player: {
@@ -315,6 +331,61 @@ class BattleScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(1, 0);
         this.timerText.setScrollFactor(0);
+
+        // Tower status display
+        this.createTowerStatusDisplay();
+    }
+
+    createTowerStatusDisplay() {
+        // Player tower status (bottom left)
+        this.playerTowerStatus = this.add.text(20, GAME_CONFIG.HEIGHT - 100, '', {
+            fontSize: '12px',
+            fill: '#4a90e2',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        this.playerTowerStatus.setScrollFactor(0);
+
+        // Enemy tower status (top left, below AI status)
+        this.enemyTowerStatus = this.add.text(20, 80, '', {
+            fontSize: '12px',
+            fill: '#d22d2d',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 1
+        });
+        this.enemyTowerStatus.setScrollFactor(0);
+
+        this.updateTowerStatusDisplay();
+    }
+
+    updateTowerStatusDisplay() {
+        const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
+        const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+
+        // Player towers
+        let playerStatus = 'PLAYER TOWERS:\n';
+        playerStatus += `Destroyed: ${this.towerStats.enemy.towersDestroyed}/3\n`;
+        if (playerTowers.find(t => t.towerType === 'left')) playerStatus += '● Left Tower\n';
+        else playerStatus += '✗ Left Tower\n';
+        if (playerTowers.find(t => t.towerType === 'right')) playerStatus += '● Right Tower\n';
+        else playerStatus += '✗ Right Tower\n';
+        if (playerTowers.find(t => t.isMainTower)) playerStatus += '👑 Main Tower';
+        else playerStatus += '✗ Main Tower';
+
+        // Enemy towers  
+        let enemyStatus = 'ENEMY TOWERS:\n';
+        enemyStatus += `Destroyed: ${this.towerStats.player.towersDestroyed}/3\n`;
+        if (enemyTowers.find(t => t.towerType === 'left')) enemyStatus += '● Left Tower\n';
+        else enemyStatus += '✗ Left Tower\n';
+        if (enemyTowers.find(t => t.towerType === 'right')) enemyStatus += '● Right Tower\n';
+        else enemyStatus += '✗ Right Tower\n';
+        if (enemyTowers.find(t => t.isMainTower)) enemyStatus += '👑 Main Tower';
+        else enemyStatus += '✗ Main Tower';
+
+        this.playerTowerStatus.setText(playerStatus);
+        this.enemyTowerStatus.setText(enemyStatus);
     }
 
     createTankCards_OLD(uiY) {
@@ -449,30 +520,116 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBases() {
-        // Player base at bottom center, tile-aligned (well behind deployment zone like Clash Royale)
-        const playerBaseTile = GameHelpers.tileToWorld(9, 18); // Near back of player area (row 18, col 9)
-        const playerBase = this.add.image(playerBaseTile.worldX, playerBaseTile.worldY, 'base');
-        playerBase.health = 1000;
-        playerBase.maxHealth = 1000;
-        playerBase.isPlayerBase = true;
-        playerBase.lastShotTime = 0;
-        playerBase.target = null;
-        playerBase.lastTargetUpdate = 0;
-        this.buildings.push(playerBase);
+        // Create player towers (3 towers: left, right, main)
+        this.createPlayerTowers();
+        
+        // Create enemy towers (3 towers: left, right, main)
+        this.createEnemyTowers();
 
-        // Enemy base at top center, tile-aligned (positioned lower to allow health bar visibility)
-        const enemyBaseTile = GameHelpers.tileToWorld(9, 4); // Move down to row 4 instead of row 1
-        const enemyBase = this.add.image(enemyBaseTile.worldX, enemyBaseTile.worldY, 'base');
-        enemyBase.health = 1000;
-        enemyBase.maxHealth = 1000;
-        enemyBase.isPlayerBase = false;
-        enemyBase.lastShotTime = 0;
-        enemyBase.target = null;
-        enemyBase.lastTargetUpdate = 0;
-        this.buildings.push(enemyBase);
-
-        // Health bars for bases
+        // Health bars for all towers
         this.createHealthBars();
+    }
+
+    createPlayerTowers() {
+        // Player left tower
+        const leftTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileY
+        );
+        const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
+        leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        leftTower.isPlayerBase = true;
+        leftTower.isMainTower = false;
+        leftTower.towerType = 'left';
+        leftTower.lastShotTime = 0;
+        leftTower.target = null;
+        leftTower.lastTargetUpdate = 0;
+        this.buildings.push(leftTower);
+
+        // Player right tower
+        const rightTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileY
+        );
+        const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
+        rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        rightTower.isPlayerBase = true;
+        rightTower.isMainTower = false;
+        rightTower.towerType = 'right';
+        rightTower.lastShotTime = 0;
+        rightTower.target = null;
+        rightTower.lastTargetUpdate = 0;
+        this.buildings.push(rightTower);
+
+        // Player main tower (only accessible after at least one side tower is destroyed)
+        const mainTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.MAIN.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.MAIN.tileY
+        );
+        const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
+        mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
+        mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
+        mainTower.isPlayerBase = true;
+        mainTower.isMainTower = true;
+        mainTower.towerType = 'main';
+        mainTower.lastShotTime = 0;
+        mainTower.target = null;
+        mainTower.lastTargetUpdate = 0;
+        mainTower.setTint(0xffdd00); // Golden tint to distinguish main tower
+        this.buildings.push(mainTower);
+    }
+
+    createEnemyTowers() {
+        // Enemy left tower
+        const leftTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.LEFT.tileY
+        );
+        const leftTower = this.add.image(leftTowerTile.worldX, leftTowerTile.worldY, 'base');
+        leftTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        leftTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        leftTower.isPlayerBase = false;
+        leftTower.isMainTower = false;
+        leftTower.towerType = 'left';
+        leftTower.lastShotTime = 0;
+        leftTower.target = null;
+        leftTower.lastTargetUpdate = 0;
+        this.buildings.push(leftTower);
+
+        // Enemy right tower
+        const rightTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.RIGHT.tileY
+        );
+        const rightTower = this.add.image(rightTowerTile.worldX, rightTowerTile.worldY, 'base');
+        rightTower.health = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        rightTower.maxHealth = BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
+        rightTower.isPlayerBase = false;
+        rightTower.isMainTower = false;
+        rightTower.towerType = 'right';
+        rightTower.lastShotTime = 0;
+        rightTower.target = null;
+        rightTower.lastTargetUpdate = 0;
+        this.buildings.push(rightTower);
+
+        // Enemy main tower (only accessible after at least one side tower is destroyed)
+        const mainTowerTile = GameHelpers.tileToWorld(
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.MAIN.tileX,
+            BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY.MAIN.tileY
+        );
+        const mainTower = this.add.image(mainTowerTile.worldX, mainTowerTile.worldY, 'base');
+        mainTower.health = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
+        mainTower.maxHealth = BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH;
+        mainTower.isPlayerBase = false;
+        mainTower.isMainTower = true;
+        mainTower.towerType = 'main';
+        mainTower.lastShotTime = 0;
+        mainTower.target = null;
+        mainTower.lastTargetUpdate = 0;
+        mainTower.setTint(0xffdd00); // Golden tint to distinguish main tower
+        this.buildings.push(mainTower);
     }
 
     createHealthBars() {
@@ -1761,16 +1918,33 @@ class BattleScene extends Phaser.Scene {
                     }
                 });
                 
-                // If no enemy tanks in range, target enemy base
+                // If no enemy tanks in range, target enemy towers (prioritize side towers)
                 if (!closestEnemy) {
                     const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
-                    enemyBuildings.forEach(building => {
-                        const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            closestEnemy = building;
-                        }
-                    });
+                    
+                    // Prioritize side towers over main tower
+                    const sideTowers = enemyBuildings.filter(b => !b.isMainTower);
+                    const mainTowers = enemyBuildings.filter(b => b.isMainTower);
+                    
+                    // First try to target side towers
+                    if (sideTowers.length > 0) {
+                        sideTowers.forEach(building => {
+                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEnemy = building;
+                            }
+                        });
+                    } else if (mainTowers.length > 0) {
+                        // Only target main tower if no side towers left
+                        mainTowers.forEach(building => {
+                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEnemy = building;
+                            }
+                        });
+                    }
                 }
             } else {
                 // AI tank: target player tanks and player base
@@ -1783,16 +1957,33 @@ class BattleScene extends Phaser.Scene {
                     }
                 });
                 
-                // If no player tanks in range, target player base
+                // If no player tanks in range, target player towers (prioritize side towers)
                 if (!closestEnemy) {
                     const playerBuildings = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
-                    playerBuildings.forEach(building => {
-                        const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                        if (distance < closestDistance) {
-                            closestDistance = distance;
-                            closestEnemy = building;
-                        }
-                    });
+                    
+                    // Prioritize side towers over main tower
+                    const sideTowers = playerBuildings.filter(b => !b.isMainTower);
+                    const mainTowers = playerBuildings.filter(b => b.isMainTower);
+                    
+                    // First try to target side towers
+                    if (sideTowers.length > 0) {
+                        sideTowers.forEach(building => {
+                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEnemy = building;
+                            }
+                        });
+                    } else if (mainTowers.length > 0) {
+                        // Only target main tower if no side towers left
+                        mainTowers.forEach(building => {
+                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
+                            if (distance < closestDistance) {
+                                closestDistance = distance;
+                                closestEnemy = building;
+                            }
+                        });
+                    }
                 }
             }
             
@@ -2161,12 +2352,8 @@ class BattleScene extends Phaser.Scene {
             // Check if target is destroyed
             if (bullet.target.health <= 0) {
                 if (bullet.target.isPlayerBase !== undefined) {
-                    // Base destroyed - create destruction effect then end battle
-                    this.destroyBuilding(bullet.target);
-                    // Delay battle end to show destruction
-                    this.time.delayedCall(1000, () => {
-                        this.endBattle(bullet.target.isPlayerBase ? 'defeat' : 'victory');
-                    });
+                    // Tower destroyed - handle tower system
+                    this.destroyTower(bullet.target);
                 } else if (previousHealth > 0) {
                     // Tank destroyed - the update() method will handle cleanup
                     // Just create a destruction effect here
@@ -2487,6 +2674,116 @@ class BattleScene extends Phaser.Scene {
                 console.log('🔊 Playing: Defeat Sound');
                 // this.sound.play('defeatSound', { volume: 0.6 });
                 break;
+        }
+    }
+
+    destroyTower(tower) {
+        // Update tower stats
+        if (tower.isPlayerBase) {
+            this.towerStats.enemy.towersDestroyed++;
+            if (tower.isMainTower) {
+                this.towerStats.enemy.mainTowerDestroyed = true;
+            } else if (tower.towerType === 'left') {
+                this.towerStats.enemy.leftTowerDestroyed = true;
+            } else if (tower.towerType === 'right') {
+                this.towerStats.enemy.rightTowerDestroyed = true;
+            }
+        } else {
+            this.towerStats.player.towersDestroyed++;
+            if (tower.isMainTower) {
+                this.towerStats.player.mainTowerDestroyed = true;
+            } else if (tower.towerType === 'left') {
+                this.towerStats.player.leftTowerDestroyed = true;
+            } else if (tower.towerType === 'right') {
+                this.towerStats.player.rightTowerDestroyed = true;
+            }
+        }
+
+        // Create destruction effect
+        this.destroyBuilding(tower);
+
+        // Show tower destruction notification
+        this.showTowerDestroyedNotification(tower);
+
+        // Update tower status display
+        this.updateTowerStatusDisplay();
+
+        // Check victory conditions
+        this.time.delayedCall(1000, () => {
+            this.checkTowerVictoryConditions();
+        });
+    }
+
+    showTowerDestroyedNotification(tower) {
+        const isPlayerTower = tower.isPlayerBase;
+        const towerName = tower.isMainTower ? 'MAIN TOWER' : 
+                         tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
+        const message = `${isPlayerTower ? 'ENEMY' : 'PLAYER'} ${towerName} DESTROYED!`;
+        const color = isPlayerTower ? '#ff4444' : '#44ff44';
+
+        const notificationText = this.add.text(GAME_CONFIG.WIDTH / 2, 200, message, {
+            fontSize: '24px',
+            fill: color,
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 3
+        }).setOrigin(0.5);
+        notificationText.setScrollFactor(0);
+        notificationText.setDepth(100);
+
+        // Dramatic entrance animation
+        this.tweens.add({
+            targets: notificationText,
+            scaleX: { from: 0, to: 1 },
+            scaleY: { from: 0, to: 1 },
+            alpha: { from: 0, to: 1 },
+            duration: 500,
+            ease: 'Back.out',
+            onComplete: () => {
+                // Fade out after 2 seconds
+                this.time.delayedCall(2000, () => {
+                    this.tweens.add({
+                        targets: notificationText,
+                        alpha: 0,
+                        duration: 1000,
+                        onComplete: () => notificationText.destroy()
+                    });
+                });
+            }
+        });
+    }
+
+    checkTowerVictoryConditions() {
+        // Main tower destroyed = immediate victory
+        if (this.towerStats.player.mainTowerDestroyed) {
+            this.endBattle('victory'); // Player destroyed enemy main tower
+            return;
+        }
+        if (this.towerStats.enemy.mainTowerDestroyed) {
+            this.endBattle('defeat'); // Enemy destroyed player main tower
+            return;
+        }
+
+        // No immediate victory - game continues
+        // Victory will be determined by tower count at end of time
+    }
+
+    checkOvertimeConditions() {
+        const playerTowersDestroyed = this.towerStats.player.towersDestroyed;
+        const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
+        
+        // If towers destroyed are equal, activate overtime
+        if (playerTowersDestroyed === enemyTowersDestroyed && !this.overtimeActive) {
+            this.activateOvertime();
+            return;
+        }
+        
+        // End battle based on tower count
+        if (playerTowersDestroyed > enemyTowersDestroyed) {
+            this.endBattle('victory');
+        } else {
+            this.endBattle('defeat');
         }
     }
 
