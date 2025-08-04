@@ -175,23 +175,42 @@ class BattleScene extends Phaser.Scene {
         graphics.lineBetween(offsetX, riverTopY, offsetX + riverWidth, riverTopY);
         graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
 
-        // Bridge spans columns 6-11
-        const bridgeLeftX = offsetX + 6 * GAME_CONFIG.TILE_SIZE;
-        const bridgeRightX = offsetX + 11 * GAME_CONFIG.TILE_SIZE;
-        const bridgeWidth = bridgeRightX - bridgeLeftX + GAME_CONFIG.TILE_SIZE;
+        // Two bridges aligned with side towers
+        // Left bridge (aligned with left towers at column 4) - spans columns 3-5
+        const leftBridgeStartX = offsetX + 3 * GAME_CONFIG.TILE_SIZE;
+        const leftBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
         
-        // Bridge deck
+        // Right bridge (aligned with right towers at column 13) - spans columns 12-14
+        const rightBridgeStartX = offsetX + 12 * GAME_CONFIG.TILE_SIZE;
+        const rightBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
+        
+        // Draw left bridge
         graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(bridgeLeftX, riverTopY, bridgeWidth, riverHeight);
+        graphics.fillRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
         
-        // Bridge borders
+        // Left bridge borders
         graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(bridgeLeftX, riverTopY, bridgeWidth, riverHeight);
+        graphics.strokeRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
         
-        // Bridge supports
+        // Left bridge supports
         graphics.fillStyle(0x654321);
-        for (let i = 0; i < 4; i++) {
-            const supportX = bridgeLeftX + (i + 1) * bridgeWidth / 5;
+        for (let i = 0; i < 2; i++) {
+            const supportX = leftBridgeStartX + (i + 1) * leftBridgeWidth / 3;
+            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
+        }
+        
+        // Draw right bridge
+        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
+        graphics.fillRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
+        
+        // Right bridge borders
+        graphics.lineStyle(2, 0x654321);
+        graphics.strokeRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
+        
+        // Right bridge supports
+        graphics.fillStyle(0x654321);
+        for (let i = 0; i < 2; i++) {
+            const supportX = rightBridgeStartX + (i + 1) * rightBridgeWidth / 3;
             graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
         }
 
