@@ -11,9 +11,6 @@ class BattleScene extends Phaser.Scene {
         this.tanks = [];
         this.buildings = [];
         this.projectiles = [];
-        this.selectedTank = null;
-        this.cameraSpeed = 5;
-        // Only deployment mode - Clash Royale style
         
         // Tower tracking for victory conditions
         this.towerStats = {
@@ -107,9 +104,6 @@ class BattleScene extends Phaser.Scene {
 
         // Input handling
         this.input.on('pointerdown', this.onBattlefieldClick, this);
-        
-        // No camera controls needed - fixed view like Clash Royale
-        // Only deployment mode - no manual tank movement
     }
 
     createBattlefield() {
@@ -151,14 +145,6 @@ class BattleScene extends Phaser.Scene {
         graphics.fillStyle(0x4a90e2, 0.1);
         graphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         graphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
-        
-        // Add player zone label
-        this.add.text(GAME_CONFIG.WIDTH / 2, playerZone.y + 20, 'DEPLOYMENT ZONE', {
-            fontSize: '14px',
-            fill: '#4a90e2',
-            fontFamily: 'Arial',
-            fontStyle: 'bold'
-        }).setOrigin(0.5);
         
         // Enemy zone (top) - coordinates already include offset
         graphics.lineStyle(3, 0xd22d2d, 0.6);
@@ -206,32 +192,9 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
         }
 
-        // Add river label
-        this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, riverTopY + riverHeight / 2, 'RIVER', {
-            fontSize: '16px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000080',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-
-        // Add bridge label
-        this.add.text(bridgeLeftX + bridgeWidth / 2, riverTopY + riverHeight / 2, 'BRIDGE', {
-            fontSize: '12px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#654321',
-            strokeThickness: 1
-        }).setOrigin(0.5);
     }
 
     createUI() {
-        // Redesigned UI layout: Base at y=680, Cards below it, Energy bar at bottom
-        
-        // Remove old UI background - we'll position elements individually
-        
         // Tank cards positioned below the base
         this.createTankCards();
 
@@ -240,8 +203,6 @@ class BattleScene extends Phaser.Scene {
         
         // Timer in top right corner
         this.createTimer();
-
-        // No mode indicator needed - always deployment in Clash Royale style
 
         // AI Strategy indicator
         this.aiStrategyText = this.add.text(20, 50, 'AI: Analyzing...', {
@@ -373,12 +334,12 @@ class BattleScene extends Phaser.Scene {
         this.energyBarFill = this.add.graphics();
         this.energyBarFill.setScrollFactor(0);
 
-        // Energy text centered above the bar
+        // Energy text
         this.energyText = this.add.text(GAME_CONFIG.WIDTH / 2, energyY - 8, `${this.energy}/${this.maxEnergy}`, {
             fontSize: '14px',
             fill: '#ffffff',
             fontFamily: 'Arial'
-        }).setOrigin(0.5, 1);
+        }).setOrigin(-4, -0.5);
         this.energyText.setScrollFactor(0);
 
         // Update energy bar after creating
@@ -452,86 +413,6 @@ class BattleScene extends Phaser.Scene {
         this.enemyTowerStatus.setText(enemyStatus);
     }
 
-    createTankCards_OLD(uiY) {
-        const cardWidth = 80;
-        const cardHeight = 60;
-        const cardSpacing = 90;
-        const startX = 300;
-
-        this.tankCards = [];
-        
-        // Create 4 cards from hand
-        for (let index = 0; index < 4; index++) {
-            const tankId = this.hand[index];
-            const tankData = TANK_DATA[tankId];
-            const cardX = startX + index * cardSpacing;
-            const cardY = uiY + 20;
-
-            // Card background
-            const card = this.add.image(cardX, cardY, 'card_bg')
-                .setDisplaySize(cardWidth, cardHeight)
-                .setInteractive()
-                .setOrigin(0);
-            card.setScrollFactor(0);
-
-            // Tank icon - create miniature version of actual tank
-            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 20, tankData.type);
-            tankIcon.setScale(0.6);
-            card.tankIcon = tankIcon;
-
-            // Cost
-            const costText = this.add.text(cardX + cardWidth - 10, cardY + cardHeight - 10, tankData.cost, {
-                fontSize: '14px',
-                fill: '#ffff00',
-                fontFamily: 'Arial'
-            }).setOrigin(1);
-            costText.setScrollFactor(0);
-
-            // Card name (small text)
-            const nameText = this.add.text(cardX + cardWidth/2, cardY + 45, tankData.name, {
-                fontSize: '10px',
-                fill: '#ffffff',
-                fontFamily: 'Arial'
-            }).setOrigin(0.5);
-            nameText.setScrollFactor(0);
-
-            // Store card info
-            const cardInfo = {
-                container: card,
-                icon: tankIcon,
-                cost: costText,
-                name: nameText,
-                tankId: tankId,
-                tankData: tankData
-            };
-
-            this.tankCards.push(cardInfo);
-
-            // Card click handler
-            card.on('pointerdown', () => {
-                this.selectTankCard(index);
-            });
-
-            // Card hover effects
-            card.on('pointerover', () => {
-                if (this.energy >= tankData.cost) {
-                    card.setTint(0xdddddd);
-                } else {
-                    card.setTint(0x666666);
-                }
-                this.showCardTooltip(index, cardX, cardY);
-            });
-
-            card.on('pointerout', () => {
-                card.clearTint();
-                this.hideCardTooltip();
-            });
-        }
-
-        this.selectedCard = 0;
-        this.updateCardSelection();
-    }
-
     selectTankCard(index) {
         this.selectedCard = index;
         this.updateCardSelection();
@@ -584,14 +465,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBases() {
-        // Create player towers (3 towers: left, right, main)
         this.createPlayerTowers();
-        
-        // Create enemy towers (3 towers: left, right, main)
         this.createEnemyTowers();
-
-        // Health bars for all towers
-        this.createHealthBars();
+        this.createTowerHealthBars();
     }
 
     createPlayerTowers() {
@@ -651,7 +527,7 @@ class BattleScene extends Phaser.Scene {
         this.buildings.push(tower);
     }
 
-    createHealthBars() {
+    createTowerHealthBars() {
         const config = UI_CONFIG.HEALTH_BARS.TOWER;
         
         this.buildings.forEach(building => {
@@ -936,22 +812,17 @@ class BattleScene extends Phaser.Scene {
 
     onBattlefieldClick(pointer) {
         // Convert screen coordinates to world coordinates
-        // Use worldX/worldY which account for camera transformations
         const worldX = pointer.worldX;
         const worldY = pointer.worldY;
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
-        console.log('Click at world:', worldX, worldY, 'converted to tile:', tileCoords.tileX, tileCoords.tileY);
-        
         // Only allow deployment in player zone using tile-based checking
         if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true)) {
-            console.log('Invalid deployment tile:', tileCoords);
             return;
         }
 
         // Snap to tile center for precise positioning
         const snappedPos = GameHelpers.tileToWorld(tileCoords.tileX, tileCoords.tileY);
-        console.log('Snapped position:', snappedPos);
 
         // Deploy selected tank if we have enough energy
         const selectedCardData = this.tankCards[this.selectedCard];
@@ -971,7 +842,6 @@ class BattleScene extends Phaser.Scene {
     deployTank(tankId, x, y) {
         const tankData = TANK_DATA[tankId];
         
-        // Create tank with custom graphics
         const tank = this.createTankGraphics(x, y, tankData.type, true); // true = player tank
         
         // Tank properties
@@ -982,8 +852,6 @@ class BattleScene extends Phaser.Scene {
         tank.isPlayerTank = true;
         tank.target = null;
         tank.lastShotTime = 0;
-        tank.moveTarget = null; // Not used in Clash Royale style
-        tank.manualControl = false; // Always AI controlled in Clash Royale style
         tank.lastTargetUpdate = 0; // For AI target selection
         
         // Pathfinding properties
@@ -1327,12 +1195,7 @@ class BattleScene extends Phaser.Scene {
         
         let targetPos = null;
         
-        // Determine what to move towards
-        if (tank.moveTarget && tank.manualControl) {
-            // Manual movement target
-            targetPos = tank.moveTarget;
-        } else if (tank.target && !tank.manualControl) {
-            // AI target
+        if (tank.target) {
             targetPos = tank.target;
         } else {
             return;
@@ -1340,20 +1203,10 @@ class BattleScene extends Phaser.Scene {
 
         const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
         
-        // If manual movement and close enough to target, stop
-        if (tank.manualControl && distance <= 10) {
-            tank.moveTarget = null;
+        const range = tank.tankData.stats.range;
+        if (distance <= range) {
             tank.moving = false;
             return;
-        }
-        
-        // If AI movement and in range of target, stop and prepare to shoot
-        if (!tank.manualControl && tank.target) {
-            const range = tank.tankData.stats.range;
-            if (distance <= range) {
-                tank.moving = false;
-                return;
-            }
         }
 
         // Check if we need a new path (target changed or no path exists)
@@ -1758,11 +1611,6 @@ class BattleScene extends Phaser.Scene {
         return GameHelpers.tileToWorld(deployTileX, deployTileY);
     }
 
-    aiDeployTank() {
-        // Legacy method - redirect to strategic deployment
-        this.aiDeployTankStrategically();
-    }
-
     notifyAIOfPlayerAction(action, data) {
         const currentTime = this.time.now;
         this.aiStrategy.lastPlayerAction = currentTime;
@@ -1801,8 +1649,6 @@ class BattleScene extends Phaser.Scene {
         tank.isPlayerTank = false; // AI tank
         tank.target = null;
         tank.lastShotTime = 0;
-        tank.moveTarget = null;
-        tank.manualControl = false;
         tank.lastTargetUpdate = 0;
         
         // Pathfinding properties
@@ -1827,8 +1673,6 @@ class BattleScene extends Phaser.Scene {
     }
 
     update() {
-        // No camera movement in Clash Royale style
-        
         // Update AI
         this.updateAI();
         
@@ -1862,11 +1706,6 @@ class BattleScene extends Phaser.Scene {
                     this.battleStats.player.tanksDestroyed++;
                 }
                 
-                // If this was the selected tank, deselect it
-                if (this.selectedTank === tank) {
-                    this.selectedTank = null;
-                }
-                
                 // Create destruction effect
                 this.createExplosionEffect(tank.x, tank.y, 1.2);
                 this.playExplosionSound('medium');
@@ -1893,10 +1732,6 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    // No mode switching in Clash Royale style - only deployment
-
-    // No camera movement in Clash Royale style - fixed view
-
     getTankAtPosition(x, y) {
         // Find tank at clicked position
         for (const tank of this.tanks) {
@@ -1907,8 +1742,6 @@ class BattleScene extends Phaser.Scene {
         }
         return null;
     }
-
-    // Tank selection removed - no manual control in Clash Royale style
 
     initializeDeck() {
         // Ensure we have at least 4 different tanks by filling with available tanks
@@ -2293,22 +2126,6 @@ class BattleScene extends Phaser.Scene {
             scaleY: 2,
             duration: 200,
             onComplete: () => flashRing.destroy()
-        });
-    }
-
-    createMoveTargetIndicator(x, y) {
-        const indicator = this.add.graphics();
-        indicator.lineStyle(2, 0x00ff00);
-        indicator.strokeCircle(x, y, 15);
-        indicator.fillStyle(0x00ff00, 0.3);
-        indicator.fillCircle(x, y, 15);
-
-        // Fade out the indicator
-        this.tweens.add({
-            targets: indicator,
-            alpha: 0,
-            duration: 1000,
-            onComplete: () => indicator.destroy()
         });
     }
 
