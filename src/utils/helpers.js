@@ -66,14 +66,50 @@ const GameHelpers = {
         return this.tileToWorld(tile.tileX, tile.tileY);
     },
 
-    // Check if tile coordinates are within deployment zone
+    // Check if tile coordinates are within deployment zone and not occupied by towers
     isValidDeploymentTile(tileX, tileY, isPlayer = true) {
         const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
         
-        return tileX >= zone.tileX && 
-               tileX < zone.tileX + zone.tilesWidth &&
-               tileY >= zone.tileY && 
-               tileY < zone.tileY + zone.tilesHeight;
+        // First check if tile is within the deployment zone
+        if (!(tileX >= zone.tileX && 
+              tileX < zone.tileX + zone.tilesWidth &&
+              tileY >= zone.tileY && 
+              tileY < zone.tileY + zone.tilesHeight)) {
+            return false;
+        }
+        
+        // Get tower positions for the appropriate team
+        const towers = isPlayer ? BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER : BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY;
+        
+        // Check if tile overlaps with any tower (towers are 3x3 or 3x4/4x3)
+        const towerList = [towers.LEFT, towers.RIGHT, towers.MAIN];
+        
+        for (const tower of towerList) {
+            // Calculate tower bounds
+            let towerWidth, towerHeight;
+            
+            if (tower === towers.MAIN) {
+                // Main towers are 4x3 for both players
+                towerWidth = 4; towerHeight = 3;
+            } else {
+                // Side towers are 3x3
+                towerWidth = 3; towerHeight = 3;
+            }
+            
+            // Calculate tower bounds (tower position is center, so offset by half)
+            const towerLeft = tower.tileX - Math.floor(towerWidth / 2);
+            const towerTop = tower.tileY - Math.floor(towerHeight / 2);
+            const towerRight = towerLeft + towerWidth - 1;
+            const towerBottom = towerTop + towerHeight - 1;
+            
+            // Check if deployment tile overlaps with tower area
+            if (tileX >= towerLeft && tileX <= towerRight && 
+                tileY >= towerTop && tileY <= towerBottom) {
+                return false;
+            }
+        }
+        
+        return true;
     },
 
     // Convert deployment zone to world coordinates

@@ -35,19 +35,19 @@ const ENERGY_CONFIG = {
 
 const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
-    // Tile-based deployment zones (in tile coordinates)
+    // Tile-based deployment zones (in tile coordinates) - cover full width but avoid towers
     DEPLOYMENT_ZONES: {
         PLAYER: { 
             tileX: 0, 
             tileY: 23, 
             tilesWidth: 18, 
-            tilesHeight: 15    // Player 2 side: rows 23-37 (leaving space for towers at 38-43)
+            tilesHeight: 21    // Player side: rows 23-43 (full width, but towers will be excluded in logic)
         },
         ENEMY: { 
             tileX: 0, 
-            tileY: 6, 
+            tileY: 0, 
             tilesWidth: 18, 
-            tilesHeight: 15    // Player 1 side: rows 6-20 (leaving space for towers at 0-5)
+            tilesHeight: 21    // Enemy side: rows 0-20 (full width, but towers will be excluded in logic)
         }
     },
     // Tower system (Clash Royale style)
