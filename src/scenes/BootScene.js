@@ -10,6 +10,9 @@ class BootScene extends Phaser.Scene {
             loadingDiv.style.display = 'none';
         }
 
+        // Load battlefield texture
+        this.load.image('battlefield', 'assets/textures/battlefield.png');
+
         // Create simple colored rectangles as placeholder graphics
         this.createPlaceholderAssets();
         

@@ -129,6 +129,24 @@
             background-color: #d35400;
         }
         
+        .textures-toggle {
+            position: fixed;
+            top: 140px;
+            right: 20px;
+            background-color: #9b59b6;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .textures-toggle:hover {
+            background-color: #8e44ad;
+        }
+        
         #loading {
             position: absolute;
             top: 50%;
@@ -144,6 +162,7 @@
     <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
     <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
     <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
+    <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
     
     <div id="game-container">
         <div id="loading">
@@ -260,6 +279,22 @@
                 <span class="debug-value" id="debug-ai-expanded">-</span>
             </div>
         </div>
+        
+        <div class="debug-section">
+            <div class="debug-title">Debug Options</div>
+            <div class="debug-item">
+                <span class="debug-label">Textures Mode:</span>
+                <span class="debug-value" id="debug-textures-mode">-</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Row Numbers:</span>
+                <span class="debug-value" id="debug-row-numbers">-</span>
+            </div>
+            <div class="debug-item">
+                <span class="debug-label">Attack Ranges:</span>
+                <span class="debug-value" id="debug-attack-ranges">-</span>
+            </div>
+        </div>
     </div>
 
     <script>
@@ -279,6 +314,13 @@
             // Send message to game to toggle attack range circles
             if (window.currentScene && window.currentScene.toggleAttackRanges) {
                 window.currentScene.toggleAttackRanges();
+            }
+        }
+        
+        function toggleTextures() {
+            // Send message to game to toggle textures mode
+            if (window.currentScene && window.currentScene.toggleTextures) {
+                window.currentScene.toggleTextures();
             }
         }
         

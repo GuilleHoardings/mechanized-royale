@@ -92,6 +92,9 @@ class BattleScene extends Phaser.Scene {
         // Attack range debug display
         this.attackRangesVisible = false;
         this.attackRangeCircles = [];
+        
+        // Textures mode - toggles between textures and graphics for all game elements
+        this.useGraphicsMode = false;
     }
 
     create() {
@@ -136,8 +139,25 @@ class BattleScene extends Phaser.Scene {
         // Set world bounds to match the actual battlefield size
         this.physics.world.setBounds(offsetX, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
         
-        // Create tile-based grid (Clash Royale style)
+        if (this.useGraphicsMode) {
+            // Graphics mode - use procedural graphics for detailed grid and features
+            this.createDebugBattlefield(offsetX);
+        } else {
+            // Texture mode - use battlefield texture
+            const battlefield = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
+            battlefield.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+            battlefield.setOrigin(0.5, 0.5);
+            battlefield.setDepth(-10); // Ensure battlefield is behind other elements
+        }
+        
+        // Deployment zones with tile-based boundaries - will be drawn dynamically
+        this.createDeploymentZoneGraphics();
+    }
+
+    createDebugBattlefield(offsetX) {
+        // Create procedural graphics battlefield for debugging and detailed visualization
         const graphics = this.add.graphics();
+        graphics.setDepth(-5); // Behind deployment zones but above background
         
         // Draw tile grid
         graphics.lineStyle(1, 0x556b2f, 0.2);
@@ -159,11 +179,64 @@ class BattleScene extends Phaser.Scene {
         const centerY = 16.5 * GAME_CONFIG.TILE_SIZE;
         graphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
 
-        // Deployment zones with tile-based boundaries - will be drawn dynamically
-        this.createDeploymentZoneGraphics();
-
-        // Add river and bridges
+        // Add river and bridges in debug mode
         this.createRiverAndBridges(graphics, offsetX);
+    }
+
+    createRiverAndBridges(graphics, offsetX = 0) {
+        // River parameters - rows 16-17
+        const riverTopY = 16 * GAME_CONFIG.TILE_SIZE;
+        const riverBottomY = 17 * GAME_CONFIG.TILE_SIZE;
+        const riverHeight = riverBottomY - riverTopY + GAME_CONFIG.TILE_SIZE;
+        const riverWidth = GAME_CONFIG.WORLD_WIDTH;
+
+        // Draw river
+        graphics.fillStyle(0x4169e1, 0.6); // Royal blue for water
+        graphics.fillRect(offsetX, riverTopY, riverWidth, riverHeight);
+        
+        // River borders
+        graphics.lineStyle(2, 0x1e3a8a, 0.8); // Darker blue borders
+        graphics.lineBetween(offsetX, riverTopY, offsetX + riverWidth, riverTopY);
+        graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
+
+        // Two bridges aligned with side towers
+        // Left bridge (aligned with left towers)
+        const leftBridgeStartX = offsetX + BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX * GAME_CONFIG.TILE_SIZE;
+        const leftBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
+        
+        // Right bridge (aligned with right towers)
+        const rightBridgeStartX = offsetX + (BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX - 1) * GAME_CONFIG.TILE_SIZE;
+        const rightBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
+        
+        // Draw left bridge
+        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
+        graphics.fillRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
+        
+        // Left bridge borders
+        graphics.lineStyle(2, 0x654321);
+        graphics.strokeRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
+        
+        // Left bridge supports
+        graphics.fillStyle(0x654321);
+        for (let i = 0; i < 2; i++) {
+            const supportX = leftBridgeStartX + (i + 1) * leftBridgeWidth / 3;
+            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
+        }
+        
+        // Draw right bridge
+        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
+        graphics.fillRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
+        
+        // Right bridge borders
+        graphics.lineStyle(2, 0x654321);
+        graphics.strokeRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
+        
+        // Right bridge supports
+        graphics.fillStyle(0x654321);
+        for (let i = 0; i < 2; i++) {
+            const supportX = rightBridgeStartX + (i + 1) * rightBridgeWidth / 3;
+            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
+        }
     }
 
     createDeploymentZoneGraphics() {
@@ -237,63 +310,6 @@ class BattleScene extends Phaser.Scene {
                 this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
             });
         }
-    }
-
-    createRiverAndBridges(graphics, offsetX = 0) {
-        // River parameters - rows 16-17
-        const riverTopY = 16 * GAME_CONFIG.TILE_SIZE;
-        const riverBottomY = 17 * GAME_CONFIG.TILE_SIZE;
-        const riverHeight = riverBottomY - riverTopY + GAME_CONFIG.TILE_SIZE;
-        const riverWidth = GAME_CONFIG.WORLD_WIDTH;
-
-        // Draw river
-        graphics.fillStyle(0x4169e1, 0.6); // Royal blue for water
-        graphics.fillRect(offsetX, riverTopY, riverWidth, riverHeight);
-        
-        // River borders
-        graphics.lineStyle(2, 0x1e3a8a, 0.8); // Darker blue borders
-        graphics.lineBetween(offsetX, riverTopY, offsetX + riverWidth, riverTopY);
-        graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
-
-        // Two bridges aligned with side towers
-        // Left bridge (aligned with left towers)
-        const leftBridgeStartX = offsetX + BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX * GAME_CONFIG.TILE_SIZE;
-        const leftBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
-        
-        // Right bridge (aligned with right towers)
-        const rightBridgeStartX = offsetX + (BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX - 1) * GAME_CONFIG.TILE_SIZE;
-        const rightBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
-        
-        // Draw left bridge
-        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
-        
-        // Left bridge borders
-        graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
-        
-        // Left bridge supports
-        graphics.fillStyle(0x654321);
-        for (let i = 0; i < 2; i++) {
-            const supportX = leftBridgeStartX + (i + 1) * leftBridgeWidth / 3;
-            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
-        }
-        
-        // Draw right bridge
-        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
-        
-        // Right bridge borders
-        graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
-        
-        // Right bridge supports
-        graphics.fillStyle(0x654321);
-        for (let i = 0; i < 2; i++) {
-            const supportX = rightBridgeStartX + (i + 1) * rightBridgeWidth / 3;
-            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
-        }
-
     }
 
     createUI() {
@@ -2058,6 +2074,11 @@ class BattleScene extends Phaser.Scene {
                 this.expandedDeploymentZones.enemy.expandedAreas?.length || 0 : 0;
             window.debugPanel.updateValue('debug-player-expanded', playerExpanded > 0 ? 'Yes' : 'No');
             window.debugPanel.updateValue('debug-ai-expanded', aiExpanded > 0 ? 'Yes' : 'No');
+            
+            // Debug Options Status
+            window.debugPanel.updateValue('debug-textures-mode', this.useGraphicsMode ? 'Graphics' : 'Textures');
+            window.debugPanel.updateValue('debug-row-numbers', this.rowNumbersVisible ? 'Visible' : 'Hidden');
+            window.debugPanel.updateValue('debug-attack-ranges', this.attackRangesVisible ? 'Visible' : 'Hidden');
 
         } catch (error) {
             console.warn('Debug panel update error:', error);
@@ -3601,6 +3622,55 @@ class BattleScene extends Phaser.Scene {
             this.showAllAttackRanges();
         } else {
             this.hideAllAttackRanges();
+        }
+    }
+    
+    toggleTextures() {
+        this.useGraphicsMode = !this.useGraphicsMode;
+        
+        // Recreate the battlefield with the new mode
+        this.recreateBattlefield();
+    }
+    
+    recreateBattlefield() {
+        // Remove existing battlefield graphics/images
+        this.children.list.forEach(child => {
+            // Remove graphics objects that are part of battlefield rendering
+            if (child.type === 'Graphics' && child !== this.deploymentZoneGraphics) {
+                // Only remove graphics that are likely battlefield-related
+                const graphics = child;
+                // Check if this graphics object contains battlefield drawing
+                if (graphics.displayList && graphics.displayList === this.children) {
+                    // This is likely a battlefield graphics object, remove it
+                    graphics.destroy();
+                }
+            }
+            // Remove battlefield image
+            if (child.type === 'Image' && child.texture && child.texture.key === 'battlefield') {
+                child.destroy();
+            }
+        });
+        
+        // Calculate offset to center the battlefield horizontally
+        const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
+        
+        if (this.useGraphicsMode) {
+            // Graphics mode - use procedural graphics for detailed grid and features
+            this.createDebugBattlefield(offsetX);
+        } else {
+            // Texture mode - use battlefield texture
+            const battlefield = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
+            battlefield.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+            battlefield.setOrigin(0.5, 0.5);
+            
+            // Make sure battlefield is behind other elements
+            battlefield.setDepth(-10);
+        }
+        
+        // Redraw deployment zones to ensure they appear on top
+        if (this.deploymentZoneGraphics) {
+            this.deploymentZoneGraphics.setDepth(5);
+            this.drawDeploymentZones();
         }
     }
     
