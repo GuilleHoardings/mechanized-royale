@@ -149,3 +149,69 @@ body {
     font-size: 24px;
     text-align: center;
 }
+
+/* Enhanced game result screen styles */
+.victory-glow {
+    text-shadow: 0 0 20px #10b981, 0 0 40px #10b981, 0 0 60px #10b981;
+}
+
+.defeat-glow {
+    text-shadow: 0 0 20px #ef4444, 0 0 40px #ef4444, 0 0 60px #ef4444;
+}
+
+.draw-glow {
+    text-shadow: 0 0 20px #f59e0b, 0 0 40px #f59e0b, 0 0 60px #f59e0b;
+}
+
+.result-panel {
+    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(26,74,26,0.8) 100%);
+    border-radius: 15px;
+    box-shadow: 
+        0 0 30px rgba(16, 185, 129, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.result-panel.defeat {
+    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(74,26,26,0.8) 100%);
+    box-shadow: 
+        0 0 30px rgba(239, 68, 68, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+.result-panel.draw {
+    background: linear-gradient(135deg, rgba(0,0,0,0.8) 0%, rgba(74,74,26,0.8) 100%);
+    box-shadow: 
+        0 0 30px rgba(245, 158, 11, 0.3),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+}
+
+/* Animation classes for potential future use */
+@keyframes victoryPulse {
+    0%, 100% { 
+        transform: scale(1);
+        text-shadow: 0 0 20px #10b981;
+    }
+    50% { 
+        transform: scale(1.05);
+        text-shadow: 0 0 30px #10b981, 0 0 40px #10b981;
+    }
+}
+
+@keyframes defeatShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+@keyframes sparkle {
+    0%, 100% { opacity: 0; transform: scale(0); }
+    50% { opacity: 1; transform: scale(1); }
+}
+
+.victory-animation {
+    animation: victoryPulse 2s ease-in-out infinite;
+}
+
+.defeat-animation {
+    animation: defeatShake 0.5s ease-in-out 3;
+}

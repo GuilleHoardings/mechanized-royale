@@ -3684,34 +3684,78 @@ class BattleScene extends Phaser.Scene {
     }
 
     createEnhancedBattleResultScreen(result) {
-        // Dark overlay
+        // Animated dark overlay with fade-in
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x000000, 0.8);
+        overlay.fillStyle(0x000000, 0);
         overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         overlay.setScrollFactor(0);
         overlay.setDepth(100);
+        
+        // Fade in the overlay
+        this.tweens.add({
+            targets: overlay,
+            alpha: 0.85,
+            duration: 600,
+            ease: 'Cubic.easeOut'
+        });
         
         // Result container
         const container = this.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2);
         container.setScrollFactor(0);
         container.setDepth(101);
         
-        // Enhanced result background
+        // Create multi-layered background with gradient effect
         const resultBg = this.add.graphics();
-        resultBg.fillStyle(result === 'victory' ? 0x004400 : 0x440000, 0.95);
+        
+        // Determine colors based on result
+        let primaryColor, secondaryColor, accentColor, resultTitleColor;
+        if (result === 'victory') {
+            primaryColor = 0x1a4a1a;  // Dark green
+            secondaryColor = 0x2d7a2d; // Medium green
+            accentColor = 0x4ade80;   // Bright green
+            resultTitleColor = '#10b981';
+        } else if (result === 'defeat') {
+            primaryColor = 0x4a1a1a;  // Dark red
+            secondaryColor = 0x7a2d2d; // Medium red
+            accentColor = 0xf87171;   // Bright red
+            resultTitleColor = '#ef4444';
+        } else {
+            primaryColor = 0x4a4a1a;  // Dark yellow
+            secondaryColor = 0x7a7a2d; // Medium yellow
+            accentColor = 0xfbbf24;   // Bright yellow
+            resultTitleColor = '#f59e0b';
+        }
+        
+        // Outer glow effect
+        resultBg.fillStyle(accentColor, 0.15);
+        resultBg.fillRoundedRect(-320, -270, 640, 540, 35);
+        
+        // Main background with gradient simulation
+        resultBg.fillStyle(primaryColor, 0.98);
+        resultBg.fillRoundedRect(-310, -260, 620, 520, 30);
+        
+        // Inner highlight
+        resultBg.fillStyle(secondaryColor, 0.6);
         resultBg.fillRoundedRect(-300, -250, 600, 500, 25);
-        resultBg.lineStyle(6, result === 'victory' ? 0x00ff00 : 0xff0000);
+        
+        // Decorative border
+        resultBg.lineStyle(4, accentColor, 0.8);
+        resultBg.strokeRoundedRect(-310, -260, 620, 520, 30);
+        
+        // Inner accent border
+        resultBg.lineStyle(2, accentColor, 0.4);
         resultBg.strokeRoundedRect(-300, -250, 600, 500, 25);
+        
         container.add(resultBg);
         
         // Title text with enhanced effects
         let titleText, titleColor;
         if (result === 'victory') {
             titleText = 'VICTORY!';
-            titleColor = '#00ff00';
+            titleColor = resultTitleColor;
         } else if (result === 'defeat') {
             titleText = 'DEFEAT!';
-            titleColor = '#ff0000';
+            titleColor = resultTitleColor;
         } else if (result === 'time') {
             // Determine winner based on base health or other criteria
             const playerBase = this.buildings.find(b => b.isPlayerBase);
@@ -3719,14 +3763,14 @@ class BattleScene extends Phaser.Scene {
             
             if (!playerBase && !enemyBase) {
                 titleText = 'DRAW!';
-                titleColor = '#ffff00';
+                titleColor = resultTitleColor;
             } else if (!playerBase) {
                 titleText = 'DEFEAT!';
-                titleColor = '#ff0000';
+                titleColor = '#ef4444';
                 result = 'defeat';
             } else if (!enemyBase) {
                 titleText = 'VICTORY!';
-                titleColor = '#00ff00';
+                titleColor = '#10b981';
                 result = 'victory';
             } else {
                 // Compare base health percentages
@@ -3735,28 +3779,64 @@ class BattleScene extends Phaser.Scene {
                 
                 if (playerHealthPercent > enemyHealthPercent) {
                     titleText = 'VICTORY!';
-                    titleColor = '#00ff00';
+                    titleColor = '#10b981';
                     result = 'victory';
                 } else if (enemyHealthPercent > playerHealthPercent) {
                     titleText = 'DEFEAT!';
-                    titleColor = '#ff0000';
+                    titleColor = '#ef4444';
                     result = 'defeat';
                 } else {
                     titleText = 'DRAW!';
-                    titleColor = '#ffff00';
+                    titleColor = '#f59e0b';
                 }
             }
         }
         
+        // Create title with multiple text effects
+        const titleShadow = this.add.text(2, -198, titleText, {
+            fontSize: '52px',
+            fill: '#000000',
+            fontFamily: 'Arial Black, Arial',
+            fontStyle: 'bold',
+            alpha: 0.5
+        }).setOrigin(0.5);
+        container.add(titleShadow);
+        
         const title = this.add.text(0, -200, titleText, {
-            fontSize: '48px',
+            fontSize: '52px',
             fill: titleColor,
-            fontFamily: 'Arial',
+            fontFamily: 'Arial Black, Arial',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 3
         }).setOrigin(0.5);
         container.add(title);
+        
+        // Add a glowing effect to the title
+        this.tweens.add({
+            targets: title,
+            alpha: 0.8,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Decorative elements around title
+        const titleDecoration = this.add.graphics();
+        titleDecoration.lineStyle(3, accentColor, 0.8);
+        // Left decoration
+        titleDecoration.moveTo(-150, -200);
+        titleDecoration.lineTo(-80, -200);
+        titleDecoration.moveTo(-145, -205);
+        titleDecoration.lineTo(-85, -195);
+        // Right decoration  
+        titleDecoration.moveTo(80, -200);
+        titleDecoration.lineTo(150, -200);
+        titleDecoration.moveTo(85, -195);
+        titleDecoration.lineTo(145, -205);
+        titleDecoration.strokePath();
+        container.add(titleDecoration);
         
         // Calculate battle statistics
         const battleDuration = (this.battleStats.battle.endTime - this.battleStats.battle.startTime) / 1000; // Convert to seconds
@@ -3765,14 +3845,38 @@ class BattleScene extends Phaser.Scene {
         const aiAccuracy = this.battleStats.ai.shotsFired > 0 ? 
             ((this.battleStats.ai.shotsHit / this.battleStats.ai.shotsFired) * 100).toFixed(1) : 0;
         
-        // Battle Statistics Header
-        const statsTitle = this.add.text(0, -140, 'BATTLE STATISTICS', {
-            fontSize: '24px',
+        // Battle Statistics Header with decorative background
+        const statsHeaderBg = this.add.graphics();
+        statsHeaderBg.fillStyle(0x000000, 0.3);
+        statsHeaderBg.fillRoundedRect(-200, -155, 400, 35, 8);
+        statsHeaderBg.lineStyle(2, accentColor, 0.6);
+        statsHeaderBg.strokeRoundedRect(-200, -155, 400, 35, 8);
+        container.add(statsHeaderBg);
+        
+        const statsTitle = this.add.text(0, -137, 'BATTLE STATISTICS', {
+            fontSize: '22px',
             fill: '#ffffff',
             fontFamily: 'Arial',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
         container.add(statsTitle);
+        
+        // Create statistics background panels
+        const leftPanelBg = this.add.graphics();
+        leftPanelBg.fillStyle(0x000000, 0.2);
+        leftPanelBg.fillRoundedRect(-280, -110, 260, 180, 8);
+        leftPanelBg.lineStyle(1, 0x3498db, 0.5);
+        leftPanelBg.strokeRoundedRect(-280, -110, 260, 180, 8);
+        container.add(leftPanelBg);
+        
+        const rightPanelBg = this.add.graphics();
+        rightPanelBg.fillStyle(0x000000, 0.2);
+        rightPanelBg.fillRoundedRect(20, -110, 260, 180, 8);
+        rightPanelBg.lineStyle(1, 0xe74c3c, 0.5);
+        rightPanelBg.strokeRoundedRect(20, -110, 260, 180, 8);
+        container.add(rightPanelBg);
         
         // Create two-column statistics display
         const leftColumn = [];
@@ -3800,104 +3904,236 @@ class BattleScene extends Phaser.Scene {
         rightColumn.push(`Critical Hits: ${this.battleStats.ai.criticalHits}`);
         rightColumn.push(`Energy Spent: ${this.battleStats.ai.energySpent}`);
         
-        // Display left column
+        // Display left column with improved styling
         leftColumn.forEach((text, index) => {
             const isHeader = index === 0;
             const yPos = -100 + (index * 20);
-            const textColor = isHeader ? '#00aaff' : '#ffffff';
+            const textColor = isHeader ? '#3498db' : '#ecf0f1';
             const fontSize = isHeader ? '16px' : '14px';
             
-            const statText = this.add.text(-140, yPos, text, {
+            const statText = this.add.text(-270, yPos, text, {
                 fontSize: fontSize,
                 fill: textColor,
                 fontFamily: 'Arial',
-                fontStyle: isHeader ? 'bold' : 'normal'
+                fontStyle: isHeader ? 'bold' : 'normal',
+                stroke: isHeader ? '#000000' : undefined,
+                strokeThickness: isHeader ? 1 : 0
             }).setOrigin(0, 0.5);
             container.add(statText);
         });
         
-        // Display right column
+        // Display right column with improved styling
         rightColumn.forEach((text, index) => {
             const isHeader = index === 0;
             const yPos = -100 + (index * 20);
-            const textColor = isHeader ? '#ff6666' : '#ffffff';
+            const textColor = isHeader ? '#e74c3c' : '#ecf0f1';
             const fontSize = isHeader ? '16px' : '14px';
             
-            const statText = this.add.text(20, yPos, text, {
+            const statText = this.add.text(30, yPos, text, {
                 fontSize: fontSize,
                 fill: textColor,
                 fontFamily: 'Arial',
-                fontStyle: isHeader ? 'bold' : 'normal'
+                fontStyle: isHeader ? 'bold' : 'normal',
+                stroke: isHeader ? '#000000' : undefined,
+                strokeThickness: isHeader ? 1 : 0
             }).setOrigin(0, 0.5);
             container.add(statText);
         });
         
-        // Battle Summary at bottom
+        // Battle Summary section with enhanced styling
+        const summaryBg = this.add.graphics();
+        summaryBg.fillStyle(0x000000, 0.3);
+        summaryBg.fillRoundedRect(-250, 90, 500, 120, 12);
+        summaryBg.lineStyle(2, accentColor, 0.4);
+        summaryBg.strokeRoundedRect(-250, 90, 500, 120, 12);
+        container.add(summaryBg);
+        
         const summaryText = `Battle Duration: ${Math.floor(battleDuration / 60)}:${(battleDuration % 60).toFixed(0).padStart(2, '0')}`;
-        const summary = this.add.text(0, 110, summaryText, {
-            fontSize: '16px',
-            fill: '#cccccc',
-            fontFamily: 'Arial'
+        const summary = this.add.text(0, 105, summaryText, {
+            fontSize: '18px',
+            fill: '#bdc3c7',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 1
         }).setOrigin(0.5);
         container.add(summary);
         
-        if (this.overtimeActive) {
-            const overtimeText = this.add.text(0, 130, 'OVERTIME ACTIVATED!', {
-                fontSize: '14px',
-                fill: '#ff4444',
+        // Add rewards display for victory
+        if (result === 'victory') {
+            const rewardsText = this.add.text(0, 130, 'Rewards: +100 XP, +50 Credits', {
+                fontSize: '16px',
+                fill: '#2ecc71',
                 fontFamily: 'Arial',
-                fontStyle: 'bold'
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
             }).setOrigin(0.5);
-            container.add(overtimeText);
+            container.add(rewardsText);
+            
+            // Add subtle glow animation to rewards
+            this.tweens.add({
+                targets: rewardsText,
+                alpha: 0.7,
+                duration: 1500,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        } else if (result === 'defeat') {
+            const consolationText = this.add.text(0, 130, 'Consolation: +25 XP', {
+                fontSize: '16px',
+                fill: '#e67e22',
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            }).setOrigin(0.5);
+            container.add(consolationText);
         }
         
-        // Continue button with hover effect
-        const continueBtn = this.add.text(0, 180, 'Click to Continue', {
-            fontSize: '20px',
-            fill: '#ffff00',
+        if (this.overtimeActive) {
+            const overtimeText = this.add.text(0, 155, 'OVERTIME ACTIVATED!', {
+                fontSize: '16px',
+                fill: '#f39c12',
+                fontFamily: 'Arial',
+                fontStyle: 'bold',
+                stroke: '#000000',
+                strokeThickness: 1
+            }).setOrigin(0.5);
+            container.add(overtimeText);
+            
+            // Add pulsing effect to overtime text
+            this.tweens.add({
+                targets: overtimeText,
+                scaleX: 1.1,
+                scaleY: 1.1,
+                duration: 800,
+                yoyo: true,
+                repeat: -1,
+                ease: 'Sine.easeInOut'
+            });
+        }
+        
+        // Enhanced continue button with better styling
+        const continueBtnBg = this.add.graphics();
+        continueBtnBg.fillStyle(accentColor, 0.8);
+        continueBtnBg.fillRoundedRect(-120, 215, 240, 50, 25);
+        continueBtnBg.lineStyle(3, 0xffffff, 0.8);
+        continueBtnBg.strokeRoundedRect(-120, 215, 240, 50, 25);
+        container.add(continueBtnBg);
+        
+        const continueBtn = this.add.text(0, 240, 'CONTINUE', {
+            fontSize: '22px',
+            fill: '#ffffff',
             fontFamily: 'Arial',
-            fontStyle: 'bold'
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
         }).setOrigin(0.5);
         container.add(continueBtn);
         
-        // Add pulsing effect to continue button
+        // Add sophisticated button animation
         this.tweens.add({
-            targets: continueBtn,
-            alpha: 0.5,
-            duration: 800,
+            targets: [continueBtnBg, continueBtn],
+            alpha: 0.7,
+            duration: 1200,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
         
-        // Animate entrance
+        // Button hover effect simulation
+        this.tweens.add({
+            targets: continueBtnBg,
+            scaleX: 1.05,
+            scaleY: 1.05,
+            duration: 2000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+        
+        // Enhanced entrance animation with multiple stages
         container.setScale(0);
+        container.setAlpha(0);
+        
+        // Stage 1: Fade in and scale up
         this.tweens.add({
             targets: container,
-            scaleX: 1,
-            scaleY: 1,
-            duration: 500,
-            ease: 'Back.out'
+            scaleX: 1.1,
+            scaleY: 1.1,
+            alpha: 1,
+            duration: 400,
+            ease: 'Back.out',
+            onComplete: () => {
+                // Stage 2: Settle to final size
+                this.tweens.add({
+                    targets: container,
+                    scaleX: 1,
+                    scaleY: 1,
+                    duration: 200,
+                    ease: 'Elastic.out'
+                });
+                
+                // Stage 3: Animate individual elements sequentially
+                const elementsToAnimate = container.list.slice(1); // Skip background
+                elementsToAnimate.forEach((element, index) => {
+                    element.setAlpha(0);
+                    this.tweens.add({
+                        targets: element,
+                        alpha: 1,
+                        duration: 300,
+                        delay: index * 50,
+                        ease: 'Cubic.easeOut'
+                    });
+                });
+            }
         });
+        
+        // Particle effects for victory/defeat
+        if (result === 'victory') {
+            this.createVictoryParticles(container);
+        } else if (result === 'defeat') {
+            this.createDefeatParticles(container);
+        }
         
         // Make the entire screen clickable to continue
         overlay.setInteractive();
-        container.setInteractive(new Phaser.Geom.Rectangle(-300, -250, 600, 500), Phaser.Geom.Rectangle.Contains);
+        container.setInteractive(new Phaser.Geom.Rectangle(-320, -270, 640, 540), Phaser.Geom.Rectangle.Contains);
         
         const clickHandler = () => {
-            // Update player progress
-            if (result === 'victory') {
-                this.gameState.player.experience += 100;
-                this.gameState.player.wins++;
-            } else if (result === 'defeat') {
-                this.gameState.player.experience += 25;
-                this.gameState.player.losses++;
-            }
+            // Smooth exit animation
+            this.tweens.add({
+                targets: container,
+                scaleX: 0.8,
+                scaleY: 0.8,
+                alpha: 0,
+                duration: 300,
+                ease: 'Cubic.easeIn',
+                onComplete: () => {
+                    // Update player progress
+                    if (result === 'victory') {
+                        this.gameState.player.experience += 100;
+                        this.gameState.player.wins++;
+                    } else if (result === 'defeat') {
+                        this.gameState.player.experience += 25;
+                        this.gameState.player.losses++;
+                    }
+                    
+                    // Save battle statistics to game state for potential future features
+                    this.gameState.lastBattleStats = this.battleStats;
+                    
+                    this.scene.start('MenuScene', { gameState: this.gameState });
+                }
+            });
             
-            // Save battle statistics to game state for potential future features
-            this.gameState.lastBattleStats = this.battleStats;
-            
-            this.scene.start('MenuScene', { gameState: this.gameState });
+            this.tweens.add({
+                targets: overlay,
+                alpha: 0,
+                duration: 300,
+                ease: 'Cubic.easeIn'
+            });
         };
         
         // Add click handlers to both overlay and container for better reliability
@@ -3907,6 +4143,57 @@ class BattleScene extends Phaser.Scene {
         // Also add input listener for any key press or click anywhere on screen
         this.input.once('pointerdown', clickHandler);
         this.input.keyboard.once('keydown', clickHandler);
+    }
+    
+    createVictoryParticles(container) {
+        // Create golden particles for victory
+        const particleCount = 20;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = this.add.graphics();
+            particle.fillStyle(0xffd700, 0.8);
+            particle.fillCircle(0, 0, Phaser.Math.Between(2, 4));
+            
+            const startX = Phaser.Math.Between(-300, 300);
+            const startY = Phaser.Math.Between(-250, 250);
+            particle.setPosition(startX, startY);
+            container.add(particle);
+            
+            this.tweens.add({
+                targets: particle,
+                y: startY - Phaser.Math.Between(50, 150),
+                alpha: 0,
+                duration: Phaser.Math.Between(2000, 4000),
+                delay: Phaser.Math.Between(0, 1000),
+                ease: 'Cubic.easeOut',
+                onComplete: () => particle.destroy()
+            });
+        }
+    }
+    
+    createDefeatParticles(container) {
+        // Create ember particles for defeat
+        const particleCount = 15;
+        for (let i = 0; i < particleCount; i++) {
+            const particle = this.add.graphics();
+            particle.fillStyle(0xff4444, 0.6);
+            particle.fillCircle(0, 0, Phaser.Math.Between(1, 3));
+            
+            const startX = Phaser.Math.Between(-300, 300);
+            const startY = Phaser.Math.Between(-250, 250);
+            particle.setPosition(startX, startY);
+            container.add(particle);
+            
+            this.tweens.add({
+                targets: particle,
+                x: startX + Phaser.Math.Between(-30, 30),
+                y: startY + Phaser.Math.Between(20, 80),
+                alpha: 0,
+                duration: Phaser.Math.Between(3000, 5000),
+                delay: Phaser.Math.Between(0, 1500),
+                ease: 'Cubic.easeOut',
+                onComplete: () => particle.destroy()
+            });
+        }
     }
     
     // Row Numbers Display Methods
