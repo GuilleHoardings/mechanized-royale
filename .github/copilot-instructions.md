@@ -25,7 +25,7 @@ const enemyColor = 0xd22d2d;  // Red
 ```
 
 ### Energy & Card System
-- Energy regenerates 1/second (max 10, start 5)
+- Energy regenerates at variable rate: 1 every 2.8s (normal time, first 2 minutes), 1 every 1.4s (double time, last minute)
 - Cards cycle automatically when deployed - use `cycleCard(usedCardIndex)`
 - Tank costs defined in `TANK_DATA` constants
 

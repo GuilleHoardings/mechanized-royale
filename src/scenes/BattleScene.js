@@ -631,7 +631,7 @@ class BattleScene extends Phaser.Scene {
 
     startEnergyRegeneration() {
         this.energyTimer = this.time.addEvent({
-            delay: 1000,
+            delay: this.getEnergyRegenDelay(),
             callback: () => {
                 if (this.energy < this.maxEnergy) {
                     this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
@@ -640,9 +640,20 @@ class BattleScene extends Phaser.Scene {
                     // Visual feedback for energy gain
                     this.showEnergyGainEffect();
                 }
+                
+                // Update the delay for next tick based on current battle time
+                this.energyTimer.delay = this.getEnergyRegenDelay();
             },
             loop: true
         });
+    }
+
+    getEnergyRegenDelay() {
+        // Use double time rate when 60 seconds or less remain
+        if (this.battleTime <= ENERGY_CONFIG.DOUBLE_TIME_THRESHOLD) {
+            return ENERGY_CONFIG.DOUBLE_TIME_DELAY;
+        }
+        return ENERGY_CONFIG.NORMAL_TIME_DELAY;
     }
 
     showEnergyGainEffect() {
@@ -1432,11 +1443,14 @@ class BattleScene extends Phaser.Scene {
         
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
-            delay: 1000,
+            delay: this.getEnergyRegenDelay(),
             callback: () => {
                 if (this.aiEnergy < this.aiMaxEnergy) {
                     this.aiEnergy = Math.min(this.aiEnergy + ENERGY_CONFIG.REGEN_RATE, this.aiMaxEnergy);
                 }
+                
+                // Update the delay for next tick based on current battle time
+                this.aiEnergyTimer.delay = this.getEnergyRegenDelay();
             },
             loop: true
         });

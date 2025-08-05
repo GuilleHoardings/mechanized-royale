@@ -29,8 +29,11 @@ const GAME_STATES = {
 
 const ENERGY_CONFIG = {
     MAX_ENERGY: 10,
-    REGEN_RATE: 1, // per second
-    STARTING_ENERGY: 5
+    REGEN_RATE: 1, // amount gained per regeneration tick
+    STARTING_ENERGY: 5,
+    NORMAL_TIME_DELAY: 2800, // 2.8 seconds for first 2 minutes
+    DOUBLE_TIME_DELAY: 1400, // 1.4 seconds for last minute (double time)
+    DOUBLE_TIME_THRESHOLD: 60 // Switch to double time when 60 seconds or less remain
 };
 
 const BATTLE_CONFIG = {
