@@ -66,15 +66,60 @@ const GameHelpers = {
         return this.tileToWorld(tile.tileX, tile.tileY);
     },
 
-    // Check if tile coordinates are within deployment zone and not occupied by towers
-    isValidDeploymentTile(tileX, tileY, isPlayer = true) {
-        const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+    /**
+     * Check if tile coordinates are within deployment zone and not occupied by towers.
+     * @param {number} tileX - The X coordinate of the tile.
+     * @param {number} tileY - The Y coordinate of the tile.
+     * @param {boolean} [isPlayer=true] - Whether to check for the player's zone (true) or enemy's zone (false).
+     * @param {Object|null} [expandedZones=null] - Optional expanded deployment zones.
+     *   Structure:
+     *   {
+     *     player: {
+     *       expandedAreas: [
+     *         { tileX: number, tileY: number, tilesWidth: number, tilesHeight: number },
+     *         ...
+     *       ]
+     *     },
+     *     enemy: {
+     *       expandedAreas: [
+     *         { tileX: number, tileY: number, tilesWidth: number, tilesHeight: number },
+     *         ...
+     *       ]
+     *     }
+     *   }
+     *   Each expandedArea defines a rectangular region in tile coordinates.
+     *   If expandedZones is null or missing, only the original deployment zone is checked.
+     * @returns {boolean} True if the tile is valid for deployment, false otherwise.
+     */
+    isValidDeploymentTile(tileX, tileY, isPlayer = true, expandedZones = null) {
+        const originalZone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
         
-        // First check if tile is within the deployment zone
-        if (!(tileX >= zone.tileX && 
-              tileX < zone.tileX + zone.tilesWidth &&
-              tileY >= zone.tileY && 
-              tileY < zone.tileY + zone.tilesHeight)) {
+        // First check if tile is within the original deployment zone
+        let inOriginalZone = (tileX >= originalZone.tileX && 
+                             tileX < originalZone.tileX + originalZone.tilesWidth &&
+                             tileY >= originalZone.tileY && 
+                             tileY < originalZone.tileY + originalZone.tilesHeight);
+        
+        // Check if tile is in any expanded areas
+        let inExpandedArea = false;
+        const zone = isPlayer ? 'player' : 'enemy';
+        if (expandedZones && expandedZones[zone]) {
+            const teamExpansion = expandedZones[zone];
+            if (teamExpansion.expandedAreas) {
+                for (const expandedArea of teamExpansion.expandedAreas) {
+                    if (tileX >= expandedArea.tileX && 
+                        tileX < expandedArea.tileX + expandedArea.tilesWidth &&
+                        tileY >= expandedArea.tileY && 
+                        tileY < expandedArea.tileY + expandedArea.tilesHeight) {
+                        inExpandedArea = true;
+                        break;
+                    }
+                }
+            }
+        }
+        
+        // Must be in either original zone or expanded area
+        if (!inOriginalZone && !inExpandedArea) {
             return false;
         }
         

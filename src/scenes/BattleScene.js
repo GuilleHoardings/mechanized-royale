@@ -28,6 +28,12 @@ class BattleScene extends Phaser.Scene {
             }
         };
         
+        // Expanded deployment zones when side towers are destroyed
+        this.expandedDeploymentZones = {
+            player: null, // Will be set when enemy side towers are destroyed
+            enemy: null   // Will be set when player side towers are destroyed
+        };
+        
         // Enhanced battle statistics
         this.battleStats = {
             player: {
@@ -139,24 +145,84 @@ class BattleScene extends Phaser.Scene {
         const centerY = 21.5 * GAME_CONFIG.TILE_SIZE;
         graphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
 
-        // Deployment zones with tile-based boundaries
+        // Deployment zones with tile-based boundaries - will be drawn dynamically
+        this.createDeploymentZoneGraphics();
+
+        // Add river and bridges
+        this.createRiverAndBridges(graphics, offsetX);
+    }
+
+    createDeploymentZoneGraphics() {
+        // Create separate graphics object for deployment zones so we can redraw them
+        this.deploymentZoneGraphics = this.add.graphics();
+        this.deploymentZoneLabels = []; // Track text labels for cleanup
+        this.drawDeploymentZones();
+    }
+
+    drawDeploymentZones() {
+        if (!this.deploymentZoneGraphics) return;
+        
+        // Clear existing deployment zone graphics and labels
+        this.deploymentZoneGraphics.clear();
+        if (this.deploymentZoneLabels) {
+            this.deploymentZoneLabels.forEach(label => label.destroy());
+            this.deploymentZoneLabels = [];
+        }
+        
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        
+        // Draw original deployment zones
         const playerZone = GameHelpers.getDeploymentZoneWorldCoords(true);
         const enemyZone = GameHelpers.getDeploymentZoneWorldCoords(false);
         
         // Player zone (bottom) - coordinates already include offset
-        graphics.lineStyle(3, 0x4a90e2, 0.6);
-        graphics.fillStyle(0x4a90e2, 0.1);
-        graphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
-        graphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
+        this.deploymentZoneGraphics.lineStyle(3, 0x4a90e2, 0.6);
+        this.deploymentZoneGraphics.fillStyle(0x4a90e2, 0.1);
+        this.deploymentZoneGraphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
+        this.deploymentZoneGraphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         
         // Enemy zone (top) - coordinates already include offset
-        graphics.lineStyle(3, 0xd22d2d, 0.6);
-        graphics.fillStyle(0xd22d2d, 0.1);
-        graphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
-        graphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
+        this.deploymentZoneGraphics.lineStyle(3, 0xd22d2d, 0.6);
+        this.deploymentZoneGraphics.fillStyle(0xd22d2d, 0.1);
+        this.deploymentZoneGraphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
+        this.deploymentZoneGraphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
+        
+        // Draw expanded zones if they exist
+        this.drawExpandedZones(offsetX);
+    }
 
-        // Add river and bridges
-        this.createRiverAndBridges(graphics, offsetX);
+    drawExpandedZones(offsetX) {
+        // Draw player expanded zones
+        if (this.expandedDeploymentZones.player && this.expandedDeploymentZones.player.expandedAreas) {
+            this.expandedDeploymentZones.player.expandedAreas.forEach(area => {
+                const areaX = offsetX + area.tileX * GAME_CONFIG.TILE_SIZE;
+                const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
+                const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
+                const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
+                
+                // Player expanded zones - brighter blue with dashed border
+                this.deploymentZoneGraphics.lineStyle(3, 0x6db4ff, 0.8);
+                this.deploymentZoneGraphics.fillStyle(0x6db4ff, 0.2);
+                this.deploymentZoneGraphics.fillRect(areaX, areaY, areaWidth, areaHeight);
+                this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
+            });
+        }
+        
+        // Draw AI expanded zones
+        if (this.expandedDeploymentZones.enemy && this.expandedDeploymentZones.enemy.expandedAreas) {
+            this.expandedDeploymentZones.enemy.expandedAreas.forEach(area => {
+                const areaX = offsetX + area.tileX * GAME_CONFIG.TILE_SIZE;
+                const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
+                const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
+                const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
+                
+                // AI expanded zones - brighter red with dashed border
+                this.deploymentZoneGraphics.lineStyle(3, 0xff6b6b, 0.8);
+                this.deploymentZoneGraphics.fillStyle(0xff6b6b, 0.2);
+                this.deploymentZoneGraphics.fillRect(areaX, areaY, areaWidth, areaHeight);
+                this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
+            });
+        }
     }
 
     createRiverAndBridges(graphics, offsetX = 0) {
@@ -908,7 +974,7 @@ class BattleScene extends Phaser.Scene {
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
         // Only allow deployment in player zone using tile-based checking
-        if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true)) {
+        if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
             return;
         }
 
@@ -1694,32 +1760,53 @@ class BattleScene extends Phaser.Scene {
         const playerBase = this.buildings.find(b => b.isPlayerBase);
         const aiBase = this.buildings.find(b => !b.isPlayerBase);
         
-        // Get center tile of enemy deployment zone
-        let baseTileX = Math.floor(GAME_CONFIG.TILES_X / 2); // Center column (9 for 18-wide grid)
-        let baseTileY = Math.floor((BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight) / 2); // Center row of enemy zone
+        // Use original zone as base
+        const zone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        
+        // Check if we have expanded areas available
+        const expandedZones = this.expandedDeploymentZones.enemy;
+        let availableAreas = [zone]; // Always include original zone
+        
+        if (expandedZones && expandedZones.expandedAreas) {
+            availableAreas = availableAreas.concat(expandedZones.expandedAreas);
+        }
+        
+        // Choose deployment area (prefer expanded areas for more aggressive positioning)
+        let chosenArea = zone;
+        if (expandedZones && expandedZones.expandedAreas.length > 0 && 
+            (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode)) {
+            // 70% chance to use expanded area if available and in aggressive mode
+            if (Math.random() < 0.7) {
+                chosenArea = expandedZones.expandedAreas[Math.floor(Math.random() * expandedZones.expandedAreas.length)];
+            }
+        }
+        
+        // Get center tile of chosen deployment area
+        let baseTileX = Math.floor(chosenArea.tileX + chosenArea.tilesWidth / 2);
+        let baseTileY = Math.floor(chosenArea.tileY + chosenArea.tilesHeight / 2);
         
         // Strategic positioning based on tank type and strategy
         if (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode) {
             // Deploy closer to player base for faster attack (further down)
-            baseTileY = Math.min(baseTileY + 2, BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight - 1);
+            baseTileY = Math.min(baseTileY + 1, chosenArea.tileY + chosenArea.tilesHeight - 1);
         } else if (this.aiStrategy.mode === 'defensive') {
             // Deploy closer to our own base for defense (further up)
-            baseTileY = Math.max(baseTileY - 2, BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY);
+            baseTileY = Math.max(baseTileY - 1, chosenArea.tileY);
         }
         
         // Add some randomness to avoid predictable positioning
-        const randomOffsetX = GameHelpers.randomInt(-3, 3);
-        const randomOffsetY = GameHelpers.randomInt(-2, 2);
+        const randomOffsetX = GameHelpers.randomInt(-2, 2);
+        const randomOffsetY = GameHelpers.randomInt(-1, 1);
         
         const deployTileX = GameHelpers.clamp(
             baseTileX + randomOffsetX, 
-            0, 
-            GAME_CONFIG.TILES_X - 1
+            chosenArea.tileX, 
+            chosenArea.tileX + chosenArea.tilesWidth - 1
         );
         const deployTileY = GameHelpers.clamp(
             baseTileY + randomOffsetY, 
-            BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY, 
-            BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tileY + BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY.tilesHeight - 1
+            chosenArea.tileY, 
+            chosenArea.tileY + chosenArea.tilesHeight - 1
         );
         
         // Convert tile coordinates to world coordinates
@@ -2808,8 +2895,12 @@ class BattleScene extends Phaser.Scene {
                 this.towerStats.enemy.mainTowerDestroyed = true;
             } else if (tower.towerType === 'left') {
                 this.towerStats.enemy.leftTowerDestroyed = true;
+                // Expand AI deployment zone when player left tower is destroyed
+                this.expandDeploymentZone('enemy', 'left');
             } else if (tower.towerType === 'right') {
                 this.towerStats.enemy.rightTowerDestroyed = true;
+                // Expand AI deployment zone when player right tower is destroyed
+                this.expandDeploymentZone('enemy', 'right');
             }
         } else {
             this.towerStats.player.towersDestroyed++;
@@ -2817,8 +2908,12 @@ class BattleScene extends Phaser.Scene {
                 this.towerStats.player.mainTowerDestroyed = true;
             } else if (tower.towerType === 'left') {
                 this.towerStats.player.leftTowerDestroyed = true;
+                // Expand player deployment zone when enemy left tower is destroyed
+                this.expandDeploymentZone('player', 'left');
             } else if (tower.towerType === 'right') {
                 this.towerStats.player.rightTowerDestroyed = true;
+                // Expand player deployment zone when enemy right tower is destroyed
+                this.expandDeploymentZone('player', 'right');
             }
         }
 
@@ -2834,6 +2929,160 @@ class BattleScene extends Phaser.Scene {
         // Check victory conditions
         this.time.delayedCall(1000, () => {
             this.checkTowerVictoryConditions();
+        });
+    }
+
+    expandDeploymentZone(team, destroyedTowerSide) {
+        // Expand deployment zone by 3 tiles from the river on the side where a tower was destroyed
+        const isPlayer = (team === 'player');
+        
+        // Initialize expanded zones if not exists
+        if (!this.expandedDeploymentZones[team]) {
+            this.expandedDeploymentZones[team] = {
+                leftSideExpanded: false,
+                rightSideExpanded: false,
+                expandedAreas: []
+            };
+        }
+        
+        // Mark this side as expanded
+        if (destroyedTowerSide === 'left') {
+            this.expandedDeploymentZones[team].leftSideExpanded = true;
+        } else if (destroyedTowerSide === 'right') {
+            this.expandedDeploymentZones[team].rightSideExpanded = true;
+        }
+        
+        // Define the column range for the side tower area
+        // Left side towers are around columns 2-5, right side towers are around columns 13-16
+        let sideStartCol, sideEndCol;
+        if (destroyedTowerSide === 'left') {
+            sideStartCol = 0;
+            sideEndCol = 8; // Half the battlefield width
+        } else {
+            sideStartCol = 9;
+            sideEndCol = 17; // Other half of battlefield
+        }
+        
+        // Create the expanded area for this side
+        let expandedArea;
+        if (isPlayer) {
+            // Player zone expansion: 3 tiles after the river (river is 21-22, so expansion is 18-20)
+            expandedArea = {
+                tileX: sideStartCol,
+                tileY: 18, // 3 tiles after river end (23 - 5 = 18, where 23 is river start - 1, and 5 is 3 tiles + 2 river tiles)
+                tilesWidth: sideEndCol - sideStartCol + 1,
+                tilesHeight: 3 // Just 3 rows (18, 19, 20)
+            };
+        } else {
+            // AI zone expansion: 3 tiles after the river (river is 21-22, so expansion is 23-25)  
+            expandedArea = {
+                tileX: sideStartCol,
+                tileY: 23, // 1 tiles after river end (22 + 3 = 25)
+                tilesWidth: sideEndCol - sideStartCol + 1,
+                tilesHeight: 3 // Just 3 rows (23, 24, 25)
+            };
+        }
+        
+        // Add this expanded area to the list
+        this.expandedDeploymentZones[team].expandedAreas.push(expandedArea);
+        
+        // Redraw deployment zones to show the expansion
+        this.drawDeploymentZones();
+        
+        // Show deployment expansion notification
+        this.showDeploymentExpansionNotification(team, destroyedTowerSide);
+        
+        // Update deployment area visual indicator
+        this.highlightExpandedDeploymentArea(team, expandedArea);
+    }
+
+    showDeploymentExpansionNotification(team, destroyedTowerSide) {
+        const isPlayer = (team === 'player');
+        const sideText = destroyedTowerSide.toUpperCase();
+        const message = `${sideText} SIDE DEPLOYMENT EXPANDED!`;
+        const subMessage = `${isPlayer ? 'You can' : 'Enemy can'} now deploy on the ${destroyedTowerSide} side closer to the river`;
+        const color = isPlayer ? '#44ff44' : '#ffaa44';
+
+        const notificationText = this.add.text(GAME_CONFIG.WIDTH / 2, 250, message, {
+            fontSize: '20px',
+            fill: color,
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        notificationText.setScrollFactor(0);
+        notificationText.setDepth(99);
+
+        const subText = this.add.text(GAME_CONFIG.WIDTH / 2, 275, subMessage, {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        subText.setScrollFactor(0);
+        subText.setDepth(99);
+
+        // Entrance animation
+        this.tweens.add({
+            targets: [notificationText, subText],
+            scaleX: { from: 0, to: 1 },
+            scaleY: { from: 0, to: 1 },
+            alpha: { from: 0, to: 1 },
+            duration: 400,
+            ease: 'Back.out',
+            onComplete: () => {
+                // Auto-hide after 3 seconds
+                this.time.delayedCall(3000, () => {
+                    this.tweens.add({
+                        targets: [notificationText, subText],
+                        alpha: 0,
+                        duration: 500,
+                        onComplete: () => {
+                            notificationText.destroy();
+                            subText.destroy();
+                        }
+                    });
+                });
+            }
+        });
+    }
+
+    highlightExpandedDeploymentArea(team, expandedArea) {
+        const isPlayer = (team === 'player');
+        
+        // Create a temporary highlight overlay for the expanded area
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        const areaX = offsetX + expandedArea.tileX * GAME_CONFIG.TILE_SIZE;
+        const areaY = expandedArea.tileY * GAME_CONFIG.TILE_SIZE;
+        const areaWidth = expandedArea.tilesWidth * GAME_CONFIG.TILE_SIZE;
+        const areaHeight = expandedArea.tilesHeight * GAME_CONFIG.TILE_SIZE;
+        
+        // Create highlight graphics
+        const highlight = this.add.graphics();
+        highlight.fillStyle(isPlayer ? 0x44ff44 : 0xffaa44, 0.3);
+        highlight.fillRect(areaX, areaY, areaWidth, areaHeight);
+        highlight.lineStyle(3, isPlayer ? 0x44ff44 : 0xffaa44, 0.8);
+        highlight.strokeRect(areaX, areaY, areaWidth, areaHeight);
+        highlight.setDepth(1);
+        
+        // Pulsing animation
+        this.tweens.add({
+            targets: highlight,
+            alpha: { from: 0.8, to: 0.3 },
+            duration: 1000,
+            yoyo: true,
+            repeat: 2,
+            onComplete: () => {
+                // Fade out after pulsing
+                this.tweens.add({
+                    targets: highlight,
+                    alpha: 0,
+                    duration: 2000,
+                    onComplete: () => highlight.destroy()
+                });
+            }
         });
     }
 
