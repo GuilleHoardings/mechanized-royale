@@ -4,6 +4,9 @@ class MenuScene extends Phaser.Scene {
     }
 
     create() {
+        // Initialize debug panel for menu
+        this.initializeDebugPanel();
+        
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
 
@@ -104,5 +107,73 @@ class MenuScene extends Phaser.Scene {
             fill: '#00ff00',
             fontFamily: 'Arial'
         });
+    }
+
+    // Debug Panel Methods for Menu Scene
+    initializeDebugPanel() {
+        this.debugUpdateTimer = 0;
+        this.debugUpdateInterval = 500; // Update every 500ms for menu (less frequent)
+        
+        // Start debug updates
+        this.time.addEvent({
+            delay: this.debugUpdateInterval,
+            callback: this.updateDebugPanel,
+            callbackScope: this,
+            loop: true
+        });
+    }
+
+    updateDebugPanel() {
+        // Check if debug panel exists and is visible
+        if (!window.debugPanel) return;
+
+        try {
+            // Game State
+            window.debugPanel.updateValue('debug-scene', this.scene.key);
+            window.debugPanel.updateValue('debug-time', '-');
+            window.debugPanel.updateValue('debug-paused', 'Menu');
+
+            // Player Stats (from game state)
+            if (this.gameState && this.gameState.player) {
+                window.debugPanel.updateValue('debug-player-energy', '-');
+                window.debugPanel.updateValue('debug-player-tanks', this.gameState.player.tanks.length);
+                window.debugPanel.updateValue('debug-player-hand', '-');
+            }
+
+            // AI Stats
+            window.debugPanel.updateValue('debug-ai-energy', '-');
+            window.debugPanel.updateValue('debug-ai-tanks', '-');
+            window.debugPanel.updateValue('debug-ai-strategy', '-');
+            window.debugPanel.updateValue('debug-ai-rush', '-');
+
+            // Battle Stats
+            window.debugPanel.updateValue('debug-total-tanks', '-');
+            window.debugPanel.updateValue('debug-projectiles', '-');
+            window.debugPanel.updateValue('debug-buildings', '-');
+
+            // Performance
+            window.debugPanel.updateValue('debug-fps', this.game.loop.actualFps.toFixed(1));
+            const objectCount = this.children.list.length;
+            window.debugPanel.updateValue('debug-objects', objectCount);
+            
+            // Memory usage (if available)
+            if (performance.memory) {
+                const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                window.debugPanel.updateValue('debug-memory', `${memoryMB} MB`);
+            } else {
+                window.debugPanel.updateValue('debug-memory', 'N/A');
+            }
+
+            // Tower Status
+            window.debugPanel.updateValue('debug-player-towers', '-');
+            window.debugPanel.updateValue('debug-ai-towers', '-');
+
+            // Deployment Zones
+            window.debugPanel.updateValue('debug-player-expanded', '-');
+            window.debugPanel.updateValue('debug-ai-expanded', '-');
+
+        } catch (error) {
+            console.warn('Debug panel update error in menu:', error);
+        }
     }
 }

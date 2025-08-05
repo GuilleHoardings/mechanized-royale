@@ -90,6 +90,9 @@ class BattleScene extends Phaser.Scene {
         // Initialize battle start time for statistics
         this.battleStats.battle.startTime = this.time.now;
         
+        // Initialize debug panel
+        this.initializeDebugPanel();
+        
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
 
@@ -1947,6 +1950,88 @@ class BattleScene extends Phaser.Scene {
             }
             return true;
         });
+        
+        // Update debug panel
+        this.updateDebugPanel();
+    }
+
+    // Debug Panel Methods
+    initializeDebugPanel() {
+        this.debugUpdateTimer = 0;
+        this.debugUpdateInterval = 100; // Update every 100ms
+    }
+
+    updateDebugPanel() {
+        // Only update debug panel periodically to avoid performance issues
+        this.debugUpdateTimer += this.game.loop.delta;
+        if (this.debugUpdateTimer < this.debugUpdateInterval) {
+            return;
+        }
+        this.debugUpdateTimer = 0;
+
+        // Check if debug panel exists and is visible
+        if (!window.debugPanel) return;
+
+        try {
+            // Game State
+            window.debugPanel.updateValue('debug-scene', this.scene.key);
+            window.debugPanel.updateValue('debug-time', this.formatTime(this.battleTime));
+            window.debugPanel.updateValue('debug-paused', this.battleEnded ? 'Yes' : 'No');
+
+            // Player Stats
+            window.debugPanel.updateValue('debug-player-energy', `${this.energy}/${this.maxEnergy}`);
+            const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
+            window.debugPanel.updateValue('debug-player-tanks', playerTanks.length);
+            window.debugPanel.updateValue('debug-player-hand', this.hand ? this.hand.join(', ') : '-');
+
+            // AI Stats
+            window.debugPanel.updateValue('debug-ai-energy', `${this.aiEnergy || 0}/${this.maxEnergy}`);
+            const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
+            window.debugPanel.updateValue('debug-ai-tanks', aiTanks.length);
+            window.debugPanel.updateValue('debug-ai-strategy', this.aiStrategy ? this.aiStrategy.mode : '-');
+            window.debugPanel.updateValue('debug-ai-rush', this.aiStrategy ? (this.aiStrategy.rushMode ? 'Yes' : 'No') : '-');
+
+            // Battle Stats
+            window.debugPanel.updateValue('debug-total-tanks', this.tanks.length);
+            window.debugPanel.updateValue('debug-projectiles', this.projectiles ? this.projectiles.length : 0);
+            window.debugPanel.updateValue('debug-buildings', this.buildings ? this.buildings.length : 0);
+
+            // Performance
+            window.debugPanel.updateValue('debug-fps', this.game.loop.actualFps.toFixed(1));
+            const objectCount = this.children.list.length;
+            window.debugPanel.updateValue('debug-objects', objectCount);
+            
+            // Memory usage (if available)
+            if (performance.memory) {
+                const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
+                window.debugPanel.updateValue('debug-memory', `${memoryMB} MB`);
+            } else {
+                window.debugPanel.updateValue('debug-memory', 'N/A');
+            }
+
+            // Tower Status
+            const playerTowersAlive = this.buildings ? this.buildings.filter(b => b.isPlayerBase && b.health > 0).length : 0;
+            const aiTowersAlive = this.buildings ? this.buildings.filter(b => !b.isPlayerBase && b.health > 0).length : 0;
+            window.debugPanel.updateValue('debug-player-towers', playerTowersAlive);
+            window.debugPanel.updateValue('debug-ai-towers', aiTowersAlive);
+
+            // Deployment Zones
+            const playerExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.player ? 
+                this.expandedDeploymentZones.player.expandedAreas?.length || 0 : 0;
+            const aiExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.enemy ? 
+                this.expandedDeploymentZones.enemy.expandedAreas?.length || 0 : 0;
+            window.debugPanel.updateValue('debug-player-expanded', playerExpanded > 0 ? 'Yes' : 'No');
+            window.debugPanel.updateValue('debug-ai-expanded', aiExpanded > 0 ? 'Yes' : 'No');
+
+        } catch (error) {
+            console.warn('Debug panel update error:', error);
+        }
+    }
+
+    formatTime(seconds) {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
     getTankAtPosition(x, y) {
