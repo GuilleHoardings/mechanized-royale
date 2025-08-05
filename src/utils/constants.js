@@ -59,13 +59,13 @@ const BATTLE_CONFIG = {
         MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
         POSITIONS: {
             PLAYER: {
-                LEFT: { tileX: 3, tileY: 28 },
-                RIGHT: { tileX: 14, tileY: 28 },
+                LEFT: { tileX: 3, tileY: 27 },
+                RIGHT: { tileX: 14, tileY: 27 },
                 MAIN: { tileX: 8, tileY: 31 }
             },
             ENEMY: {
-                LEFT: { tileX: 3, tileY: 5 },
-                RIGHT: { tileX: 14, tileY: 5 },
+                LEFT: { tileX: 3, tileY: 6 },
+                RIGHT: { tileX: 14, tileY: 6 },
                 MAIN: { tileX: 8, tileY: 2 }
             }
         }
