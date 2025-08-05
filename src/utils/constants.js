@@ -57,6 +57,16 @@ const BATTLE_CONFIG = {
     TOWERS: {
         SIDE_TOWER_HEALTH: 600,    // Side towers have less health
         MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
+        DIMENSIONS: {
+            MAIN_TOWER: {
+                TILES_WIDTH: 4,
+                TILES_HEIGHT: 3
+            },
+            SIDE_TOWER: {
+                TILES_WIDTH: 3,
+                TILES_HEIGHT: 3
+            }
+        },
         POSITIONS: {
             PLAYER: {
                 LEFT: { tileX: 3, tileY: 27 },
