@@ -18,11 +18,19 @@ class Pathfinding {
         const riverBottomTileY = 22;
 
         if (tileY >= riverTopTileY && tileY <= riverBottomTileY) {
-            // Bridges span columns 6-11 across the river
-            const bridgeLeftTileX = 6;
-            const bridgeRightTileX = 11;
+            // Left bridge: aligned with left towers (starts at tile 3, spans 3 tiles)
+            const leftBridgeStartX = BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX; // 3
+            const leftBridgeEndX = leftBridgeStartX + 2; // 3 + 2 = 5 (spans tiles 3, 4, 5)
+            
+            // Right bridge: aligned with right towers (starts at tile 13, spans 3 tiles)
+            const rightBridgeStartX = BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX - 1; // 14 - 1 = 13
+            const rightBridgeEndX = rightBridgeStartX + 2; // 13 + 2 = 15 (spans tiles 13, 14, 15)
 
-            if (tileX >= bridgeLeftTileX && tileX <= bridgeRightTileX) {
+            // Check if this tile is on either bridge
+            const isOnLeftBridge = tileX >= leftBridgeStartX && tileX <= leftBridgeEndX;
+            const isOnRightBridge = tileX >= rightBridgeStartX && tileX <= rightBridgeEndX;
+            
+            if (isOnLeftBridge || isOnRightBridge) {
                 return true; // It's a bridge
             }
             return false; // It's water
