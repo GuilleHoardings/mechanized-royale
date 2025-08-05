@@ -443,6 +443,9 @@ class BattleScene extends Phaser.Scene {
         
         this.selectedCard = index;
         this.updateCardSelection();
+        
+        // Show selection feedback
+        this.showCardSelectionFeedback(index);
     }
 
     updateCardSelection() {
@@ -1807,8 +1810,8 @@ class BattleScene extends Phaser.Scene {
                 }
                 
                 // Create destruction effect
-                this.createExplosionEffect(tank.x, tank.y, 1.2);
-                this.playExplosionSound('medium');
+                this.showExplosionEffect(tank.x, tank.y, 1.2);
+                this.playUISound('explosion');
                 
                 tank.destroy();
                 if (tank.healthBg) tank.healthBg.destroy();
@@ -2166,9 +2169,8 @@ class BattleScene extends Phaser.Scene {
         // Add to projectiles array
         this.projectiles.push(bullet);
         
-        // Play powerful shoot sound
-        const playShootSound = this.registry.get('playShootSound');
-        if (playShootSound) playShootSound();
+        // Show enhanced muzzle flash for base
+        this.showMuzzleFlash(base, target.x, target.y);
         
         // Animate bullet movement
         this.tweens.add({
@@ -2188,44 +2190,6 @@ class BattleScene extends Phaser.Scene {
             onComplete: () => {
                 this.onBulletHit(bullet);
             }
-        });
-        
-        // Create larger muzzle flash for base
-        this.createBaseMuzzleFlash(base.x, base.y, angle);
-    }
-
-    createBaseMuzzleFlash(x, y, angle) {
-        // Create larger muzzle flash for base weapons
-        const flashOffset = 40; // Distance from base center
-        const flashX = x + Math.cos(angle) * flashOffset;
-        const flashY = y + Math.sin(angle) * flashOffset;
-        
-        const flash = this.add.graphics();
-        flash.fillStyle(0xffff88, 0.9);
-        flash.fillCircle(flashX, flashY, 12); // Larger flash
-        
-        // Quick flash animation
-        this.tweens.add({
-            targets: flash,
-            alpha: 0,
-            scaleX: 0.3,
-            scaleY: 0.3,
-            duration: 150,
-            onComplete: () => flash.destroy()
-        });
-        
-        // Add secondary flash ring
-        const flashRing = this.add.graphics();
-        flashRing.lineStyle(4, 0xffaa00, 0.7);
-        flashRing.strokeCircle(flashX, flashY, 15);
-        
-        this.tweens.add({
-            targets: flashRing,
-            alpha: 0,
-            scaleX: 2,
-            scaleY: 2,
-            duration: 200,
-            onComplete: () => flashRing.destroy()
         });
     }
 
@@ -2270,11 +2234,6 @@ class BattleScene extends Phaser.Scene {
         const bullet = this.add.image(attacker.x, attacker.y, bulletTexture);
         bullet.setTint(bulletColor);
         
-        // Create bullet trail
-        const trail = this.add.graphics();
-        trail.lineStyle(2, bulletColor, 0.6);
-        bullet.trail = trail;
-        
         // Calculate angle from attacker to target
         const angle = GameHelpers.angle(attacker.x, attacker.y, target.x, target.y);
         const distance = GameHelpers.distance(attacker.x, attacker.y, target.x, target.y);
@@ -2301,8 +2260,8 @@ class BattleScene extends Phaser.Scene {
         // Add to projectiles array
         this.projectiles.push(bullet);
         
-        // Play shoot sound
-        this.playShootSound(attacker.tankData.type);
+        // Show enhanced muzzle flash and projectile trail
+        this.showMuzzleFlash(attacker, target.x, target.y);
         
         // Animate bullet movement
         this.tweens.add({
@@ -2311,21 +2270,10 @@ class BattleScene extends Phaser.Scene {
             y: target.y,
             duration: travelTime,
             ease: 'None',
-            onUpdate: () => {
-                // Update trail
-                if (bullet.trail) {
-                    bullet.trail.clear();
-                    bullet.trail.lineStyle(2, bulletColor, 0.6);
-                    bullet.trail.lineBetween(attacker.x, attacker.y, bullet.x, bullet.y);
-                }
-            },
             onComplete: () => {
                 this.onBulletHit(bullet);
             }
         });
-        
-        // Create muzzle flash effect at attacker position
-        this.createMuzzleFlash(attacker.x, attacker.y, angle);
     }
 
     onBulletHit(bullet) {
@@ -2424,19 +2372,28 @@ class BattleScene extends Phaser.Scene {
                     // Tower destroyed - handle tower system
                     this.destroyTower(bullet.target);
                 } else if (previousHealth > 0) {
-                    // Tank destroyed - the update() method will handle cleanup
-                    // Just create a destruction effect here
-                    this.createExplosionEffect(bullet.target.x, bullet.target.y, 1.5);
-                    this.playExplosionSound('large');
+                    // Tank destroyed - create destruction effect
+                    this.showExplosionEffect(bullet.target.x, bullet.target.y, 1.5);
+                    
+                    // Track tank destruction in statistics
+                    if (bullet.attacker && bullet.attacker.isPlayerTank !== undefined) {
+                        if (bullet.attacker.isPlayerTank) {
+                            this.battleStats.player.tanksDestroyed++;
+                            this.battleStats.ai.tanksLost++;
+                        } else {
+                            this.battleStats.ai.tanksDestroyed++;
+                            this.battleStats.player.tanksLost++;
+                        }
+                    }
                 }
+            } else {
+                // Target still alive - show hit effect
+                const isCritical = penetrationRatio >= 0.8;
+                const isArmored = penetrationRatio < 0.5;
+                
+                this.showHitEffect(bullet.target.x, bullet.target.y, isArmored);
+                this.showDamageNumber(bullet.target.x, bullet.target.y, finalDamage, isCritical);
             }
-
-            // Create hit effect with actual damage dealt
-            this.createHitEffect(bullet.target.x, bullet.target.y, finalDamage, bullet.isBaseProjectile);
-            
-            // Play explosion sound
-            const playExplosionSound = this.registry.get('playExplosionSound');
-            if (playExplosionSound) playExplosionSound();
         }
         
         // Destroy bullet sprite
@@ -2469,210 +2426,6 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    createHitEffect(x, y, damage = 30, isFromBase = false) {
-        // Enhanced main explosion effect
-        const explosion = this.add.graphics();
-        const explosionColor = isFromBase ? 0xffaa00 : 0xff4444;
-        const explosionSize = isFromBase ? 25 : 18;
-        
-        explosion.fillStyle(explosionColor, 0.9);
-        explosion.fillCircle(x, y, explosionSize);
-        explosion.lineStyle(3, isFromBase ? 0xff6600 : 0xffaa00);
-        explosion.strokeCircle(x, y, explosionSize);
-        
-        // Enhanced explosion animation with better scaling
-        this.tweens.add({
-            targets: explosion,
-            alpha: 0,
-            scaleX: isFromBase ? 3.5 : 3.0,
-            scaleY: isFromBase ? 3.5 : 3.0,
-            duration: 450,
-            ease: 'Power2.out',
-            onComplete: () => explosion.destroy()
-        });
-        
-        // Secondary explosion ring for extra impact
-        const ring = this.add.graphics();
-        ring.lineStyle(4, isFromBase ? 0xffcc00 : 0xff8800, 0.8);
-        ring.strokeCircle(x, y, explosionSize - 5);
-        
-        this.tweens.add({
-            targets: ring,
-            scaleX: isFromBase ? 4.0 : 3.5,
-            scaleY: isFromBase ? 4.0 : 3.5,
-            alpha: 0,
-            duration: 600,
-            ease: 'Power2.out',
-            onComplete: () => ring.destroy()
-        });
-        
-        // Enhanced sparks effect with better distribution
-        const sparkCount = isFromBase ? 12 : 8;
-        for (let i = 0; i < sparkCount; i++) {
-            const spark = this.add.graphics();
-            spark.fillStyle(isFromBase ? 0xffcc00 : 0xffff00, 0.9);
-            spark.fillCircle(x, y, isFromBase ? 4 : 3);
-            
-            const sparkAngle = (Math.PI * 2 * i) / sparkCount + (Math.random() - 0.5) * 0.5;
-            const sparkDistance = GameHelpers.randomInt(isFromBase ? 35 : 25, isFromBase ? 60 : 45);
-            const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
-            const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
-            
-            this.tweens.add({
-                targets: spark,
-                x: sparkX,
-                y: sparkY,
-                alpha: 0,
-                scaleX: 0.1,
-                scaleY: 0.1,
-                duration: 350 + Math.random() * 200,
-                ease: 'Power2.out',
-                onComplete: () => spark.destroy()
-            });
-        }
-        
-        // Enhanced damage number with better animation
-        const damageColor = isFromBase ? '#ffaa00' : '#ff0000';
-        const damageText = this.add.text(x, y - 25, `-${Math.floor(damage)}`, {
-            fontSize: isFromBase ? '20px' : '18px',
-            fill: damageColor,
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-        
-        // Bounce effect for damage numbers
-        this.tweens.add({
-            targets: damageText,
-            y: damageText.y - 40,
-            scaleX: { from: 0.5, to: 1.2 },
-            scaleY: { from: 0.5, to: 1.2 },
-            alpha: 0,
-            duration: 1200,
-            ease: 'Back.out',
-            onComplete: () => damageText.destroy()
-        });
-        
-        // Audio feedback
-        this.playHitSound(isFromBase, damage);
-    }
-
-    playHitSound(isFromBase, damage) {
-        // Enhanced audio feedback based on hit type and damage
-        if (isFromBase) {
-            // Base/turret hit - deeper, more impactful sounds
-            if (damage > 50) {
-                console.log('🔊 Playing: Heavy Cannon Impact');
-                // this.sound.play('heavyCannonHit', { volume: 0.7 });
-            } else {
-                console.log('🔊 Playing: Cannon Impact');
-                // this.sound.play('cannonHit', { volume: 0.6 });
-            }
-        } else {
-            // Tank hit - metallic impact sounds
-            if (damage > 80) {
-                console.log('🔊 Playing: Armor Penetration');
-                // this.sound.play('armorPenetration', { volume: 0.8 });
-            } else if (damage > 40) {
-                console.log('🔊 Playing: Heavy Tank Hit');
-                // this.sound.play('heavyTankHit', { volume: 0.6 });
-            } else {
-                console.log('🔊 Playing: Tank Hit');
-                // this.sound.play('tankHit', { volume: 0.5 });
-            }
-        }
-    }
-
-    createExplosionEffect(x, y, scale = 1.0) {
-        // Large explosion effect for tank/building destruction
-        const explosionSize = 30 * scale;
-        
-        // Main explosion blast
-        const explosion = this.add.graphics();
-        explosion.fillStyle(0xff4400, 0.95);
-        explosion.fillCircle(x, y, explosionSize);
-        explosion.lineStyle(4, 0xffaa00);
-        explosion.strokeCircle(x, y, explosionSize);
-        
-        // Explosion animation with powerful scaling
-        this.tweens.add({
-            targets: explosion,
-            alpha: 0,
-            scaleX: 4.0 * scale,
-            scaleY: 4.0 * scale,
-            duration: 600,
-            ease: 'Power2.out',
-            onComplete: () => explosion.destroy()
-        });
-        
-        // Secondary shockwave ring
-        const shockwave = this.add.graphics();
-        shockwave.lineStyle(6, 0xff6600, 0.8);
-        shockwave.strokeCircle(x, y, explosionSize - 8);
-        
-        this.tweens.add({
-            targets: shockwave,
-            scaleX: 5.0 * scale,
-            scaleY: 5.0 * scale,
-            alpha: 0,
-            duration: 800,
-            ease: 'Power2.out',
-            onComplete: () => shockwave.destroy()
-        });
-        
-        // Debris particles for destruction effect
-        const debrisCount = Math.floor(15 * scale);
-        for (let i = 0; i < debrisCount; i++) {
-            const debris = this.add.graphics();
-            debris.fillStyle(0x666666, 0.9);
-            debris.fillRect(x - 3, y - 3, 6, 6);
-            
-            const debrisAngle = (Math.PI * 2 * i) / debrisCount + (Math.random() - 0.5) * 0.8;
-            const debrisDistance = GameHelpers.randomInt(40, 80) * scale;
-            const debrisX = x + Math.cos(debrisAngle) * debrisDistance;
-            const debrisY = y + Math.sin(debrisAngle) * debrisDistance;
-            
-            this.tweens.add({
-                targets: debris,
-                x: debrisX,
-                y: debrisY,
-                rotation: Math.random() * Math.PI * 2,
-                alpha: 0,
-                scaleX: 0.1,
-                scaleY: 0.1,
-                duration: 400 + Math.random() * 300,
-                ease: 'Power2.out',
-                onComplete: () => debris.destroy()
-            });
-        }
-        
-        // Fire sparks effect
-        const sparkCount = Math.floor(20 * scale);
-        for (let i = 0; i < sparkCount; i++) {
-            const spark = this.add.graphics();
-            spark.fillStyle(0xffdd00, 0.9);
-            spark.fillCircle(x, y, 3);
-            
-            const sparkAngle = Math.random() * Math.PI * 2;
-            const sparkDistance = GameHelpers.randomInt(50, 100) * scale;
-            const sparkX = x + Math.cos(sparkAngle) * sparkDistance;
-            const sparkY = y + Math.sin(sparkAngle) * sparkDistance;
-            
-            this.tweens.add({
-                targets: spark,
-                x: sparkX,
-                y: sparkY,
-                alpha: 0,
-                scaleX: 0.1,
-                scaleY: 0.1,
-                duration: 500 + Math.random() * 300,
-                ease: 'Power2.out',
-                onComplete: () => spark.destroy()
-            });
-        }
-    }
-
     playShootSound(tankType) {
         // Enhanced shooting sounds based on tank type
         switch (tankType) {
@@ -2698,52 +2451,334 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
-    playExplosionSound(size = 'medium') {
-        // Different explosion sounds based on size/impact
-        switch (size) {
-            case 'small':
-                console.log('🔊 Playing: Small Explosion');
-                // this.sound.play('smallExplosion', { volume: 0.4 });
+    playUISound(action) {
+        // Web Audio API sound synthesis for better compatibility
+        if (!this.audioContext) {
+            try {
+                this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            } catch (e) {
+                console.warn('Web Audio API not supported, sounds disabled');
+                return;
+            }
+        }
+
+        switch (action) {
+            case 'deploy':
+                this.playSynthSound([400, 600], 0.3, 0.15, 'sawtooth');
+                console.log('🔊 Playing: Tank Deploy');
                 break;
-            case 'medium':
-                console.log('🔊 Playing: Medium Explosion');
-                // this.sound.play('mediumExplosion', { volume: 0.6 });
+            case 'select':
+                this.playSynthSound([800], 0.2, 0.08, 'square');
+                console.log('🔊 Playing: UI Select');
                 break;
-            case 'large':
-                console.log('🔊 Playing: Large Explosion');
-                // this.sound.play('largeExplosion', { volume: 0.8 });
+            case 'error':
+                this.playSynthSound([200, 150], 0.4, 0.3, 'square');
+                console.log('🔊 Playing: Error Beep');
                 break;
-            case 'building':
-                console.log('🔊 Playing: Building Destruction');
-                // this.sound.play('buildingDestroyed', { volume: 0.9 });
+            case 'hit':
+                this.playSynthSound([300, 200], 0.3, 0.1, 'sawtooth');
+                break;
+            case 'explosion':
+                this.playExplosionSound();
+                break;
+            case 'shoot':
+                this.playSynthSound([150, 120], 0.2, 0.05, 'sawtooth');
+                break;
+            case 'victory':
+                this.playVictoryFanfare();
+                console.log('🔊 Playing: Victory Fanfare');
+                break;
+            case 'defeat':
+                this.playDefeatSound();
+                console.log('🔊 Playing: Defeat Sound');
                 break;
         }
     }
 
-    playUISound(action) {
-        // UI feedback sounds
-        switch (action) {
-            case 'deploy':
-                console.log('🔊 Playing: Tank Deploy');
-                // this.sound.play('tankDeploy', { volume: 0.3 });
-                break;
-            case 'select':
-                console.log('🔊 Playing: UI Select');
-                // this.sound.play('uiSelect', { volume: 0.2 });
-                break;
-            case 'error':
-                console.log('🔊 Playing: Error Beep');
-                // this.sound.play('errorBeep', { volume: 0.3 });
-                break;
-            case 'victory':
-                console.log('🔊 Playing: Victory Fanfare');
-                // this.sound.play('victoryFanfare', { volume: 0.8 });
-                break;
-            case 'defeat':
-                console.log('🔊 Playing: Defeat Sound');
-                // this.sound.play('defeatSound', { volume: 0.6 });
-                break;
+    playSynthSound(frequencies, volume = 0.3, duration = 0.2, waveType = 'sine') {
+        if (!this.audioContext) return;
+
+        frequencies.forEach((freq, index) => {
+            const oscillator = this.audioContext.createOscillator();
+            const gainNode = this.audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(this.audioContext.destination);
+            
+            oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
+            oscillator.type = waveType;
+            
+            gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
+            gainNode.gain.linearRampToValueAtTime(volume * 0.3, this.audioContext.currentTime + 0.01);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
+            
+            const startTime = this.audioContext.currentTime + (index * 0.05);
+            oscillator.start(startTime);
+            oscillator.stop(startTime + duration);
+        });
+    }
+
+    playExplosionSound() {
+        if (!this.audioContext) return;
+
+        // Create noise for explosion
+        const bufferSize = this.audioContext.sampleRate * 0.3;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = buffer.getChannelData(0);
+        
+        for (let i = 0; i < bufferSize; i++) {
+            output[i] = Math.random() * 2 - 1;
         }
+        
+        const whiteNoise = this.audioContext.createBufferSource();
+        whiteNoise.buffer = buffer;
+        
+        const filter = this.audioContext.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
+        filter.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.3);
+        
+        const gainNode = this.audioContext.createGain();
+        gainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
+        
+        whiteNoise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.audioContext.destination);
+        
+        whiteNoise.start();
+        whiteNoise.stop(this.audioContext.currentTime + 0.3);
+    }
+
+    playVictoryFanfare() {
+        if (!this.audioContext) return;
+        const melody = [523, 659, 784, 1047]; // C, E, G, C
+        melody.forEach((freq, index) => {
+            setTimeout(() => {
+                this.playSynthSound([freq], 0.5, 0.4, 'triangle');
+            }, index * 200);
+        });
+    }
+
+    playDefeatSound() {
+        if (!this.audioContext) return;
+        const melody = [400, 350, 300, 250]; // Descending sad melody
+        melody.forEach((freq, index) => {
+            setTimeout(() => {
+                this.playSynthSound([freq], 0.4, 0.5, 'sawtooth');
+            }, index * 300);
+        });
+    }
+
+    // Enhanced Combat Feedback System
+    showDamageNumber(x, y, damage, isCritical = false) {
+        const color = isCritical ? '#ffff00' : '#ff4444';
+        const fontSize = isCritical ? '20px' : '16px';
+        const prefix = isCritical ? 'CRIT ' : '';
+        
+        const damageText = this.add.text(x, y, `${prefix}${Math.ceil(damage)}`, {
+            fontSize: fontSize,
+            fill: color,
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        damageText.setDepth(1000);
+        
+        // Animate damage number
+        this.tweens.add({
+            targets: damageText,
+            y: y - 40,
+            alpha: 0,
+            scale: isCritical ? 1.5 : 1.2,
+            duration: 1200,
+            ease: 'Power2',
+            onComplete: () => damageText.destroy()
+        });
+    }
+
+    showHitEffect(x, y, isArmored = false) {
+        // Create hit spark effect
+        const particles = this.add.graphics();
+        particles.setDepth(999);
+        
+        const sparkColor = isArmored ? 0xffffff : 0xff8800;
+        const sparkCount = isArmored ? 8 : 5;
+        
+        for (let i = 0; i < sparkCount; i++) {
+            const angle = (i / sparkCount) * Math.PI * 2;
+            const speed = GameHelpers.randomInt(20, 40);
+            const sparkX = x + Math.cos(angle) * 5;
+            const sparkY = y + Math.sin(angle) * 5;
+            
+            particles.fillStyle(sparkColor);
+            particles.fillCircle(sparkX, sparkY, 2);
+            
+            // Animate sparks
+            this.tweens.add({
+                targets: { x: sparkX, y: sparkY },
+                x: sparkX + Math.cos(angle) * speed,
+                y: sparkY + Math.sin(angle) * speed,
+                duration: 300,
+                ease: 'Power2',
+                onUpdate: (tween) => {
+                    const progress = tween.progress;
+                    const alpha = 1 - progress;
+                    particles.alpha = alpha;
+                }
+            });
+        }
+        
+        // Remove particles after animation
+        this.time.delayedCall(300, () => particles.destroy());
+        
+        // Play hit sound
+        this.playUISound('hit');
+    }
+
+    showExplosionEffect(x, y, size = 1) {
+        // Create explosion graphics
+        const explosion = this.add.graphics();
+        explosion.setDepth(998);
+        
+        // Multiple explosion rings
+        const rings = [
+            { radius: 20 * size, color: 0xffff00, alpha: 1 },
+            { radius: 35 * size, color: 0xff8800, alpha: 0.8 },
+            { radius: 50 * size, color: 0xff4400, alpha: 0.6 },
+            { radius: 65 * size, color: 0x880000, alpha: 0.4 }
+        ];
+        
+        rings.forEach((ring, index) => {
+            explosion.fillStyle(ring.color, ring.alpha);
+            explosion.fillCircle(x, y, ring.radius);
+            
+            this.tweens.add({
+                targets: ring,
+                radius: ring.radius * 2,
+                alpha: 0,
+                duration: 600 + (index * 100),
+                ease: 'Power2',
+                onUpdate: () => {
+                    explosion.clear();
+                    rings.forEach(r => {
+                        explosion.fillStyle(r.color, r.alpha);
+                        explosion.fillCircle(x, y, r.radius);
+                    });
+                }
+            });
+        });
+        
+        // Debris particles
+        for (let i = 0; i < 12; i++) {
+            const debris = this.add.graphics();
+            debris.fillStyle(0x444444);
+            debris.fillRect(x - 2, y - 2, 4, 4);
+            debris.setDepth(997);
+            
+            const angle = (i / 12) * Math.PI * 2;
+            const speed = GameHelpers.randomInt(30, 60);
+            const gravity = 100;
+            
+            this.tweens.add({
+                targets: debris,
+                x: x + Math.cos(angle) * speed,
+                y: y + Math.sin(angle) * speed + gravity,
+                rotation: Math.PI * 2,
+                alpha: 0,
+                duration: 800,
+                ease: 'Power2',
+                onComplete: () => debris.destroy()
+            });
+        }
+        
+        // Remove explosion graphics after animation
+        this.time.delayedCall(1000, () => explosion.destroy());
+        
+        // Play explosion sound
+        this.playUISound('explosion');
+    }
+
+    showMuzzleFlash(tank, targetX, targetY) {
+        // Calculate barrel end position
+        const angle = tank.rotation;
+        const barrelLength = 25; // Approximate barrel length
+        const flashX = tank.x + Math.cos(angle) * barrelLength;
+        const flashY = tank.y + Math.sin(angle) * barrelLength;
+        
+        // Create muzzle flash
+        const flash = this.add.graphics();
+        flash.setDepth(996);
+        
+        // Draw muzzle flash cone
+        flash.fillStyle(0xffff99, 0.8);
+        flash.fillCircle(flashX, flashY, 8);
+        
+        flash.fillStyle(0xffaa00, 0.6);
+        flash.fillCircle(flashX, flashY, 12);
+        
+        // Quick flash animation
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scale: 1.5,
+            duration: 100,
+            ease: 'Power2',
+            onComplete: () => flash.destroy()
+        });
+        
+        // Create projectile trail
+        this.createProjectileTrail(flashX, flashY, targetX, targetY);
+        
+        // Play shoot sound
+        this.playUISound('shoot');
+    }
+
+    createProjectileTrail(startX, startY, endX, endY) {
+        const trail = this.add.graphics();
+        trail.setDepth(995);
+        
+        // Draw projectile line
+        trail.lineStyle(2, 0xffff00, 0.8);
+        trail.lineBetween(startX, startY, endX, endY);
+        
+        // Fade out trail quickly
+        this.tweens.add({
+            targets: trail,
+            alpha: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => trail.destroy()
+        });
+    }
+
+    showCardSelectionFeedback(cardIndex) {
+        const card = this.tankCards[cardIndex];
+        if (!card) return;
+        
+        // Create selection pulse effect
+        const selectionPulse = this.add.graphics();
+        selectionPulse.setScrollFactor(0);
+        selectionPulse.setDepth(50);
+        
+        // Draw pulse circle around card
+        selectionPulse.lineStyle(4, 0x00ff00, 0.8);
+        selectionPulse.strokeCircle(card.x + 40, card.y + 30, 50);
+        
+        // Animate pulse
+        this.tweens.add({
+            targets: selectionPulse,
+            scaleX: 1.3,
+            scaleY: 1.3,
+            alpha: 0,
+            duration: 400,
+            ease: 'Power2',
+            onComplete: () => selectionPulse.destroy()
+        });
+        
+        // Play selection sound
+        this.playUISound('select');
     }
 
     destroyTower(tower) {

@@ -84,3 +84,6 @@ const enemyColor = 0xd22d2d;  // Red
 - **River crossing**: Tanks need pathfinding OR will get stuck at river edge
 - **Card cycling**: Update both hand array AND visual display when cards change
 - **Health bar positioning**: Health bars are separate graphics objects that need manual positioning updates
+
+## Things to Avoid
+- **Avoid screen shake**: It can be disorienting; never use it for anything.
