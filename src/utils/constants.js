@@ -90,7 +90,7 @@ const UI_CONFIG = {
             WIDTH: 50,
             HEIGHT: 10,
             OFFSET_X: 25,
-            OFFSET_Y: 60,
+            OFFSET_Y: 45,
             BACKGROUND_COLOR: 0x333333,
             COLORS: {
                 HIGH: 0x00ff00,
