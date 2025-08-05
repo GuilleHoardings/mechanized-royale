@@ -1282,22 +1282,24 @@ class BattleScene extends Phaser.Scene {
     updateTankMovement(tank) {
         this.updateTankAI(tank); // Update AI targeting
         
-        let targetPos = null;
-        
-        if (tank.target) {
-            targetPos = tank.target;
-        } else {
-            return;
-        }
-
-        const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
-        
-        const range = tank.tankData.stats.range;
-        if (distance <= range) {
+        // If no target, don't move
+        if (!tank.target) {
             tank.moving = false;
             return;
         }
 
+        const targetPos = tank.target;
+        const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
+        const range = tank.tankData.stats.range;
+        
+        // If target is in attack range, stop moving and attack
+        if (distance <= range) {
+            tank.moving = false;
+            tank.needsNewPath = false; // Clear path since we're in range
+            return;
+        }
+
+        // Target is out of range - move toward it
         // Check if we need a new path (target changed or no path exists)
         if (tank.needsNewPath || !tank.path || tank.pathIndex >= tank.path.length) {
             const currentPos = { x: tank.x, y: tank.y };
@@ -1331,17 +1333,31 @@ class BattleScene extends Phaser.Scene {
             }
         }
 
-        // Follow the path
+        // Follow the path until we reach attack range
         if (tank.path && tank.pathIndex < tank.path.length) {
             const currentWaypoint = tank.path[tank.pathIndex];
             const waypointDistance = GameHelpers.distance(tank.x, tank.y, currentWaypoint.worldX, currentWaypoint.worldY);
+            
+            // Check if we're close enough to attack the target from current position
+            const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
+            if (currentTargetDistance <= range) {
+                // In attack range now - stop moving
+                tank.moving = false;
+                tank.needsNewPath = false;
+                return;
+            }
             
             // If close enough to current waypoint, move to next one
             if (waypointDistance <= 15) {
                 tank.pathIndex++;
                 if (tank.pathIndex >= tank.path.length) {
-                    // Reached end of path
-                    tank.moving = false;
+                    // Reached end of path - check if we're in range
+                    if (currentTargetDistance <= range) {
+                        tank.moving = false;
+                    } else {
+                        // Still out of range, need new path
+                        tank.needsNewPath = true;
+                    }
                     return;
                 }
             }
@@ -1383,6 +1399,8 @@ class BattleScene extends Phaser.Scene {
                 if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
                     tank.setRotation(targetAngle);
                 }
+                
+                tank.moving = true;
             }
         }
         
@@ -1988,103 +2006,95 @@ class BattleScene extends Phaser.Scene {
         if (tank.manualControl) return; // Don't override manual control
         
         const currentTime = this.time.now;
+        const tankRange = tank.tankData.stats.range;
         
-        // Update AI target every 2 seconds or if target is destroyed
-        if (currentTime - tank.lastTargetUpdate > 2000 || !tank.target || tank.target.health <= 0) {
-            tank.lastTargetUpdate = currentTime;
+        // Target Retention: Check if current target is still valid
+        if (tank.target && tank.target.health > 0) {
+            const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
             
-            const oldTarget = tank.target;
-            
-            // Find closest enemy target
-            let closestEnemy = null;
-            let closestDistance = Infinity;
-            
-            if (tank.isPlayerTank) {
-                // Player tank: target AI tanks and enemy base
-                const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-                enemyTanks.forEach(enemy => {
-                    const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestEnemy = enemy;
-                    }
-                });
-                
-                // If no enemy tanks found, target enemy towers (prioritize side towers)
-                if (!closestEnemy) {
-                    const enemyBuildings = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
-                    
-                    // Prioritize side towers over main tower
-                    const sideTowers = enemyBuildings.filter(b => !b.isMainTower);
-                    const mainTowers = enemyBuildings.filter(b => b.isMainTower);
-                    
-                    // First try to target side towers
-                    if (sideTowers.length > 0) {
-                        sideTowers.forEach(building => {
-                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                            if (distance < closestDistance) {
-                                closestDistance = distance;
-                                closestEnemy = building;
-                            }
-                        });
-                    } else if (mainTowers.length > 0) {
-                        // Only target main tower if no side towers left
-                        mainTowers.forEach(building => {
-                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                            if (distance < closestDistance) {
-                                closestDistance = distance;
-                                closestEnemy = building;
-                            }
-                        });
-                    }
-                }
+            // Keep current target if still in range
+            if (currentTargetDistance <= tankRange) {
+                return; // Target retained - continue attacking
             } else {
-                // AI tank: target player tanks and player base
-                const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
-                playerTanks.forEach(enemy => {
-                    const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                    if (distance < closestDistance) {
-                        closestDistance = distance;
-                        closestEnemy = enemy;
-                    }
-                });
-                
-                // If no player tanks found, target player towers (prioritize side towers)
-                if (!closestEnemy) {
-                    const playerBuildings = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
-                    
-                    // Prioritize side towers over main tower
-                    const sideTowers = playerBuildings.filter(b => !b.isMainTower);
-                    const mainTowers = playerBuildings.filter(b => b.isMainTower);
-                    
-                    // First try to target side towers
-                    if (sideTowers.length > 0) {
-                        sideTowers.forEach(building => {
-                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                            if (distance < closestDistance) {
-                                closestDistance = distance;
-                                closestEnemy = building;
-                            }
-                        });
-                    } else if (mainTowers.length > 0) {
-                        // Only target main tower if no side towers left
-                        mainTowers.forEach(building => {
-                            const distance = GameHelpers.distance(tank.x, tank.y, building.x, building.y);
-                            if (distance < closestDistance) {
-                                closestDistance = distance;
-                                closestEnemy = building;
-                            }
-                        });
-                    }
-                }
-            }
-            
-            tank.target = closestEnemy;
-            
-            // If target changed, request new path
-            if (oldTarget !== tank.target) {
+                // Target moved out of range - clear it and find new target
+                tank.target = null;
                 tank.needsNewPath = true;
             }
+        } else if (tank.target && tank.target.health <= 0) {
+            // Target destroyed - clear it and find new target
+            tank.target = null;
+            tank.needsNewPath = true;
+        }
+        
+        // Target Acquisition: Find nearest enemy within attack range
+        let closestEnemyInRange = null;
+        let closestDistanceInRange = Infinity;
+        let fallbackTarget = null; // Nearest enemy overall for movement
+        let fallbackDistance = Infinity;
+        
+        if (tank.isPlayerTank) {
+            // Player tank: target AI tanks and enemy buildings
+            const enemies = [
+                ...this.tanks.filter(t => !t.isPlayerTank && t.health > 0),
+                ...this.buildings.filter(b => !b.isPlayerBase && b.health > 0)
+            ];
+            
+            enemies.forEach(enemy => {
+                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+                
+                // Check if enemy is within attack range
+                if (distance <= tankRange) {
+                    if (distance < closestDistanceInRange) {
+                        closestDistanceInRange = distance;
+                        closestEnemyInRange = enemy;
+                    }
+                }
+                
+                // Track closest overall for fallback movement
+                if (distance < fallbackDistance) {
+                    fallbackDistance = distance;
+                    fallbackTarget = enemy;
+                }
+            });
+        } else {
+            // AI tank: target player tanks and player buildings
+            const enemies = [
+                ...this.tanks.filter(t => t.isPlayerTank && t.health > 0),
+                ...this.buildings.filter(b => b.isPlayerBase && b.health > 0)
+            ];
+            
+            enemies.forEach(enemy => {
+                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+                
+                // Check if enemy is within attack range
+                if (distance <= tankRange) {
+                    if (distance < closestDistanceInRange) {
+                        closestDistanceInRange = distance;
+                        closestEnemyInRange = enemy;
+                    }
+                }
+                
+                // Track closest overall for fallback movement
+                if (distance < fallbackDistance) {
+                    fallbackDistance = distance;
+                    fallbackTarget = enemy;
+                }
+            });
+        }
+        
+        // Set target based on acquisition rules
+        if (closestEnemyInRange) {
+            // Found enemy in range - lock onto it
+            tank.target = closestEnemyInRange;
+            tank.needsNewPath = false; // Don't move, just attack
+        } else if (fallbackTarget) {
+            // No enemy in range - move toward nearest enemy
+            tank.target = fallbackTarget;
+            tank.needsNewPath = true; // Move toward target
+        } else {
+            // No enemies found - clear target
+            tank.target = null;
+            tank.needsNewPath = true;
         }
     }
 
