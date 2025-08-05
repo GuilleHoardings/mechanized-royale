@@ -7,6 +7,9 @@ class MenuScene extends Phaser.Scene {
         // Initialize debug panel for menu
         this.initializeDebugPanel();
         
+        // Make this scene accessible to HTML buttons
+        window.currentScene = this;
+        
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
 
@@ -175,5 +178,10 @@ class MenuScene extends Phaser.Scene {
         } catch (error) {
             console.warn('Debug panel update error in menu:', error);
         }
+    }
+    
+    // Dummy method for row numbers toggle (not applicable in menu)
+    toggleRowNumbers() {
+        console.log('Row numbers toggle not available in menu scene');
     }
 }

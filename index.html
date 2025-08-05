@@ -93,6 +93,24 @@
             background-color: #2980b9;
         }
         
+        .row-numbers-toggle {
+            position: fixed;
+            top: 60px;
+            right: 20px;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            z-index: 1000;
+        }
+        
+        .row-numbers-toggle:hover {
+            background-color: #219a52;
+        }
+        
         #loading {
             position: absolute;
             top: 50%;
@@ -106,6 +124,7 @@
 </head>
 <body>
     <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
+    <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
     
     <div id="game-container">
         <div id="loading">
@@ -228,6 +247,13 @@
         function toggleDebugPanel() {
             const panel = document.getElementById('debug-panel');
             panel.classList.toggle('visible');
+        }
+        
+        function toggleRowNumbers() {
+            // Send message to game to toggle row numbers
+            if (window.currentScene && window.currentScene.toggleRowNumbers) {
+                window.currentScene.toggleRowNumbers();
+            }
         }
         
         // Make debug functions globally accessible

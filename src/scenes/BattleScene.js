@@ -84,11 +84,18 @@ class BattleScene extends Phaser.Scene {
         this.hand = [];
         this.nextCardIndex = 0;
         this.initializeDeck();
+        
+        // Row numbers display
+        this.rowNumbersVisible = false;
+        this.rowNumberLabels = [];
     }
 
     create() {
         // Initialize battle start time for statistics
         this.battleStats.battle.startTime = this.time.now;
+        
+        // Make this scene accessible to HTML buttons
+        window.currentScene = this;
         
         // Initialize debug panel
         this.initializeDebugPanel();
@@ -3545,5 +3552,74 @@ class BattleScene extends Phaser.Scene {
         // Also add input listener for any key press or click anywhere on screen
         this.input.once('pointerdown', clickHandler);
         this.input.keyboard.once('keydown', clickHandler);
+    }
+    
+    // Row Numbers Display Methods
+    toggleRowNumbers() {
+        this.rowNumbersVisible = !this.rowNumbersVisible;
+        
+        if (this.rowNumbersVisible) {
+            this.createRowNumbers();
+        } else {
+            this.hideRowNumbers();
+        }
+    }
+    
+    createRowNumbers() {
+        // Clear any existing row numbers
+        this.hideRowNumbers();
+        
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        
+        // Create row numbers for each row of the battlefield
+        for (let row = 0; row < GAME_CONFIG.TILES_Y; row++) {
+            const y = row * GAME_CONFIG.TILE_SIZE + GAME_CONFIG.TILE_SIZE / 2;
+            
+            // Left side row number
+            const leftLabel = this.add.text(offsetX - 20, y, row.toString(), {
+                fontSize: '10px',
+                fill: '#ffffff',
+                fontFamily: 'Arial',
+                stroke: '#000000',
+                strokeThickness: 1
+            }).setOrigin(1, 0.5);
+            leftLabel.setDepth(1000);
+            leftLabel.setScrollFactor(0);
+            
+            // Right side row number
+            const rightLabel = this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH + 20, y, row.toString(), {
+                fontSize: '10px',
+                fill: '#ffffff',
+                fontFamily: 'Arial',
+                stroke: '#000000',
+                strokeThickness: 1
+            }).setOrigin(0, 0.5);
+            rightLabel.setDepth(1000);
+            rightLabel.setScrollFactor(0);
+            
+            this.rowNumberLabels.push(leftLabel, rightLabel);
+        }
+    }
+    
+    hideRowNumbers() {
+        // Destroy all existing row number labels
+        this.rowNumberLabels.forEach(label => {
+            if (label && label.destroy) {
+                label.destroy();
+            }
+        });
+        this.rowNumberLabels = [];
+    }
+    
+    destroy() {
+        // Clean up row numbers when scene is destroyed
+        this.hideRowNumbers();
+        
+        // Clear current scene reference
+        if (window.currentScene === this) {
+            window.currentScene = null;
+        }
+        
+        super.destroy();
     }
 }
