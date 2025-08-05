@@ -573,12 +573,10 @@ class BattleScene extends Phaser.Scene {
                 config.WIDTH, 
                 config.HEIGHT
             );
-            healthBg.setDepth(1000);
             building.healthBg = healthBg;
 
             // Health bar fill
             const healthFill = this.add.graphics();
-            healthFill.setDepth(1001);
             building.healthFill = healthFill;
             
             // Health percentage text
@@ -592,7 +590,6 @@ class BattleScene extends Phaser.Scene {
                 stroke: '#000000',
                 strokeThickness: 2
             }).setOrigin(0.5);
-            healthText.setDepth(1002);
             building.healthText = healthText;
             
             this.updateBuildingHealth(building);
@@ -947,11 +944,9 @@ class BattleScene extends Phaser.Scene {
         if (enemyBase) {
             const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
             tank.setRotation(initialAngle);
-            console.log('Tank deployed at:', x, y, 'facing enemy base at:', enemyBase.x, enemyBase.y, 'angle:', initialAngle);
         } else {
             // If no enemy base found, face upward (towards enemy side)
             tank.setRotation(-Math.PI / 2); // -90 degrees = upward
-            console.log('No enemy base found, tank facing upward');
         }
 
         // AI behavior: find best target (closest enemy or enemy base)
