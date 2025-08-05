@@ -621,21 +621,8 @@ class BattleScene extends Phaser.Scene {
             positionConfig.tileY
         );
         
-        // Create the tower image
-        const tower = this.add.image(towerTile.worldX, towerTile.worldY, 'base');
-        
-        // Set display size based on tower type
-        if (isMainTower) {
-            tower.setDisplaySize(
-                BATTLE_CONFIG.TOWERS.DIMENSIONS.MAIN_TOWER.TILES_WIDTH * GAME_CONFIG.TILE_SIZE, 
-                BATTLE_CONFIG.TOWERS.DIMENSIONS.MAIN_TOWER.TILES_HEIGHT * GAME_CONFIG.TILE_SIZE
-            );
-        } else {
-            tower.setDisplaySize(
-                BATTLE_CONFIG.TOWERS.DIMENSIONS.SIDE_TOWER.TILES_WIDTH * GAME_CONFIG.TILE_SIZE, 
-                BATTLE_CONFIG.TOWERS.DIMENSIONS.SIDE_TOWER.TILES_HEIGHT * GAME_CONFIG.TILE_SIZE
-            );
-        }
+        // Create custom tower graphics
+        const tower = this.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
         
         // Set tower properties
         const health = isMainTower ? BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH : BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
@@ -648,27 +635,122 @@ class BattleScene extends Phaser.Scene {
         tower.target = null;
         tower.lastTargetUpdate = 0;
         
-        // Apply team-specific styling
+        // Adjust position for main towers
         if (isMainTower) {
-            // Main towers get golden tint with team color overlay
-            if (isPlayerTeam) {
-                tower.setTint(0xffdd55); // Golden-blue for player
-            } else {
-                tower.setTint(0xffaa55); // Golden-red for enemy
-            }
             // Move the tower half a tile up to center it
             tower.x += GAME_CONFIG.TILE_SIZE / 2;
-        } else {
-            // Side towers get team colors
-            if (isPlayerTeam) {
-                tower.setTint(0x7799dd); // Blue tint for player side towers
-            } else {
-                tower.setTint(0xdd7777); // Red tint for enemy side towers
-            }
         }
         
         // Add to buildings array
         this.buildings.push(tower);
+    }
+
+    createTowerGraphics(x, y, isPlayerTeam, isMainTower) {
+        // Team colors
+        const playerBaseColor = 0x4a90e2;  // Blue
+        const enemyBaseColor = 0xd22d2d;   // Red
+        const stoneColor = 0x888888;       // Gray stone
+        const darkStone = 0x555555;        // Dark stone
+        const metalColor = 0x666666;       // Metal
+        const goldColor = 0xffdd00;        // Gold for main towers
+        
+        // Create a container for the tower
+        const tower = this.add.container(x, y);
+        
+        // Create graphics object for drawing
+        const graphics = this.add.graphics();
+        
+        if (isMainTower) {
+            // Main Tower - Large fortress-like structure
+            const size = 60; // Base size
+            
+            // Foundation
+            graphics.fillStyle(darkStone);
+            graphics.fillRect(-size/2, size/3, size, size/3);
+            
+            // Main structure - octagonal shape for more interesting silhouette
+            graphics.fillStyle(stoneColor);
+            graphics.fillCircle(0, 0, size/2.2);
+            
+            // Tower walls with team colors
+            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
+            graphics.fillCircle(0, 0, size/2.5);
+            
+            // Inner keep
+            graphics.fillStyle(stoneColor);
+            graphics.fillCircle(0, 0, size/3.5);
+            
+            // Golden crown for main towers
+            graphics.fillStyle(goldColor);
+            graphics.fillRect(-size/4, -size/2.2, size/2, size/8);
+            graphics.fillTriangle(-size/4, -size/2.2, 0, -size/1.8, size/4, -size/2.2);
+            
+            // Battlements
+            graphics.fillStyle(stoneColor);
+            for (let i = 0; i < 8; i++) {
+                const angle = (i / 8) * Math.PI * 2;
+                const bx = Math.cos(angle) * size/2.8;
+                const by = Math.sin(angle) * size/2.8;
+                graphics.fillRect(bx - 2, by - 4, 4, 8);
+            }
+            
+            // Command center windows
+            graphics.fillStyle(0x000000);
+            graphics.fillRect(-size/8, -size/8, size/4, size/8);
+            graphics.fillRect(-size/12, size/12, size/6, size/12);
+            
+            // Flag/antenna
+            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
+            graphics.fillRect(-1, -size/1.8, 2, size/6);
+            graphics.fillTriangle(1, -size/1.8, 1, -size/2.2, size/8, -size/2.4);
+            
+        } else {
+            // Side Tower - Smaller defensive tower
+            const size = 40; // Smaller than main tower
+            
+            // Foundation
+            graphics.fillStyle(darkStone);
+            graphics.fillRect(-size/2, size/3, size, size/4);
+            
+            // Main tower body
+            graphics.fillStyle(stoneColor);
+            graphics.fillRoundedRect(-size/2.5, -size/3, size/1.25, size * 0.8, 4);
+            
+            // Team color accent
+            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
+            graphics.fillRoundedRect(-size/3, -size/4, size/1.5, size * 0.6, 3);
+            
+            // Gun turret
+            graphics.fillStyle(metalColor);
+            graphics.fillCircle(0, -size/8, size/6);
+            
+            // Gun barrel
+            graphics.fillStyle(darkStone);
+            graphics.fillRect(size/6, -size/8 - 2, size/3, 4);
+            
+            // Defensive walls
+            graphics.fillStyle(stoneColor);
+            graphics.fillRect(-size/2.2, -size/3, 4, size/4);
+            graphics.fillRect(size/2.2 - 4, -size/3, 4, size/4);
+            
+            // Windows/firing ports
+            graphics.fillStyle(0x000000);
+            graphics.fillRect(-size/8, -size/6, size/4, 3);
+            graphics.fillRect(-size/12, size/12, size/6, 2);
+            
+            // Team banner
+            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
+            graphics.fillRect(-1, -size/2.5, 2, size/8);
+            graphics.fillRect(1, -size/2.5, size/12, size/16);
+        }
+        
+        // Add the graphics to the container
+        tower.add(graphics);
+        
+        // Add depth and visual appeal
+        tower.setDepth(10);
+        
+        return tower;
     }
 
     createTowerHealthBars() {

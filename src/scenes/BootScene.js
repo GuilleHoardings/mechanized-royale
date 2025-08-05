@@ -41,42 +41,10 @@ class BootScene extends Phaser.Scene {
         graphics.fillRect(0, 0, 60, 30);
         graphics.generateTexture('tank_heavy', 60, 30);
         
-        // Buildings - Enhanced tower graphics
+        // Buildings - Simple placeholder texture (towers now use procedural graphics)
         graphics.clear();
-        
-        // Main tower base (stone foundation)
-        graphics.fillStyle(0x666666);
-        graphics.fillRect(10, 40, 60, 20);
-        
-        // Tower walls (concrete)
-        graphics.fillStyle(0x999999);
-        graphics.fillRect(15, 15, 50, 45);
-        
-        // Tower structure details
-        graphics.fillStyle(0x777777);
-        graphics.fillRect(12, 12, 56, 6); // Top rim
-        graphics.fillRect(20, 20, 8, 35); // Left support
-        graphics.fillRect(52, 20, 8, 35); // Right support
-        
-        // Gun turret
-        graphics.fillStyle(0x555555);
-        graphics.fillCircle(40, 30, 12);
-        
-        // Barrel
-        graphics.fillStyle(0x444444);
-        graphics.fillRect(48, 28, 20, 4);
-        
-        // Command structure
         graphics.fillStyle(0x888888);
-        graphics.fillRect(30, 15, 20, 10);
-        
-        // Windows/viewports
-        graphics.fillStyle(0x333333);
-        graphics.fillRect(25, 25, 4, 4);
-        graphics.fillRect(51, 25, 4, 4);
-        graphics.fillRect(35, 18, 3, 3);
-        graphics.fillRect(42, 18, 3, 3);
-        
+        graphics.fillRect(0, 0, 80, 60);
         graphics.generateTexture('base', 80, 60);
         
         graphics.clear();
