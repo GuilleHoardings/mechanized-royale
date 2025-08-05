@@ -150,9 +150,9 @@ class BattleScene extends Phaser.Scene {
             graphics.lineBetween(offsetX, y, offsetX + GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
         }
 
-        // Center line to divide battlefield - at row 21.5 (between rows 21 and 22)
+        // Center line to divide battlefield - at row 16.5 (between rows 16 and 17)
         graphics.lineStyle(3, 0x888888, 0.8);
-        const centerY = 21.5 * GAME_CONFIG.TILE_SIZE;
+        const centerY = 16.5 * GAME_CONFIG.TILE_SIZE;
         graphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
 
         // Deployment zones with tile-based boundaries - will be drawn dynamically
@@ -236,9 +236,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     createRiverAndBridges(graphics, offsetX = 0) {
-        // River parameters - rows 21-22
-        const riverTopY = 21 * GAME_CONFIG.TILE_SIZE;
-        const riverBottomY = 22 * GAME_CONFIG.TILE_SIZE;
+        // River parameters - rows 16-17
+        const riverTopY = 16 * GAME_CONFIG.TILE_SIZE;
+        const riverBottomY = 17 * GAME_CONFIG.TILE_SIZE;
         const riverHeight = riverBottomY - riverTopY + GAME_CONFIG.TILE_SIZE;
         const riverWidth = GAME_CONFIG.WORLD_WIDTH;
 
@@ -3058,20 +3058,20 @@ class BattleScene extends Phaser.Scene {
         // Create the expanded area for this side
         let expandedArea;
         if (isPlayer) {
-            // Player zone expansion: 3 tiles after the river (river is 21-22, so expansion is 18-20)
+            // Player zone expansion: 3 tiles after the river (river is 16-17, so expansion is 13-15)
             expandedArea = {
                 tileX: sideStartCol,
-                tileY: 18, // 3 tiles after river end (23 - 5 = 18, where 23 is river start - 1, and 5 is 3 tiles + 2 river tiles)
+                tileY: 13, // 3 tiles before river start (16 - 3 = 13)
                 tilesWidth: sideEndCol - sideStartCol + 1,
-                tilesHeight: 3 // Just 3 rows (18, 19, 20)
+                tilesHeight: 3 // Just 3 rows (13, 14, 15)
             };
         } else {
-            // AI zone expansion: 3 tiles after the river (river is 21-22, so expansion is 23-25)  
+            // AI zone expansion: 3 tiles after the river (river is 16-17, so expansion is 18-20)  
             expandedArea = {
                 tileX: sideStartCol,
-                tileY: 23, // 1 tiles after river end (22 + 3 = 25)
+                tileY: 18, // 1 tile after river end (17 + 1 = 18)
                 tilesWidth: sideEndCol - sideStartCol + 1,
-                tilesHeight: 3 // Just 3 rows (23, 24, 25)
+                tilesHeight: 3 // Just 3 rows (18, 19, 20)
             };
         }
         

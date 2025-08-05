@@ -3,8 +3,8 @@
 class Pathfinding {
     static needsPathfinding(startPos, endPos) {
         // Check if both positions are on the same side of the river
-        // River is at rows 21-22, so check which side of row 21 positions are on
-        const riverRowTop = 21;
+        // River is at rows 16-17, so check which side of row 16 positions are on
+        const riverRowTop = 16;
         const startSide = startPos.y < riverRowTop * GAME_CONFIG.TILE_SIZE ? 'top' : 'bottom';
         const endSide = endPos.y < riverRowTop * GAME_CONFIG.TILE_SIZE ? 'top' : 'bottom';
         
@@ -13,9 +13,9 @@ class Pathfinding {
     }
 
     static #isWalkable(tileX, tileY, tank) {
-        // River spans rows 21-22
-        const riverTopTileY = 21;
-        const riverBottomTileY = 22;
+        // River spans rows 16-17
+        const riverTopTileY = 16;
+        const riverBottomTileY = 17;
 
         if (tileY >= riverTopTileY && tileY <= riverBottomTileY) {
             // Left bridge: aligned with left towers (starts at tile 3, spans 3 tiles)

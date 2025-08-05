@@ -5,8 +5,8 @@ const GAME_CONFIG = {
     BACKGROUND_COLOR: '#2c5234',
     // Tile system (Clash Royale style) - calculate tile size to fit everything in viewport
     TILES_X: 18,
-    TILES_Y: 44,  // Updated to match new layout: 0-21 (P1), 21-22 (river), 23-43 (P2)
-    TILE_SIZE: Math.floor(710 / 44),  // ~16px per tile to leave room for UI (cards + energy bar)
+    TILES_Y: 34,  // Updated to match new layout: 0-15 (Enemy), 16-17 (river), 18-33 (Player)
+    TILE_SIZE: Math.floor(710 / 34),  // ~21px per tile to leave room for UI (cards + energy bar)
     get WORLD_WIDTH() { return this.TILES_X * this.TILE_SIZE; },  // Calculate width based on tile size
     get WORLD_HEIGHT() { return this.TILES_Y * this.TILE_SIZE; }  // Calculate height based on tile size
 };
@@ -42,15 +42,15 @@ const BATTLE_CONFIG = {
     DEPLOYMENT_ZONES: {
         PLAYER: { 
             tileX: 0, 
-            tileY: 23, 
+            tileY: 18, 
             tilesWidth: 18, 
-            tilesHeight: 21    // Player side: rows 23-43 (full width, but towers will be excluded in logic)
+            tilesHeight: 16    // Player side: rows 18-33 (full width, but towers will be excluded in logic)
         },
         ENEMY: { 
             tileX: 0, 
             tileY: 0, 
             tilesWidth: 18, 
-            tilesHeight: 21    // Enemy side: rows 0-20 (full width, but towers will be excluded in logic)
+            tilesHeight: 16    // Enemy side: rows 0-15 (full width, but towers will be excluded in logic)
         }
     },
     // Tower system (Clash Royale style)
@@ -59,9 +59,9 @@ const BATTLE_CONFIG = {
         MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
         POSITIONS: {
             PLAYER: {
-                LEFT: { tileX: 3, tileY: 38 },
-                RIGHT: { tileX: 14, tileY: 38 },
-                MAIN: { tileX: 8, tileY: 41 }
+                LEFT: { tileX: 3, tileY: 28 },
+                RIGHT: { tileX: 14, tileY: 28 },
+                MAIN: { tileX: 8, tileY: 31 }
             },
             ENEMY: {
                 LEFT: { tileX: 3, tileY: 5 },
