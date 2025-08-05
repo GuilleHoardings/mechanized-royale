@@ -87,3 +87,4 @@ const enemyColor = 0xd22d2d;  // Red
 
 ## Things to Avoid
 - **Avoid screen shake**: It can be disorienting; never use it for anything.
+- **Avoid inline styles**: Use CSS classes for styling instead of inline styles.
