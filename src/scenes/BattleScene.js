@@ -610,13 +610,11 @@ class BattleScene extends Phaser.Scene {
         
         // Set display size based on tower type
         if (isMainTower) {
-            // Main towers are 4x3 for both players
             tower.setDisplaySize(
                 BATTLE_CONFIG.TOWERS.DIMENSIONS.MAIN_TOWER.TILES_WIDTH * GAME_CONFIG.TILE_SIZE, 
                 BATTLE_CONFIG.TOWERS.DIMENSIONS.MAIN_TOWER.TILES_HEIGHT * GAME_CONFIG.TILE_SIZE
             );
         } else {
-            // Side towers are 3x3
             tower.setDisplaySize(
                 BATTLE_CONFIG.TOWERS.DIMENSIONS.SIDE_TOWER.TILES_WIDTH * GAME_CONFIG.TILE_SIZE, 
                 BATTLE_CONFIG.TOWERS.DIMENSIONS.SIDE_TOWER.TILES_HEIGHT * GAME_CONFIG.TILE_SIZE

@@ -60,7 +60,7 @@ const BATTLE_CONFIG = {
         DIMENSIONS: {
             MAIN_TOWER: {
                 TILES_WIDTH: 4,
-                TILES_HEIGHT: 3
+                TILES_HEIGHT: 5
             },
             SIDE_TOWER: {
                 TILES_WIDTH: 3,
@@ -71,12 +71,12 @@ const BATTLE_CONFIG = {
             PLAYER: {
                 LEFT: { tileX: 3, tileY: 27 },
                 RIGHT: { tileX: 14, tileY: 27 },
-                MAIN: { tileX: 8, tileY: 31 }
+                MAIN: { tileX: 8, tileY: 30 }
             },
             ENEMY: {
                 LEFT: { tileX: 3, tileY: 6 },
                 RIGHT: { tileX: 14, tileY: 6 },
-                MAIN: { tileX: 8, tileY: 2 }
+                MAIN: { tileX: 8, tileY: 3 }
             }
         }
     }
