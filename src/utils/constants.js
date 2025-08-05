@@ -125,5 +125,14 @@ const UI_CONFIG = {
         TEXT_OFFSET_Y: 8,
         BACKGROUND_COLOR: 0x333333,
         FILL_COLOR: 0x4a90e2
+    },
+    DEBUG: {
+        ATTACK_RANGE_CIRCLES: {
+            ENABLED: false,
+            PLAYER_COLOR: 0x00ff00,      // Green for player tanks
+            ENEMY_COLOR: 0xff0000,       // Red for enemy tanks
+            LINE_WIDTH: 2,
+            ALPHA: 0.4
+        }
     }
 };

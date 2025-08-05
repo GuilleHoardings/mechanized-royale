@@ -88,6 +88,10 @@ class BattleScene extends Phaser.Scene {
         // Row numbers display
         this.rowNumbersVisible = false;
         this.rowNumberLabels = [];
+        
+        // Attack range debug display
+        this.attackRangesVisible = false;
+        this.attackRangeCircles = [];
     }
 
     create() {
@@ -1044,6 +1048,11 @@ class BattleScene extends Phaser.Scene {
         // Create health bar for tank
         this.createTankHealthBar(tank);
         
+        // Create debug attack range circle if debug mode is enabled
+        if (this.attackRangesVisible) {
+            this.createAttackRangeCircle(tank);
+        }
+        
         // Update statistics
         this.battleStats.player.tanksDeployed++;
         const cost = tankData.cost;
@@ -1507,6 +1516,9 @@ class BattleScene extends Phaser.Scene {
             tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
         }
 
+        // Update debug attack range circle position
+        this.updateAttackRangeCircle(tank);
+
         tank.moving = true;
     }
 
@@ -1883,6 +1895,11 @@ class BattleScene extends Phaser.Scene {
         // Create health bar for tank
         this.createTankHealthBar(tank);
         
+        // Create debug attack range circle if debug mode is enabled
+        if (this.attackRangesVisible) {
+            this.createAttackRangeCircle(tank);
+        }
+        
         // Update AI statistics
         this.battleStats.ai.tanksDeployed++;
         this.battleStats.ai.energySpent += tankData.cost;
@@ -1942,6 +1959,14 @@ class BattleScene extends Phaser.Scene {
                 if (tank.healthFill) tank.healthFill.destroy();
                 if (tank.selectionCircle) tank.selectionCircle.destroy();
                 if (tank.rangeCircle) tank.rangeCircle.destroy();
+                if (tank.debugRangeCircle) {
+                    tank.debugRangeCircle.destroy();
+                    // Remove from the attack range circles array
+                    const index = this.attackRangeCircles.indexOf(tank.debugRangeCircle);
+                    if (index > -1) {
+                        this.attackRangeCircles.splice(index, 1);
+                    }
+                }
                 return false;
             }
             return true;
@@ -3565,6 +3590,84 @@ class BattleScene extends Phaser.Scene {
         }
     }
     
+    toggleAttackRanges() {
+        this.attackRangesVisible = !this.attackRangesVisible;
+        
+        if (this.attackRangesVisible) {
+            this.showAllAttackRanges();
+        } else {
+            this.hideAllAttackRanges();
+        }
+    }
+    
+    showAllAttackRanges() {
+        // Clear any existing range circles first
+        this.hideAllAttackRanges();
+        
+        // Create range circles for all alive tanks
+        this.tanks.filter(tank => tank.health > 0).forEach(tank => {
+            this.createAttackRangeCircle(tank);
+        });
+    }
+    
+    createAttackRangeCircle(tank) {
+        // Create a new graphics object for the range circle
+        const rangeCircle = this.add.graphics();
+        rangeCircle.setDepth(5); // Below tanks but above terrain
+        
+        // Set color based on team
+        const circleColor = tank.isPlayerTank ? 
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR : 
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ENEMY_COLOR;
+        
+        // Draw the range circle
+        rangeCircle.lineStyle(
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH, 
+            circleColor, 
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
+        );
+        rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+        
+        // Store reference on the tank and in our list
+        tank.debugRangeCircle = rangeCircle;
+        this.attackRangeCircles.push(rangeCircle);
+    }
+    
+    hideAllAttackRanges() {
+        // Destroy all existing range circles
+        this.attackRangeCircles.forEach(circle => {
+            if (circle && circle.destroy) {
+                circle.destroy();
+            }
+        });
+        this.attackRangeCircles = [];
+        
+        // Remove references from tanks
+        this.tanks.forEach(tank => {
+            if (tank.debugRangeCircle) {
+                tank.debugRangeCircle = null;
+            }
+        });
+    }
+    
+    updateAttackRangeCircle(tank) {
+        // Update the position of a tank's debug range circle if it exists
+        if (this.attackRangesVisible && tank.debugRangeCircle) {
+            tank.debugRangeCircle.clear();
+            
+            const circleColor = tank.isPlayerTank ? 
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR : 
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ENEMY_COLOR;
+            
+            tank.debugRangeCircle.lineStyle(
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH, 
+                circleColor, 
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
+            );
+            tank.debugRangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+        }
+    }
+    
     createRowNumbers() {
         // Clear any existing row numbers
         this.hideRowNumbers();
@@ -3614,6 +3717,9 @@ class BattleScene extends Phaser.Scene {
     destroy() {
         // Clean up row numbers when scene is destroyed
         this.hideRowNumbers();
+        
+        // Clean up attack range circles when scene is destroyed
+        this.hideAllAttackRanges();
         
         // Clear current scene reference
         if (window.currentScene === this) {
