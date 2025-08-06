@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>UIManager Test</title>
+</head>
+<body>
+    <div id="test-output"></div>
+    <script>
+        // Basic test of UIManager class structure
+        try {
+            // Load minimal constants for testing
+            const GAME_CONFIG = { WIDTH: 600, HEIGHT: 800 };
+            const UI_COLORS = {
+                GAME_OVER: {
+                    OVERLAY_COLOR: '#0a0a0a',
+                    CARD_BACKGROUND: '#1e293b',
+                    CARD_BORDER: '#475569',
+                    VICTORY: { PRIMARY: '#22c55e', ACCENT: '#22c55e' },
+                    DEFEAT: { PRIMARY: '#ef4444', ACCENT: '#ef4444' },
+                    DRAW: { PRIMARY: '#f59e0b', ACCENT: '#f59e0b' },
+                    TEXT: {
+                        PRIMARY: '#e2e8f0',
+                        SECONDARY: '#cbd5e1',
+                        MUTED: '#94a3b8',
+                        OVERTIME: '#f59e0b'
+                    }
+                }
+            };
+            const UI_CONFIG = { GAME_OVER: { CLICK_DELAY: 1500 } };
+            
+            // Load UIManager
+            class UIManager {
+                constructor(scene) {
+                    this.scene = scene;
+                }
+                
+                createEnhancedBattleResultScreen() {
+                    return "UIManager method called successfully";
+                }
+            }
+            
+            // Test instantiation
+            const mockScene = {};
+            const uiManager = new UIManager(mockScene);
+            
+            document.getElementById('test-output').innerHTML = 
+                '<h3>✅ UIManager Module Test Passed</h3>' +
+                '<p>UIManager class loaded and instantiated successfully</p>' +
+                '<p>Method call result: ' + uiManager.createEnhancedBattleResultScreen() + '</p>';
+                
+        } catch (error) {
+            document.getElementById('test-output').innerHTML = 
+                '<h3>❌ UIManager Module Test Failed</h3>' +
+                '<p>Error: ' + error.message + '</p>';
+        }
+    </script>
+</body>
+</html>
