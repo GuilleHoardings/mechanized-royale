@@ -111,20 +111,20 @@ const UI_CONFIG = {
         }
     },
     CARDS: {
-        WIDTH: 80,
-        HEIGHT: 60,
-        SPACING: 90,
+        WIDTH: 100,
+        HEIGHT: 80,
+        SPACING: 110,
         MARGIN_BELOW_BATTLEFIELD: 10,
         SELECTION_BORDER_WIDTH: 3,
         SELECTION_BORDER_COLOR: 0xffff00,
         COST_TEXT: {
-            FONT_SIZE: '12px',
+            FONT_SIZE: '14px',
             COLOR: '#ffff00',
             STROKE_COLOR: '#000000',
-            STROKE_THICKNESS: 1
+            STROKE_THICKNESS: 2
         },
         NAME_TEXT: {
-            FONT_SIZE: '9px',
+            FONT_SIZE: '10px',
             COLOR: '#ffffff'
         }
     },
