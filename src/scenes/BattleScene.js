@@ -418,13 +418,31 @@ class BattleScene extends Phaser.Scene {
                 if (index !== this.selectedCard) {
                     card.setTint(0xcccccc);
                 }
-                this.showCardTooltip(index, cardX + cardWidth/2, cardsY - 15);
+                
+                // Cancel any pending tooltip timer
+                if (this.tooltipTimer) {
+                    this.tooltipTimer.destroy();
+                    this.tooltipTimer = null;
+                }
+                
+                // Add a small delay before showing tooltip to prevent rapid showing/hiding
+                this.tooltipTimer = this.time.delayedCall(100, () => {
+                    this.showCardTooltip(index, cardX + cardWidth/2, cardsY - 15);
+                    this.tooltipTimer = null;
+                });
             });
 
             card.on('pointerout', () => {
                 if (index !== this.selectedCard) {
                     card.clearTint();
                 }
+                
+                // Cancel any pending tooltip timer
+                if (this.tooltipTimer) {
+                    this.tooltipTimer.destroy();
+                    this.tooltipTimer = null;
+                }
+                
                 this.hideCardTooltip();
             });
 
@@ -557,36 +575,212 @@ class BattleScene extends Phaser.Scene {
     }
 
     showCardTooltip(cardIndex, x, y) {
+        // Always hide any existing tooltip first to prevent overlaps
+        this.hideCardTooltip();
+        
         const tankData = this.tankCards[cardIndex].tankData;
         
-        this.cardTooltip = this.add.container(x, y - 100);
+        // Dynamic positioning to avoid edge clipping
+        const tooltipWidth = 280;
+        const tooltipHeight = 180;
+        let tooltipX = x - tooltipWidth / 2;
+        let tooltipY = y - tooltipHeight - 15;
+        
+        // Adjust if tooltip would go off screen
+        if (tooltipX < 10) tooltipX = 10;
+        if (tooltipX + tooltipWidth > GAME_CONFIG.WIDTH - 10) {
+            tooltipX = GAME_CONFIG.WIDTH - tooltipWidth - 10;
+        }
+        if (tooltipY < 10) tooltipY = y + 15; // Show below card if no room above
+        
+        this.cardTooltip = this.add.container(tooltipX, tooltipY);
         this.cardTooltip.setScrollFactor(0);
+        this.cardTooltip.setDepth(100); // Ensure tooltip is on top
         
-        // Tooltip background
+        // Enhanced tooltip background with gradient effect
         const tooltipBg = this.add.graphics();
-        tooltipBg.fillStyle(0x000000, 0.8);
-        tooltipBg.fillRoundedRect(0, 0, 200, 80, 5);
-        tooltipBg.lineStyle(2, 0xffffff, 0.5);
-        tooltipBg.strokeRoundedRect(0, 0, 200, 80, 5);
         
-        // Tank stats
-        const statsText = this.add.text(10, 10, 
-            `${tankData.name}\n` +
-            `HP: ${tankData.stats.hp}\n` +
-            `Damage: ${tankData.stats.damage}\n` +
-            `Speed: ${tankData.stats.speed}`, {
-            fontSize: '12px',
+        // Main background
+        tooltipBg.fillStyle(0x1a1a1a, 0.95);
+        tooltipBg.fillRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
+        
+        // Border with team color accent
+        const borderColor = tankData.cost <= this.energy ? 0x4a90e2 : 0x666666;
+        tooltipBg.lineStyle(3, borderColor, 0.8);
+        tooltipBg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
+        
+        // Header section with tank type color
+        const typeColors = {
+            [TANK_TYPES.LIGHT]: 0x00ff88,
+            [TANK_TYPES.MEDIUM]: 0xffaa00,
+            [TANK_TYPES.HEAVY]: 0xff0066,
+            [TANK_TYPES.TANK_DESTROYER]: 0x9900ff,
+            [TANK_TYPES.ARTILLERY]: 0xffff00,
+            [TANK_TYPES.FAST_ATTACK]: 0x00ccff
+        };
+        const headerColor = typeColors[tankData.type] || 0x4a90e2;
+        tooltipBg.fillStyle(headerColor, 0.3);
+        tooltipBg.fillRoundedRect(2, 2, tooltipWidth - 4, 35, 6);
+        
+        // Tank name and tier
+        const nameText = this.add.text(15, 12, `${tankData.name}`, {
+            fontSize: '16px',
             fill: '#ffffff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        });
+        
+        const tierText = this.add.text(tooltipWidth - 15, 12, `Tier ${tankData.tier}`, {
+            fontSize: '12px',
+            fill: '#cccccc',
+            fontFamily: 'Arial'
+        }).setOrigin(1, 0);
+        
+        // Tank type indicator
+        const typeText = this.add.text(15, 28, tankData.type.toUpperCase(), {
+            fontSize: '10px',
+            fill: '#aaaaaa',
             fontFamily: 'Arial'
         });
         
-        this.cardTooltip.add([tooltipBg, statsText]);
+        // Cost indicator with energy status
+        const costColor = tankData.cost <= this.energy ? '#00ff00' : '#ff6666';
+        const costText = this.add.text(tooltipWidth - 15, 28, `Cost: ${tankData.cost}`, {
+            fontSize: '12px',
+            fill: costColor,
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        }).setOrigin(1, 0);
+        
+        // Main stats section
+        const statsY = 50;
+        const leftColumnX = 15;
+        const rightColumnX = 150;
+        
+        // Combat stats (left column)
+        const combatTitle = this.add.text(leftColumnX, statsY, 'COMBAT', {
+            fontSize: '11px',
+            fill: '#ffaa00',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        });
+        
+        const combatStats = this.add.text(leftColumnX, statsY + 15, 
+            `Health: ${tankData.stats.hp}\n` +
+            `Damage: ${tankData.stats.damage}\n` +
+            `Range: ${tankData.stats.range}\n` +
+            `Penetration: ${tankData.stats.penetration}`, {
+            fontSize: '11px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            lineSpacing: 2
+        });
+        
+        // Mobility & Armor stats (right column)
+        const mobilityTitle = this.add.text(rightColumnX, statsY, 'MOBILITY & ARMOR', {
+            fontSize: '11px',
+            fill: '#00ccff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
+        });
+        
+        const mobilityStats = this.add.text(rightColumnX, statsY + 15,
+            `Speed: ${tankData.stats.speed}\n` +
+            `Front Armor: ${tankData.stats.armor.front}\n` +
+            `Side Armor: ${tankData.stats.armor.side}\n` +
+            `Rear Armor: ${tankData.stats.armor.rear}`, {
+            fontSize: '11px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            lineSpacing: 2
+        });
+        
+        // Abilities section
+        const abilitiesY = 120;
+        if (tankData.abilities && tankData.abilities.length > 0) {
+            const abilitiesTitle = this.add.text(leftColumnX, abilitiesY, 'ABILITIES', {
+                fontSize: '11px',
+                fill: '#ff6699',
+                fontFamily: 'Arial',
+                fontStyle: 'bold'
+            });
+            
+            const abilitiesText = tankData.abilities.map(ability => {
+                // Convert ability names to readable format
+                return ability.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+            }).join(', ');
+            
+            const abilitiesDesc = this.add.text(leftColumnX, abilitiesY + 15, abilitiesText, {
+                fontSize: '10px',
+                fill: '#ffccdd',
+                fontFamily: 'Arial',
+                wordWrap: { width: tooltipWidth - 30 }
+            });
+            
+            this.cardTooltip.add([abilitiesTitle, abilitiesDesc]);
+        }
+        
+        // Description at bottom
+        const descY = abilitiesY + (tankData.abilities && tankData.abilities.length > 0 ? 35 : 15);
+        const descText = this.add.text(leftColumnX, descY, tankData.description, {
+            fontSize: '10px',
+            fill: '#cccccc',
+            fontFamily: 'Arial',
+            fontStyle: 'italic',
+            wordWrap: { width: tooltipWidth - 30 }
+        });
+        
+        // Add all elements to container
+        this.cardTooltip.add([
+            tooltipBg, nameText, tierText, typeText, costText,
+            combatTitle, combatStats, mobilityTitle, mobilityStats, descText
+        ]);
+        
+        // Smooth fade-in animation
+        this.cardTooltip.setAlpha(0);
+        this.tooltipFadeInTween = this.tweens.add({
+            targets: this.cardTooltip,
+            alpha: 1,
+            duration: 200,
+            ease: 'Power2'
+        });
     }
 
     hideCardTooltip() {
+        // Cancel any ongoing fade-in animation
+        if (this.tooltipFadeInTween) {
+            this.tooltipFadeInTween.destroy();
+            this.tooltipFadeInTween = null;
+        }
+        
+        // Cancel any ongoing fade-out animation
+        if (this.tooltipFadeOutTween) {
+            this.tooltipFadeOutTween.destroy();
+            this.tooltipFadeOutTween = null;
+        }
+        
         if (this.cardTooltip) {
-            this.cardTooltip.destroy();
-            this.cardTooltip = null;
+            // Immediately destroy if already fully transparent or if we need to clean up quickly
+            if (this.cardTooltip.alpha === 0) {
+                this.cardTooltip.destroy();
+                this.cardTooltip = null;
+                return;
+            }
+            
+            // Smooth fade-out animation before destroying
+            this.tooltipFadeOutTween = this.tweens.add({
+                targets: this.cardTooltip,
+                alpha: 0,
+                duration: 150,
+                ease: 'Power2',
+                onComplete: () => {
+                    if (this.cardTooltip) {
+                        this.cardTooltip.destroy();
+                        this.cardTooltip = null;
+                    }
+                    this.tooltipFadeOutTween = null;
+                }
+            });
         }
     }
 
@@ -2619,6 +2813,10 @@ class BattleScene extends Phaser.Scene {
     }
 
     showInsufficientEnergyFeedback() {
+        const selectedCard = this.tankCards[this.selectedCard];
+        const tankData = selectedCard.tankData;
+        const energyNeeded = tankData.cost - this.energy;
+        
         // Flash the energy bar red
         const barWidth = 200;
         const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
@@ -2629,7 +2827,6 @@ class BattleScene extends Phaser.Scene {
         this.energyBarFill.fillRect(barX, energyY, barWidth * (this.energy / this.maxEnergy), 16);
         
         // Flash the selected card
-        const selectedCard = this.tankCards[this.selectedCard];
         this.tweens.add({
             targets: selectedCard,
             tint: 0xff0000,
@@ -2643,23 +2840,86 @@ class BattleScene extends Phaser.Scene {
             }
         });
         
-        // Show "Not Enough Energy" text
+        // Enhanced error message with specific information
         const errorText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 50, 'NOT ENOUGH ENERGY!', {
             fontSize: '24px',
             fill: '#ff0000',
             fontFamily: 'Arial',
+            fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 3
         }).setOrigin(0.5);
         errorText.setScrollFactor(0);
+        errorText.setDepth(100);
+        
+        // Detailed energy info
+        const detailText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20, 
+            `${tankData.name} costs ${tankData.cost} energy\n` +
+            `You have ${this.energy} energy\n` +
+            `Need ${energyNeeded} more energy`, {
+            fontSize: '14px',
+            fill: '#ffaaaa',
+            fontFamily: 'Arial',
+            align: 'center',
+            stroke: '#000000',
+            strokeThickness: 1
+        }).setOrigin(0.5);
+        detailText.setScrollFactor(0);
+        detailText.setDepth(100);
+        
+        // Energy regeneration timing info
+        const regenRate = this.getEnergyRegenDelay() / 1000; // Convert to seconds
+        const timeToEnergy = Math.ceil(energyNeeded * regenRate);
+        const regenText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 15,
+            `Energy regenerates every ${regenRate}s\n` +
+            `${energyNeeded} energy in ~${timeToEnergy}s`, {
+            fontSize: '12px',
+            fill: '#cccccc',
+            fontFamily: 'Arial',
+            align: 'center',
+            fontStyle: 'italic'
+        }).setOrigin(0.5);
+        regenText.setScrollFactor(0);
+        regenText.setDepth(100);
+        
+        // Animate all text elements
+        [errorText, detailText, regenText].forEach((text, index) => {
+            text.setAlpha(0);
+            text.y += 20;
+            
+            this.tweens.add({
+                targets: text,
+                alpha: 1,
+                y: text.y - 20,
+                duration: 300,
+                delay: index * 100,
+                ease: 'Back.out'
+            });
+            
+            this.tweens.add({
+                targets: text,
+                alpha: 0,
+                y: text.y - 30,
+                duration: 1000,
+                delay: 2000 + index * 50,
+                ease: 'Power2',
+                onComplete: () => text.destroy()
+            });
+        });
+        
+        // Red flash overlay effect for emphasis
+        const flashOverlay = this.add.graphics();
+        flashOverlay.fillStyle(0xff0000, 0.3);
+        flashOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+        flashOverlay.setScrollFactor(0);
+        flashOverlay.setDepth(95);
         
         this.tweens.add({
-            targets: errorText,
+            targets: flashOverlay,
             alpha: 0,
-            y: errorText.y - 30,
-            duration: 1500,
+            duration: 300,
             ease: 'Power2',
-            onComplete: () => errorText.destroy()
+            onComplete: () => flashOverlay.destroy()
         });
     }
 
@@ -3457,6 +3717,33 @@ class BattleScene extends Phaser.Scene {
             duration: 400,
             ease: 'Power2',
             onComplete: () => selectionPulse.destroy()
+        });
+        
+        // Show brief deployment info
+        const tankData = card.tankData;
+        const canAfford = this.energy >= tankData.cost;
+        const infoText = canAfford ? 
+            `${tankData.name} selected - Click to deploy` : 
+            `${tankData.name} selected - Need ${tankData.cost - this.energy} more energy`;
+        
+        const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, infoText, {
+            fontSize: '14px',
+            fill: canAfford ? '#00ff00' : '#ff6666',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        feedbackText.setScrollFactor(0);
+        feedbackText.setDepth(50);
+        
+        // Fade out feedback text after 2 seconds
+        this.tweens.add({
+            targets: feedbackText,
+            alpha: 0,
+            duration: 1000,
+            delay: 1500,
+            ease: 'Power2',
+            onComplete: () => feedbackText.destroy()
         });
         
         // Play selection sound
@@ -4327,6 +4614,27 @@ class BattleScene extends Phaser.Scene {
     }
     
     destroy() {
+        // Clean up tooltips and related timers/tweens
+        if (this.tooltipTimer) {
+            this.tooltipTimer.destroy();
+            this.tooltipTimer = null;
+        }
+        
+        if (this.tooltipFadeInTween) {
+            this.tooltipFadeInTween.destroy();
+            this.tooltipFadeInTween = null;
+        }
+        
+        if (this.tooltipFadeOutTween) {
+            this.tooltipFadeOutTween.destroy();
+            this.tooltipFadeOutTween = null;
+        }
+        
+        if (this.cardTooltip) {
+            this.cardTooltip.destroy();
+            this.cardTooltip = null;
+        }
+        
         // Clean up row numbers when scene is destroyed
         this.hideRowNumbers();
         
