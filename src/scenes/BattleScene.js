@@ -1191,6 +1191,22 @@ class BattleScene extends Phaser.Scene {
         const metalColor = 0x888888;
         const gunmetalColor = 0x444444;
         
+        // Distinctive accent colors for different tank types (same as card system)
+        let typeAccentColor = accentColor;
+        if (tankType === TANK_TYPES.LIGHT) {
+            typeAccentColor = isPlayerTank ? 0x00ff88 : 0x00cc66; // Green for light tanks (speed)
+        } else if (tankType === TANK_TYPES.MEDIUM) {
+            typeAccentColor = isPlayerTank ? 0xffaa00 : 0xcc8800; // Orange for medium tanks (balanced)
+        } else if (tankType === TANK_TYPES.HEAVY) {
+            typeAccentColor = isPlayerTank ? 0xff0066 : 0xcc0044; // Red for heavy tanks (armor)
+        } else if (tankType === TANK_TYPES.TANK_DESTROYER) {
+            typeAccentColor = isPlayerTank ? 0x9900ff : 0x7700cc; // Purple for tank destroyers (precision)
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            typeAccentColor = isPlayerTank ? 0xffff00 : 0xcccc00; // Yellow for artillery (range)
+        } else if (tankType === TANK_TYPES.FAST_ATTACK) {
+            typeAccentColor = isPlayerTank ? 0x00ffff : 0x00cccc; // Cyan for fast attack (modern)
+        }
+        
         // Create a container for the tank
         const tank = this.add.container(x, y);
         
@@ -1202,8 +1218,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-12, -8, 24, 16, 3);
             
-            // Hull details - armor plating
-            graphics.fillStyle(accentColor);
+            // Hull details - armor plating with distinctive green accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-10, -6, 20, 2);
             graphics.fillRect(-10, 4, 20, 2);
             graphics.fillRect(-11, -2, 22, 1);
@@ -1235,8 +1251,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-15, -10, 30, 20, 4);
             
-            // Hull armor plating
-            graphics.fillStyle(accentColor);
+            // Hull armor plating with distinctive orange accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-13, -8, 26, 3);
             graphics.fillRect(-13, 5, 26, 3);
             graphics.fillRect(-14, -2, 28, 1);
@@ -1263,14 +1279,14 @@ class BattleScene extends Phaser.Scene {
             graphics.strokeCircle(0, 0, 9, 1);
             graphics.fillRect(-6, -6, 12, 2);
             
-            // Barrel with thermal sleeve
+            // Barrel with thermal sleeve (orange accent)
             graphics.fillStyle(gunmetalColor);
             graphics.fillRect(8, -2, 15, 4);
-            graphics.fillStyle(metalColor);
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(12, -3, 8, 6);
             
-            // Commander's cupola
-            graphics.fillStyle(accentColor);
+            // Commander's cupola with orange accent
+            graphics.fillStyle(typeAccentColor);
             graphics.fillCircle(-4, -4, 2);
             
             // Vision blocks
@@ -1284,8 +1300,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-18, -12, 36, 24, 5);
             
-            // Complex armor scheme
-            graphics.fillStyle(accentColor);
+            // Complex armor scheme with distinctive red accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-16, -10, 32, 4);
             graphics.fillRect(-16, 6, 32, 4);
             graphics.fillRect(-17, -3, 34, 2);
@@ -1324,8 +1340,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(10, -3, 18, 6);
             graphics.fillRect(26, -4, 3, 8);
             
-            // Commander's station
-            graphics.fillStyle(accentColor);
+            // Commander's station with red accent
+            graphics.fillStyle(typeAccentColor);
             graphics.fillCircle(-5, -6, 3);
             graphics.fillRect(-7, -8, 4, 2);
             
@@ -1341,8 +1357,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-16, -8, 32, 16, 3);
             
-            // Sloped front armor
-            graphics.fillStyle(accentColor);
+            // Sloped front armor with distinctive purple accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillTriangle(16, -8, 16, 8, 20, 0);
             
             // Side armor details with zimmerit paste texture
@@ -1364,8 +1380,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(8, -1, 22, 2);
             graphics.fillRect(28, -2, 3, 4);
             
-            // Gun mantlet
-            graphics.fillStyle(metalColor);
+            // Gun mantlet with purple accent
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(6, -3, 4, 6);
             
             // Camouflage netting points
@@ -1379,8 +1395,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-20, -10, 40, 20, 4);
             
-            // Artillery hull details
-            graphics.fillStyle(accentColor);
+            // Artillery hull details with distinctive yellow accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-18, -8, 36, 3);
             graphics.fillRect(-18, 5, 36, 3);
             graphics.fillRect(-19, -2, 38, 2);
@@ -1405,8 +1421,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(gunmetalColor);
             graphics.fillRect(7, -4, 25, 8);
             
-            // Recoil system
-            graphics.fillStyle(metalColor);
+            // Recoil system with yellow accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(5, -6, 8, 12);
             graphics.fillRect(4, -2, 3, 4);
             
@@ -1419,8 +1435,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(darkColor);
             graphics.fillRect(6, -8, 4, 16);
             
-            // Artillery computer/rangefinder
-            graphics.fillStyle(accentColor);
+            // Artillery computer/rangefinder with yellow accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-12, -8, 8, 4);
             graphics.fillCircle(-8, -6, 2);
             
@@ -1429,12 +1445,12 @@ class BattleScene extends Phaser.Scene {
             graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
             graphics.fillRoundedRect(-10, -6, 20, 12, 2);
             
-            // Modern angular armor
-            graphics.fillStyle(accentColor);
+            // Modern angular armor with distinctive cyan accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillTriangle(10, -6, 10, 6, 14, 0);
             
-            // Speed stripes for dynamic look
-            graphics.fillStyle(metalColor);
+            // Speed stripes for dynamic look with cyan accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-8, -4, 16, 1);
             graphics.fillRect(-8, 0, 16, 1);
             graphics.fillRect(-8, 3, 16, 1);
@@ -1453,8 +1469,8 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(1, -2, 2, 1);
             graphics.fillCircle(5, -3, 1);
             
-            // Reactive armor blocks
-            graphics.fillStyle(metalColor);
+            // Reactive armor blocks with cyan accents
+            graphics.fillStyle(typeAccentColor);
             graphics.fillRect(-8, -5, 3, 2);
             graphics.fillRect(-2, -5, 3, 2);
             graphics.fillRect(4, -5, 3, 2);
