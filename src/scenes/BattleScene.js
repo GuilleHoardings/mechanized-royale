@@ -107,6 +107,9 @@ class BattleScene extends Phaser.Scene {
         // Initialize Combat System
         this.combatSystem = new CombatSystem(this);
         
+        // Initialize AI Controller
+        this.aiController = new AIController(this);
+        
         // Make this scene accessible to HTML buttons
         window.currentScene = this;
         
@@ -1630,7 +1633,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         // AI behavior: find best target (closest enemy or enemy base)
-        this.updateTankAI(tank);
+        this.aiController.updateTankAI(tank);
 
         this.tanks.push(tank);
         
@@ -1655,7 +1658,7 @@ class BattleScene extends Phaser.Scene {
         }
         
         // Notify AI of player deployment for reactive strategy
-        this.notifyAIOfPlayerAction('deploy', tankData);
+        this.aiController.notifyAIOfPlayerAction('deploy', tankData);
     }
 
     createTankGraphics(x, y, tankType, isPlayerTank) {
@@ -2293,7 +2296,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateTankMovement(tank) {
-        this.updateTankAI(tank); // Update AI targeting
+        this.aiController.updateTankAI(tank); // Update AI targeting
         
         // If no target, don't move
         if (!tank.target) {
@@ -2461,20 +2464,6 @@ class BattleScene extends Phaser.Scene {
             'tank_heavy_1', 'tank_light_1', 'tank_medium_1', 'tank_light_2'
         ];
         
-        // AI strategy state
-        this.aiStrategy = {
-            mode: 'balanced', // 'aggressive', 'defensive', 'balanced'
-            lastPlayerAction: 0,
-            playerTankCount: 0,
-            baseHealthPercent: 1.0,
-            preferredTankTypes: ['tank_medium_1', 'tank_light_1'],
-            rushMode: false,
-            defensiveMode: false
-        };
-        
-        this.aiNextDeployment = this.time.now + GameHelpers.randomInt(2000, 4000);
-        this.aiLastStrategyUpdate = this.time.now;
-        
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
             delay: this.getEnergyRegenDelay(),
@@ -2488,34 +2477,6 @@ class BattleScene extends Phaser.Scene {
             },
             loop: true
         });
-    }
-
-    updateAI() {
-        // Don't update AI if battle has ended
-        if (this.battleEnded) {
-            return;
-        }
-        
-        const currentTime = this.time.now;
-        
-        // Update AI strategy every 3 seconds
-        if (currentTime - this.aiLastStrategyUpdate > 3000) {
-            this.updateAIStrategy();
-            this.aiLastStrategyUpdate = currentTime;
-        }
-        
-        // Check if AI should deploy a tank (strategic timing)
-        if (currentTime >= this.aiNextDeployment && this.aiEnergy >= 1) {
-            const shouldDeploy = this.shouldAIDeploy();
-            if (shouldDeploy) {
-                this.aiDeployTankStrategically();
-                // Dynamic deployment timing based on strategy
-                const baseDelay = this.aiStrategy.mode === 'aggressive' ? 2000 : 
-                                this.aiStrategy.mode === 'defensive' ? 5000 : 3500;
-                const randomDelay = GameHelpers.randomInt(-1000, 1500);
-                this.aiNextDeployment = currentTime + baseDelay + randomDelay;
-            }
-        }
     }
 
     updateAIStrategy() {
@@ -2816,7 +2777,7 @@ class BattleScene extends Phaser.Scene {
         tank.setRotation(initialAngle);
 
         // AI behavior: target player base and tanks
-        this.updateTankAI(tank);
+        this.aiController.updateTankAI(tank);
 
         this.tanks.push(tank);
         
@@ -2846,7 +2807,7 @@ class BattleScene extends Phaser.Scene {
         }
         
         // Update AI
-        this.updateAI();
+        this.aiController.updateAI();
         
         // Update all tanks
         this.tanks.forEach(tank => {
