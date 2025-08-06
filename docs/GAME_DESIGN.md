@@ -164,3 +164,25 @@ Tank Tactics is a single-player real-time strategy game inspired by Clash Royale
 - Average revenue per user (ARPU)
 - Lifetime value (LTV)
 - Premium feature adoption
+
+## Experimental Concepts
+
+These are unconventional ideas inspired by World of Tanks mechanics, adapted for a Clash Royale-style game. They may require significant prototyping to assess feasibility.
+
+### Vision and Camouflage System
+
+Introduce a vision mechanic with "fog of war," where units outside of vision range are hidden from the opponent. Each tank has camouflage and vision stats; detection depends on the interaction of these values. Possible features:
+- **Invisible Units:** Certain tanks or abilities allow temporary invisibility, similar to the "ghost" mechanic in Clash Royale.
+- **Bushes and Concealment:** Deployable bushes or terrain features grant concealment bonuses. Players could place a bush in their deployment zone before battle begins, enhancing ambush tactics.
+
+### Single-Nation Decks
+
+Restrict player decks to tanks from a single nation, emphasizing national tech tree progression and unique playstyles.
+
+### Equipment System
+
+Add equipment slots to tanks, allowing players to customize and enhance tank stats with unlockable gear.
+
+### Crew Mechanics
+
+Assign crews to tanks, with crew skills providing persistent stat bonuses or special abilities. Crews could be trained and transferred between tanks for additional progression depth.
