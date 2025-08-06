@@ -146,3 +146,45 @@ const UI_CONFIG = {
         }
     }
 };
+
+const UI_COLORS = {
+    // Game Over Screen Colors
+    GAME_OVER: {
+        OVERLAY_COLOR: '#0a0a0a',
+        CARD_BACKGROUND: '#1e293b',
+        CARD_BORDER: '#475569',
+        
+        // Result specific colors
+        VICTORY: {
+            PRIMARY: '#22c55e',
+            ACCENT: '#22c55e',
+            BACKGROUND: '#064e3b'
+        },
+        DEFEAT: {
+            PRIMARY: '#ef4444', 
+            ACCENT: '#ef4444',
+            BACKGROUND: '#7f1d1d'
+        },
+        DRAW: {
+            PRIMARY: '#f59e0b',
+            ACCENT: '#f59e0b', 
+            BACKGROUND: '#78350f'
+        },
+        
+        // Text colors
+        TEXT: {
+            PRIMARY: '#e2e8f0',
+            SECONDARY: '#cbd5e1',
+            MUTED: '#94a3b8',
+            OVERTIME: '#f59e0b'
+        }
+    },
+    
+    // General UI Colors  
+    TEXT: {
+        WHITE: '#ffffff',
+        ERROR: '#ff0000',
+        SUCCESS: '#44ff44',
+        WARNING: '#ffaa44'
+    }
+};

@@ -3815,7 +3815,7 @@ class BattleScene extends Phaser.Scene {
     createEnhancedBattleResultScreen(result) {
         // Modern dark overlay with blur effect simulation
         const overlay = this.add.graphics();
-        overlay.fillStyle(0x0a0a0a, 0);
+        overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0);
         overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         overlay.setScrollFactor(0);
         overlay.setDepth(100);
@@ -3833,31 +3833,31 @@ class BattleScene extends Phaser.Scene {
         container.setScrollFactor(0);
         container.setDepth(101);
         
-        // Modern color scheme - more muted and sophisticated
+        // Modern color scheme - using constants instead of inline values
         let accentColor, resultTitleColor, cardBackground;
         if (result === 'victory') {
-            accentColor = 0x22c55e;      // Modern green
-            resultTitleColor = '#22c55e';
-            cardBackground = 0x064e3b;   // Dark green
+            accentColor = UI_COLORS.GAME_OVER.VICTORY.ACCENT;
+            resultTitleColor = UI_COLORS.GAME_OVER.VICTORY.PRIMARY;
+            cardBackground = UI_COLORS.GAME_OVER.VICTORY.BACKGROUND;
         } else if (result === 'defeat') {
-            accentColor = 0xef4444;      // Modern red
-            resultTitleColor = '#ef4444';
-            cardBackground = 0x7f1d1d;   // Dark red
+            accentColor = UI_COLORS.GAME_OVER.DEFEAT.ACCENT;
+            resultTitleColor = UI_COLORS.GAME_OVER.DEFEAT.PRIMARY;
+            cardBackground = UI_COLORS.GAME_OVER.DEFEAT.BACKGROUND;
         } else {
-            accentColor = 0xf59e0b;      // Modern amber
-            resultTitleColor = '#f59e0b';
-            cardBackground = 0x78350f;   // Dark amber
+            accentColor = UI_COLORS.GAME_OVER.DRAW.ACCENT;
+            resultTitleColor = UI_COLORS.GAME_OVER.DRAW.PRIMARY;
+            cardBackground = UI_COLORS.GAME_OVER.DRAW.BACKGROUND;
         }
         
         // Modern minimal background - much more spacious but readable
         const resultCard = this.add.graphics();
         
         // Readable background - better opacity for text clarity
-        resultCard.fillStyle(0x1e293b, 0.95);
+        resultCard.fillStyle(UI_COLORS.GAME_OVER.CARD_BACKGROUND, 0.95);
         resultCard.fillRoundedRect(-300, -280, 600, 560, 20);
         
         // Very subtle border for clean look
-        resultCard.lineStyle(1, 0x475569, 0.3);
+        resultCard.lineStyle(1, UI_COLORS.GAME_OVER.CARD_BORDER, 0.3);
         resultCard.strokeRoundedRect(-300, -280, 600, 560, 20);
         
         container.add(resultCard);
@@ -3880,11 +3880,11 @@ class BattleScene extends Phaser.Scene {
                 titleColor = resultTitleColor;
             } else if (!playerBase) {
                 titleText = 'Defeat';
-                titleColor = '#ef4444';
+                titleColor = UI_COLORS.GAME_OVER.DEFEAT.PRIMARY;
                 result = 'defeat';
             } else if (!enemyBase) {
                 titleText = 'Victory';
-                titleColor = '#22c55e';
+                titleColor = UI_COLORS.GAME_OVER.VICTORY.PRIMARY;
                 result = 'victory';
             } else {
                 // Compare base health percentages
@@ -3893,15 +3893,15 @@ class BattleScene extends Phaser.Scene {
                 
                 if (playerHealthPercent > enemyHealthPercent) {
                     titleText = 'Victory';
-                    titleColor = '#22c55e';
+                    titleColor = UI_COLORS.GAME_OVER.VICTORY.PRIMARY;
                     result = 'victory';
                 } else if (enemyHealthPercent > playerHealthPercent) {
                     titleText = 'Defeat';
-                    titleColor = '#ef4444';
+                    titleColor = UI_COLORS.GAME_OVER.DEFEAT.PRIMARY;
                     result = 'defeat';
                 } else {
                     titleText = 'Draw';
-                    titleColor = '#f59e0b';
+                    titleColor = UI_COLORS.GAME_OVER.DRAW.PRIMARY;
                 }
             }
         }
@@ -3947,7 +3947,7 @@ class BattleScene extends Phaser.Scene {
         // Player section header - much higher up for more space
         const playerHeader = this.add.text(-120, -40, 'Player', {
             fontSize: '18px',
-            fill: '#94a3b8',
+            fill: UI_COLORS.GAME_OVER.TEXT.SECONDARY,
             fontFamily: 'Arial',
             fontWeight: '600'
         }).setOrigin(0.5);
@@ -3956,7 +3956,7 @@ class BattleScene extends Phaser.Scene {
         // AI section header
         const aiHeader = this.add.text(120, -40, 'AI Opponent', {
             fontSize: '18px',
-            fill: '#94a3b8',
+            fill: UI_COLORS.GAME_OVER.TEXT.SECONDARY,
             fontFamily: 'Arial',
             fontWeight: '600'
         }).setOrigin(0.5);
@@ -3971,14 +3971,14 @@ class BattleScene extends Phaser.Scene {
             
             const label = this.add.text(x, y, stat.label, {
                 fontSize: '12px',
-                fill: '#64748b',
+                fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
                 fontFamily: 'Arial'
             }).setOrigin(0, 0.5);
             statsContainer.add(label);
             
             const value = this.add.text(x, y + 18, stat.value.toString(), {
                 fontSize: '16px',
-                fill: '#e2e8f0',
+                fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
                 fontFamily: 'Arial',
                 fontWeight: '600'
             }).setOrigin(0, 0.5);
@@ -3994,14 +3994,14 @@ class BattleScene extends Phaser.Scene {
             
             const label = this.add.text(x, y, stat.label, {
                 fontSize: '12px',
-                fill: '#64748b',
+                fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
                 fontFamily: 'Arial'
             }).setOrigin(0, 0.5);
             statsContainer.add(label);
             
             const value = this.add.text(x, y + 18, stat.value.toString(), {
                 fontSize: '16px',
-                fill: '#e2e8f0',
+                fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
                 fontFamily: 'Arial',
                 fontWeight: '600'
             }).setOrigin(0, 0.5);
@@ -4016,7 +4016,7 @@ class BattleScene extends Phaser.Scene {
         const durationText = `${Math.floor(battleDuration / 60)}:${(battleDuration % 60).toFixed(0).padStart(2, '0')}`;
         const duration = this.add.text(0, 0, durationText, {
             fontSize: '18px',
-            fill: '#94a3b8',
+            fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
             fontFamily: 'Arial',
             fontWeight: '500'
         }).setOrigin(0.5);
@@ -4026,7 +4026,7 @@ class BattleScene extends Phaser.Scene {
         if (result === 'victory') {
             const rewardsText = this.add.text(0, 35, '+100 XP  •  +50 Credits', {
                 fontSize: '16px',
-                fill: accentColor,
+                fill: resultTitleColor,
                 fontFamily: 'Arial',
                 fontWeight: '500'
             }).setOrigin(0.5);
@@ -4034,7 +4034,7 @@ class BattleScene extends Phaser.Scene {
         } else if (result === 'defeat') {
             const consolationText = this.add.text(0, 35, '+25 XP', {
                 fontSize: '16px',
-                fill: '#64748b',
+                fill: UI_COLORS.GAME_OVER.TEXT.SECONDARY,
                 fontFamily: 'Arial',
                 fontWeight: '500'
             }).setOrigin(0.5);
@@ -4045,7 +4045,7 @@ class BattleScene extends Phaser.Scene {
         if (this.overtimeActive) {
             const overtimeText = this.add.text(0, 70, 'Overtime', {
                 fontSize: '14px',
-                fill: '#f59e0b',
+                fill: UI_COLORS.GAME_OVER.TEXT.OVERTIME,
                 fontFamily: 'Arial',
                 fontWeight: '600'
             }).setOrigin(0.5);
@@ -4059,7 +4059,7 @@ class BattleScene extends Phaser.Scene {
         // Remove heavy button background - use minimal styling
         const buttonText = this.add.text(0, 0, 'Continue', {
             fontSize: '18px',
-            fill: accentColor,
+            fill: resultTitleColor,
             fontFamily: 'Arial',
             fontWeight: '500'
         }).setOrigin(0.5);
@@ -4067,7 +4067,7 @@ class BattleScene extends Phaser.Scene {
         
         // Subtle underline instead of box
         const buttonUnderline = this.add.graphics();
-        buttonUnderline.lineStyle(1, accentColor, 0.6);
+        buttonUnderline.lineStyle(2, accentColor, 0.8);
         buttonUnderline.moveTo(-35, 15);
         buttonUnderline.lineTo(35, 15);
         buttonUnderline.strokePath();
