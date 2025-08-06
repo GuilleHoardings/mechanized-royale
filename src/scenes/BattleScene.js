@@ -104,6 +104,9 @@ class BattleScene extends Phaser.Scene {
         // Initialize UI Manager
         this.uiManager = new UIManager(this);
         
+        // Initialize Combat System
+        this.combatSystem = new CombatSystem(this);
+        
         // Make this scene accessible to HTML buttons
         window.currentScene = this;
         
@@ -2849,7 +2852,7 @@ class BattleScene extends Phaser.Scene {
         this.tanks.forEach(tank => {
             if (tank.health > 0) {
                 this.updateTankMovement(tank);
-                this.checkTankCombat(tank);
+                this.combatSystem.checkTankCombat(tank);
             }
         });
 
@@ -2857,7 +2860,7 @@ class BattleScene extends Phaser.Scene {
         this.buildings.forEach(building => {
             if (building.health > 0) {
                 this.updateBaseDefense(building);
-                this.checkBaseCombat(building);
+                this.combatSystem.checkBaseCombat(building);
             }
         });
 
@@ -2876,7 +2879,7 @@ class BattleScene extends Phaser.Scene {
                 }
                 
                 // Create destruction effect
-                this.showExplosionEffect(tank.x, tank.y, 1.2);
+                this.combatSystem.showExplosionEffect(tank.x, tank.y, 1.2);
                 this.playUISound('explosion');
                 
                 tank.destroy();
@@ -3334,315 +3337,6 @@ class BattleScene extends Phaser.Scene {
             
             base.target = closestEnemy;
         }
-    }
-
-    checkBaseCombat(base) {
-        if (!base.target) return;
-
-        const currentTime = this.time.now;
-        const timeSinceLastShot = currentTime - base.lastShotTime;
-        const baseRateOfFire = 1500; // Bases fire faster than tanks
-
-        if (timeSinceLastShot >= baseRateOfFire) {
-            this.baseShoot(base, base.target);
-            base.lastShotTime = currentTime;
-        }
-    }
-
-    baseShoot(base, target) {
-        // Create a powerful base projectile
-        this.createBaseProjectile(base, target);
-    }
-
-    createBaseProjectile(base, target) {
-        // Base projectiles are more powerful
-        const bulletSpeed = 300; // Faster than tank bullets
-        const bulletColor = base.isPlayerBase ? 0x0088ff : 0xff0088; // Blue for player, magenta for enemy
-        
-        // Create bullet sprite
-        const bullet = this.add.image(base.x, base.y, 'shell');
-        bullet.setTint(bulletColor);
-        bullet.setScale(1.2); // Larger bullets
-        
-        // Create bullet trail
-        const trail = this.add.graphics();
-        trail.lineStyle(3, bulletColor, 0.8);
-        bullet.trail = trail;
-        
-        // Calculate angle from base to target
-        const angle = GameHelpers.angle(base.x, base.y, target.x, target.y);
-        const distance = GameHelpers.distance(base.x, base.y, target.x, target.y);
-        const travelTime = (distance / bulletSpeed) * 1000;
-        
-        // Rotate bullet to face direction of travel
-        bullet.setRotation(angle);
-        
-        // Store bullet properties - bases are more powerful
-        bullet.damage = 80; // Higher damage than tanks
-        bullet.penetration = 100; // High penetration
-        bullet.attacker = base;
-        bullet.target = target;
-        bullet.speed = bulletSpeed;
-        bullet.isBaseProjectile = true; // Mark as base projectile
-        
-        // Add to projectiles array
-        this.projectiles.push(bullet);
-        
-        // Show enhanced muzzle flash for base
-        this.showMuzzleFlash(base, target.x, target.y);
-        
-        // Animate bullet movement
-        this.tweens.add({
-            targets: bullet,
-            x: target.x,
-            y: target.y,
-            duration: travelTime,
-            ease: 'None',
-            onUpdate: () => {
-                // Update trail
-                if (bullet.trail) {
-                    bullet.trail.clear();
-                    bullet.trail.lineStyle(3, bulletColor, 0.8);
-                    bullet.trail.lineBetween(base.x, base.y, bullet.x, bullet.y);
-                }
-            },
-            onComplete: () => {
-                this.onBulletHit(bullet);
-            }
-        });
-    }
-
-    checkTankCombat(tank) {
-        if (!tank.target || tank.moving) return;
-
-        const currentTime = this.time.now;
-        const timeSinceLastShot = currentTime - tank.lastShotTime;
-        const rateOfFire = 2000; // 2 seconds between shots
-
-        if (timeSinceLastShot >= rateOfFire) {
-            // Face the target before shooting
-            const angle = GameHelpers.angle(tank.x, tank.y, tank.target.x, tank.target.y);
-            tank.setRotation(angle);
-            
-            this.tankShoot(tank, tank.target);
-            tank.lastShotTime = currentTime;
-        }
-    }
-
-    tankShoot(attacker, target) {
-        // Create a projectile instead of instant damage
-        this.createProjectile(attacker, target);
-    }
-
-    createProjectile(attacker, target) {
-        // Determine projectile type based on tank type
-        let bulletTexture = 'bullet';
-        let bulletSpeed = 250; // pixels per second - slower for visibility
-        let bulletColor = 0xffff00;
-        
-        if (attacker.tankData.type === TANK_TYPES.HEAVY) {
-            bulletTexture = 'shell';
-            bulletSpeed = 200;
-            bulletColor = 0xff8800;
-        } else if (attacker.tankData.type === TANK_TYPES.MEDIUM) {
-            bulletSpeed = 225;
-            bulletColor = 0xffffff;
-        }
-
-        // Create bullet sprite
-        const bullet = this.add.image(attacker.x, attacker.y, bulletTexture);
-        bullet.setTint(bulletColor);
-        
-        // Calculate angle from attacker to target
-        const angle = GameHelpers.angle(attacker.x, attacker.y, target.x, target.y);
-        const distance = GameHelpers.distance(attacker.x, attacker.y, target.x, target.y);
-        const travelTime = (distance / bulletSpeed) * 1000; // Convert to milliseconds
-        
-        // Rotate bullet to face direction of travel
-        bullet.setRotation(angle);
-        
-        // Store bullet properties
-        bullet.damage = attacker.tankData.stats.damage;
-        bullet.penetration = attacker.tankData.stats.penetration;
-        bullet.attacker = attacker;
-        bullet.target = target;
-        bullet.speed = bulletSpeed;
-        
-        // Track shots fired statistics
-        if (attacker.isPlayerTank) {
-            this.battleStats.player.shotsFired++;
-        } else {
-            this.battleStats.ai.shotsFired++;
-        }
-        this.battleStats.battle.totalProjectilesFired++;
-        
-        // Add to projectiles array
-        this.projectiles.push(bullet);
-        
-        // Show enhanced muzzle flash and projectile trail
-        this.showMuzzleFlash(attacker, target.x, target.y);
-        
-        // Animate bullet movement
-        this.tweens.add({
-            targets: bullet,
-            x: target.x,
-            y: target.y,
-            duration: travelTime,
-            ease: 'None',
-            onComplete: () => {
-                this.onBulletHit(bullet);
-            }
-        });
-    }
-
-    onBulletHit(bullet) {
-        // Remove bullet from projectiles array
-        const index = this.projectiles.indexOf(bullet);
-        if (index > -1) {
-            this.projectiles.splice(index, 1);
-        }
-        
-        // Check if target still exists and has health
-        if (bullet.target && bullet.target.health > 0) {
-            // Calculate damage with armor penetration
-            const baseDamage = bullet.damage;
-            const penetration = bullet.penetration || baseDamage; // Fallback for old bullets
-            const targetArmorData = bullet.target.tankData?.stats?.armor;
-            const targetArmor = targetArmorData ? 
-                (typeof targetArmorData === 'object' ? targetArmorData.front : targetArmorData) : 0;
-            
-            // Penetration formula: if penetration >= armor, full damage
-            // Otherwise, reduced damage based on armor effectiveness
-            let finalDamage;
-            let penetrationRatio = 1.0; // Default to full penetration
-            
-            if (penetration >= targetArmor) {
-                finalDamage = baseDamage;
-                penetrationRatio = 1.0;
-            } else {
-                // Armor reduces damage: damage = base * (penetration / armor)
-                penetrationRatio = Math.max(0.1, penetration / targetArmor); // Minimum 10% damage
-                finalDamage = Math.floor(baseDamage * penetrationRatio);
-            }
-            
-            // Store previous health for destruction check
-            const previousHealth = bullet.target.health;
-            
-            // Apply damage and track statistics
-            bullet.target.health = Math.max(0, bullet.target.health - finalDamage);
-            
-            // Update battle statistics
-            if (bullet.attacker) {
-                // Track shots hit
-                if (bullet.attacker.isPlayerTank) {
-                    this.battleStats.player.shotsHit++;
-                    this.battleStats.player.totalDamageDealt += finalDamage;
-                    if (bullet.target.isPlayerTank !== undefined) {
-                        // Tank target
-                        if (!bullet.target.isPlayerTank) {
-                            // Player hit enemy tank
-                            this.battleStats.ai.totalDamageTaken += finalDamage;
-                        }
-                    } else {
-                        // Building target
-                        this.battleStats.player.buildingDamage += finalDamage;
-                    }
-                    
-                    // Track critical hits (high penetration)
-                    if (penetrationRatio >= 0.8) {
-                        this.battleStats.player.criticalHits++;
-                    }
-                } else {
-                    this.battleStats.ai.shotsHit++;
-                    this.battleStats.ai.totalDamageDealt += finalDamage;
-                    if (bullet.target.isPlayerTank !== undefined) {
-                        // Tank target
-                        if (bullet.target.isPlayerTank) {
-                            // AI hit player tank
-                            this.battleStats.player.totalDamageTaken += finalDamage;
-                        }
-                    } else {
-                        // Building target
-                        this.battleStats.ai.buildingDamage += finalDamage;
-                    }
-                    
-                    // Track AI critical hits
-                    if (penetrationRatio >= 0.8) {
-                        this.battleStats.ai.criticalHits++;
-                    }
-                }
-            }
-            
-            // Track total battle damage
-            this.battleStats.battle.totalDamageDealt += finalDamage;
-            
-            // Update health display
-            if (bullet.target.healthFill) {
-                if (this.updateTankHealth && bullet.target.tankData) {
-                    this.updateTankHealth(bullet.target);
-                } else if (this.updateBuildingHealth) {
-                    this.updateBuildingHealth(bullet.target);
-                }
-            }
-
-            // Check if target is destroyed
-            if (bullet.target.health <= 0) {
-                if (bullet.target.isPlayerBase !== undefined) {
-                    // Tower destroyed - handle tower system
-                    this.destroyTower(bullet.target);
-                } else if (previousHealth > 0) {
-                    // Tank destroyed - create destruction effect
-                    this.showExplosionEffect(bullet.target.x, bullet.target.y, 1.5);
-                    
-                    // Track tank destruction in statistics
-                    if (bullet.attacker && bullet.attacker.isPlayerTank !== undefined) {
-                        if (bullet.attacker.isPlayerTank) {
-                            this.battleStats.player.tanksDestroyed++;
-                            this.battleStats.ai.tanksLost++;
-                        } else {
-                            this.battleStats.ai.tanksDestroyed++;
-                            this.battleStats.player.tanksLost++;
-                        }
-                    }
-                }
-            } else {
-                // Target still alive - show hit effect
-                const isCritical = penetrationRatio >= 0.8;
-                const isArmored = penetrationRatio < 0.5;
-                
-                this.showHitEffect(bullet.target.x, bullet.target.y, isArmored);
-                this.showDamageNumber(bullet.target.x, bullet.target.y, finalDamage, isCritical);
-            }
-        }
-        
-        // Destroy bullet sprite
-        bullet.destroy();
-        
-        // Destroy trail
-        if (bullet.trail) {
-            bullet.trail.destroy();
-        }
-    }
-
-    createMuzzleFlash(x, y, angle) {
-        // Create muzzle flash at barrel tip
-        const flashOffset = 25; // Distance from tank center to barrel tip
-        const flashX = x + Math.cos(angle) * flashOffset;
-        const flashY = y + Math.sin(angle) * flashOffset;
-        
-        const flash = this.add.graphics();
-        flash.fillStyle(0xffff88, 0.8);
-        flash.fillCircle(flashX, flashY, 8);
-        
-        // Quick flash animation
-        this.tweens.add({
-            targets: flash,
-            alpha: 0,
-            scaleX: 0.3,
-            scaleY: 0.3,
-            duration: 100,
-            onComplete: () => flash.destroy()
-        });
     }
 
     playShootSound(tankType) {
