@@ -470,17 +470,27 @@ class BattleScene extends Phaser.Scene {
     createEnergyBar() {
         // Position energy bar at the bottom center
         const energyY = GAME_CONFIG.HEIGHT - 20;
-        const barWidth = 200;
-        const barHeight = 16;
-        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
+        const squareSize = 18; // Size of each energy square
+        const squareSpacing = 2; // Gap between squares
+        const totalWidth = (this.maxEnergy * squareSize) + ((this.maxEnergy - 1) * squareSpacing);
+        const barX = (GAME_CONFIG.WIDTH - totalWidth) / 2;
+        const barHeight = squareSize;
 
-        // Energy bar background
+        // Store energy bar configuration
+        this.energyBarConfig = {
+            x: barX,
+            y: energyY,
+            squareSize: squareSize,
+            spacing: squareSpacing,
+            totalWidth: totalWidth,
+            height: barHeight
+        };
+
+        // Energy bar background and squares
         this.energyBarBg = this.add.graphics();
-        this.energyBarBg.fillStyle(0x333333);
-        this.energyBarBg.fillRect(barX, energyY, barWidth, barHeight);
         this.energyBarBg.setScrollFactor(0);
 
-        // Energy bar fill
+        // Energy bar fill (will draw individual squares)
         this.energyBarFill = this.add.graphics();
         this.energyBarFill.setScrollFactor(0);
 
@@ -489,7 +499,7 @@ class BattleScene extends Phaser.Scene {
             fontSize: '14px',
             fill: '#ffffff',
             fontFamily: 'Arial'
-        }).setOrigin(-4, -0.5);
+        }).setOrigin(0.5, 1);
         this.energyText.setScrollFactor(0);
 
         // Update energy bar after creating
@@ -1058,17 +1068,44 @@ class BattleScene extends Phaser.Scene {
     }
 
     showEnergyGainEffect() {
-        // Create a small energy gain indicator
-        const energyGainText = this.add.text(240, GAME_CONFIG.HEIGHT - 70, '+1', {
-            fontSize: '14px',
-            fill: '#00ff00',
-            fontFamily: 'Arial'
-        });
+        // Create a small energy gain indicator positioned above the energy bar
+        const config = this.energyBarConfig;
+        const energyGainText = this.add.text(GAME_CONFIG.WIDTH / 2, config.y - 15, '+1', {
+            fontSize: '16px',
+            fill: '#00ff88',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#003322',
+            strokeThickness: 2
+        }).setOrigin(0.5);
         energyGainText.setScrollFactor(0);
+        
+        // Pulse effect on the newest energy square
+        if (this.energy > 0) {
+            const latestSquareIndex = this.energy - 1;
+            const squareX = config.x + (latestSquareIndex * (config.squareSize + config.spacing)) + config.squareSize / 2;
+            const squareY = config.y + config.squareSize / 2;
+            
+            // Create a temporary glow effect on the newest square
+            const glowCircle = this.add.graphics();
+            glowCircle.setScrollFactor(0);
+            glowCircle.fillStyle(0x00ff88, 0.6);
+            glowCircle.fillCircle(squareX, squareY, config.squareSize);
+            
+            this.tweens.add({
+                targets: glowCircle,
+                scaleX: 1.5,
+                scaleY: 1.5,
+                alpha: 0,
+                duration: 600,
+                ease: 'Power2',
+                onComplete: () => glowCircle.destroy()
+            });
+        }
         
         this.tweens.add({
             targets: energyGainText,
-            y: energyGainText.y - 20,
+            y: energyGainText.y - 25,
             alpha: 0,
             duration: 800,
             ease: 'Power2',
@@ -1077,16 +1114,49 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateEnergyBar() {
-        const energyPercent = this.energy / this.maxEnergy;
-        const barWidth = 200;
-        const barHeight = 16;
-        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
-        const energyY = GAME_CONFIG.HEIGHT - 20;
+        const config = this.energyBarConfig;
         
+        // Clear previous graphics
+        this.energyBarBg.clear();
         this.energyBarFill.clear();
-        this.energyBarFill.fillStyle(0x4a90e2);
-        this.energyBarFill.fillRect(barX, energyY, barWidth * energyPercent, barHeight);
         
+        // Draw individual energy squares
+        for (let i = 0; i < this.maxEnergy; i++) {
+            const squareX = config.x + (i * (config.squareSize + config.spacing));
+            const squareY = config.y;
+            
+            // Background square (empty state)
+            this.energyBarBg.fillStyle(0x333333, 0.8);
+            this.energyBarBg.lineStyle(1, 0x555555, 0.8);
+            this.energyBarBg.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+            this.energyBarBg.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+            
+            // Filled square if we have energy for this slot
+            if (i < this.energy) {
+                // Gradient effect: brighter blue for current energy, slightly dimmer for reserve
+                let fillColor = 0x4a90e2; // Base blue
+                let alpha = 1.0;
+                
+                // Make the most recent energy points brighter
+                if (i >= this.energy - 2 && i < this.energy) {
+                    fillColor = 0x5aa3ff; // Brighter blue for recent energy
+                    alpha = 1.0;
+                } else {
+                    alpha = 0.9; // Slightly dimmer for older energy
+                }
+                
+                this.energyBarFill.fillStyle(fillColor, alpha);
+                this.energyBarFill.lineStyle(1, 0x6bb6ff, 0.9);
+                this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+                this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+                
+                // Add a small highlight for filled squares
+                this.energyBarFill.fillStyle(0xffffff, 0.3);
+                this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 8, 3, 1);
+            }
+        }
+        
+        // Update energy text
         if (this.energyText) {
             this.energyText.setText(`${this.energy}/${this.maxEnergy}`);
         }
