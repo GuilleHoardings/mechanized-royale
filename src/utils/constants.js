@@ -144,6 +144,9 @@ const UI_CONFIG = {
             LINE_WIDTH: 2,
             ALPHA: 0.4
         }
+    },
+    GAME_OVER: {
+        CLICK_DELAY: 1500  // Delay in milliseconds before allowing clicks to dismiss
     }
 };
 

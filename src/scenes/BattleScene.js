@@ -4054,6 +4054,7 @@ class BattleScene extends Phaser.Scene {
         
         // Modern, minimal continue button with more space
         const continueButton = this.add.container(0, 110);
+        continueButton.setAlpha(0.3); // Start dimmed to indicate not yet clickable
         bottomContainer.add(continueButton);
         
         // Remove heavy button background - use minimal styling
@@ -4097,6 +4098,16 @@ class BattleScene extends Phaser.Scene {
             ease: 'Cubic.easeOut'
         });
         
+        // Add a temporary message indicating the delay
+        const waitMessage = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'Please wait...', {
+            fontSize: '14px',
+            fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
+            fontFamily: 'Arial',
+            alpha: 0.8
+        }).setOrigin(0.5);
+        waitMessage.setScrollFactor(0);
+        waitMessage.setDepth(102);
+        
         // Make the entire screen clickable to continue
         overlay.setInteractive();
         container.setInteractive(new Phaser.Geom.Rectangle(-300, -280, 600, 560), Phaser.Geom.Rectangle.Contains);
@@ -4136,12 +4147,58 @@ class BattleScene extends Phaser.Scene {
         };
         
         // Add click handlers to both overlay and container for better reliability
-        overlay.once('pointerdown', clickHandler);
-        container.once('pointerdown', clickHandler);
-        
-        // Also add input listener for any key press or click anywhere on screen
-        this.input.once('pointerdown', clickHandler);
-        this.input.keyboard.once('keydown', clickHandler);
+        // But add a delay to prevent accidental dismissal
+        this.time.delayedCall(UI_CONFIG.GAME_OVER.CLICK_DELAY, () => {
+            // Hide the wait message
+            this.tweens.add({
+                targets: waitMessage,
+                alpha: 0,
+                duration: 300,
+                onComplete: () => waitMessage.destroy()
+            });
+            
+            // Show ready message briefly
+            const readyMessage = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'Click anywhere to continue', {
+                fontSize: '14px',
+                fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
+                fontFamily: 'Arial',
+                alpha: 0
+            }).setOrigin(0.5);
+            readyMessage.setScrollFactor(0);
+            readyMessage.setDepth(102);
+            
+            this.tweens.add({
+                targets: readyMessage,
+                alpha: 0.9,
+                duration: 300,
+                onComplete: () => {
+                    // Fade it out after 2 seconds
+                    this.time.delayedCall(2000, () => {
+                        this.tweens.add({
+                            targets: readyMessage,
+                            alpha: 0,
+                            duration: 500,
+                            onComplete: () => readyMessage.destroy()
+                        });
+                    });
+                }
+            });
+            
+            overlay.once('pointerdown', clickHandler);
+            container.once('pointerdown', clickHandler);
+            
+            // Also add input listener for any key press or click anywhere on screen
+            this.input.once('pointerdown', clickHandler);
+            this.input.keyboard.once('keydown', clickHandler);
+            
+            // Visual indicator that screen is now clickable (optional)
+            this.tweens.add({
+                targets: continueButton,
+                alpha: 1,
+                duration: 300,
+                ease: 'Power2'
+            });
+        });
     }
     
     // Row Numbers Display Methods
