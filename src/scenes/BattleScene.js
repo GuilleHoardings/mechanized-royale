@@ -438,7 +438,7 @@ class BattleScene extends Phaser.Scene {
                 }
                 
                 // Add a small delay before showing tooltip to prevent rapid showing/hiding
-                this.tooltipTimer = this.time.delayedCall(100, () => {
+                this.tooltipTimer = this.time.delayedCall(500, () => {
                     this.showCardTooltip(index, cardX + cardWidth/2, cardsY - 15);
                     this.tooltipTimer = null;
                 });
