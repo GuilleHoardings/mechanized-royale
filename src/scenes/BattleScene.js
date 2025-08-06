@@ -144,10 +144,10 @@ class BattleScene extends Phaser.Scene {
             this.createDebugBattlefield(offsetX);
         } else {
             // Texture mode - use battlefield texture
-            const battlefield = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
-            battlefield.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-            battlefield.setOrigin(0.5, 0.5);
-            battlefield.setDepth(-10); // Ensure battlefield is behind other elements
+            this.battlefieldImage = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
+            this.battlefieldImage.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+            this.battlefieldImage.setOrigin(0.5, 0.5);
+            this.battlefieldImage.setDepth(-10); // Ensure battlefield is behind other elements
         }
         
         // Deployment zones with tile-based boundaries - will be drawn dynamically
@@ -156,31 +156,31 @@ class BattleScene extends Phaser.Scene {
 
     createDebugBattlefield(offsetX) {
         // Create procedural graphics battlefield for debugging and detailed visualization
-        const graphics = this.add.graphics();
-        graphics.setDepth(-5); // Behind deployment zones but above background
+        this.battlefieldGraphics = this.add.graphics();
+        this.battlefieldGraphics.setDepth(-5); // Behind deployment zones but above background
         
         // Draw tile grid
-        graphics.lineStyle(1, 0x556b2f, 0.2);
+        this.battlefieldGraphics.lineStyle(1, 0x556b2f, 0.2);
         
         // Vertical tile lines
         for (let tileX = 0; tileX <= GAME_CONFIG.TILES_X; tileX++) {
             const x = offsetX + tileX * GAME_CONFIG.TILE_SIZE;
-            graphics.lineBetween(x, 0, x, GAME_CONFIG.TILES_Y * GAME_CONFIG.TILE_SIZE);
+            this.battlefieldGraphics.lineBetween(x, 0, x, GAME_CONFIG.TILES_Y * GAME_CONFIG.TILE_SIZE);
         }
         
         // Horizontal tile lines
         for (let tileY = 0; tileY <= GAME_CONFIG.TILES_Y; tileY++) {
             const y = tileY * GAME_CONFIG.TILE_SIZE;
-            graphics.lineBetween(offsetX, y, offsetX + GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
+            this.battlefieldGraphics.lineBetween(offsetX, y, offsetX + GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
         }
 
         // Center line to divide battlefield - at row 16.5 (between rows 16 and 17)
-        graphics.lineStyle(3, 0x888888, 0.8);
+        this.battlefieldGraphics.lineStyle(3, 0x888888, 0.8);
         const centerY = 16.5 * GAME_CONFIG.TILE_SIZE;
-        graphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
+        this.battlefieldGraphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
 
         // Add river and bridges in debug mode
-        this.createRiverAndBridges(graphics, offsetX);
+        this.createRiverAndBridges(this.battlefieldGraphics, offsetX);
     }
 
     createRiverAndBridges(graphics, offsetX = 0) {
@@ -4231,22 +4231,19 @@ class BattleScene extends Phaser.Scene {
     
     recreateBattlefield() {
         // Remove existing battlefield graphics/images
-        this.children.list.forEach(child => {
-            // Remove graphics objects that are part of battlefield rendering
-            if (child.type === 'Graphics' && child !== this.deploymentZoneGraphics) {
-                // Only remove graphics that are likely battlefield-related
-                const graphics = child;
-                // Check if this graphics object contains battlefield drawing
-                if (graphics.displayList && graphics.displayList === this.children) {
-                    // This is likely a battlefield graphics object, remove it
-                    graphics.destroy();
-                }
-            }
-            // Remove battlefield image
-            if (child.type === 'Image' && child.texture && child.texture.key === 'battlefield') {
-                child.destroy();
-            }
-        });
+        // We need to be more selective to avoid destroying health bars and other UI elements
+        
+        // Remove battlefield image if it exists
+        if (this.battlefieldImage) {
+            this.battlefieldImage.destroy();
+            this.battlefieldImage = null;
+        }
+        
+        // Remove specifically the battlefield graphics object (if we have a reference to it)
+        if (this.battlefieldGraphics) {
+            this.battlefieldGraphics.destroy();
+            this.battlefieldGraphics = null;
+        }
         
         // Calculate offset to center the battlefield horizontally
         const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
@@ -4256,12 +4253,12 @@ class BattleScene extends Phaser.Scene {
             this.createDebugBattlefield(offsetX);
         } else {
             // Texture mode - use battlefield texture
-            const battlefield = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
-            battlefield.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-            battlefield.setOrigin(0.5, 0.5);
+            this.battlefieldImage = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
+            this.battlefieldImage.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+            this.battlefieldImage.setOrigin(0.5, 0.5);
             
             // Make sure battlefield is behind other elements
-            battlefield.setDepth(-10);
+            this.battlefieldImage.setDepth(-10);
         }
         
         // Redraw deployment zones to ensure they appear on top
