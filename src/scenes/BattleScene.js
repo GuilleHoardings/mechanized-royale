@@ -140,7 +140,9 @@ class BattleScene extends Phaser.Scene {
             previewTank: null,
             previewRangeCircle: null,
             validPosition: false,
-            startedInBattlefield: false
+            startedInBattlefield: false,
+            tileX: 0,
+            tileY: 0
         };
     }
 
@@ -1088,6 +1090,12 @@ class BattleScene extends Phaser.Scene {
         if (this.energyText) {
             this.energyText.setText(`${this.energy}/${this.maxEnergy}`);
         }
+        
+        // Update deployment preview if active (energy might have changed during preview)
+        // Only update if deploymentPreview has been initialized
+        if (this.deploymentPreview && this.deploymentPreview.active) {
+            this.updateDeploymentPreview(this.deploymentPreview.tileX, this.deploymentPreview.tileY);
+        }
     }
 
     startBattleTimer() {
@@ -1399,18 +1407,36 @@ class BattleScene extends Phaser.Scene {
             return;
         }
         
+        // If coordinates are provided, update them; otherwise use stored coordinates
+        if (tileX !== undefined && tileY !== undefined) {
+            this.deploymentPreview.tileX = tileX;
+            this.deploymentPreview.tileY = tileY;
+        } else {
+            // Use stored coordinates (called from energy update)
+            tileX = this.deploymentPreview.tileX;
+            tileY = this.deploymentPreview.tileY;
+        }
+        
         // Check if current position is valid
         const isValid = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
-        this.deploymentPreview.validPosition = isValid;
-        this.deploymentPreview.tileX = tileX;
-        this.deploymentPreview.tileY = tileY;
         
-        // Update preview tank position
+        // Check if there's enough energy
+        const selectedCardData = this.tankCards[this.selectedCard];
+        const hasEnoughEnergy = this.energy >= selectedCardData.tankData.cost;
+        
+        this.deploymentPreview.validPosition = isValid && hasEnoughEnergy;
+        
+        // Update preview tank position only if coordinates were provided
+        if (arguments.length >= 2) {
+            const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
+            this.deploymentPreview.previewTank.setPosition(snappedPos.worldX, snappedPos.worldY);
+        }
+        
+        // Always update tank appearance based on validity and energy
         const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
-        this.deploymentPreview.previewTank.setPosition(snappedPos.worldX, snappedPos.worldY);
         
-        // Update tank appearance based on validity
-        if (isValid) {
+        if (isValid && hasEnoughEnergy) {
+            // Valid position and enough energy - bright preview
             this.deploymentPreview.previewTank.setAlpha(0.8);
             // For containers, we need to tint the child graphics objects
             this.deploymentPreview.previewTank.list.forEach(child => {
@@ -1418,7 +1444,17 @@ class BattleScene extends Phaser.Scene {
                     child.clearTint();
                 }
             });
+        } else if (isValid && !hasEnoughEnergy) {
+            // Valid position but not enough energy - very transparent
+            this.deploymentPreview.previewTank.setAlpha(0.3);
+            // For containers, we need to tint the child graphics objects
+            this.deploymentPreview.previewTank.list.forEach(child => {
+                if (child.setTint) {
+                    child.setTint(0xaaaaaa); // Gray tint for insufficient energy
+                }
+            });
         } else {
+            // Invalid position - medium transparency with red tint
             this.deploymentPreview.previewTank.setAlpha(0.5);
             // For containers, we need to tint the child graphics objects
             this.deploymentPreview.previewTank.list.forEach(child => {
@@ -1429,10 +1465,10 @@ class BattleScene extends Phaser.Scene {
         }
         
         // Update attack range circle
-        this.updatePreviewAttackRange(snappedPos.worldX, snappedPos.worldY, isValid);
+        this.updatePreviewAttackRange(snappedPos.worldX, snappedPos.worldY, isValid, hasEnoughEnergy);
     }
 
-    updatePreviewAttackRange(worldX, worldY, isValid) {
+    updatePreviewAttackRange(worldX, worldY, isValid, hasEnoughEnergy = true) {
         if (!this.deploymentPreview.previewRangeCircle) {
             return;
         }
@@ -1442,9 +1478,22 @@ class BattleScene extends Phaser.Scene {
         
         this.deploymentPreview.previewRangeCircle.clear();
         
-        // Draw range circle with appropriate color
-        const circleColor = isValid ? 0x00ff00 : 0xff6666; // Green for valid, red for invalid
-        const circleAlpha = isValid ? 0.3 : 0.2;
+        // Draw range circle with appropriate color based on validity and energy
+        let circleColor, circleAlpha;
+        
+        if (isValid && hasEnoughEnergy) {
+            // Valid position and enough energy - green
+            circleColor = 0x00ff00;
+            circleAlpha = 0.3;
+        } else if (isValid && !hasEnoughEnergy) {
+            // Valid position but not enough energy - gray
+            circleColor = 0x888888;
+            circleAlpha = 0.2;
+        } else {
+            // Invalid position - red
+            circleColor = 0xff6666;
+            circleAlpha = 0.2;
+        }
         
         this.deploymentPreview.previewRangeCircle.lineStyle(2, circleColor, 0.8);
         this.deploymentPreview.previewRangeCircle.fillStyle(circleColor, circleAlpha);
