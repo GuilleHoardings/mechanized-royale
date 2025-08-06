@@ -3565,64 +3565,8 @@ class BattleScene extends Phaser.Scene {
         // Redraw deployment zones to show the expansion
         this.drawDeploymentZones();
         
-        // Show deployment expansion notification
-        this.showDeploymentExpansionNotification(team, destroyedTowerSide);
-        
         // Update deployment area visual indicator
         this.highlightExpandedDeploymentArea(team, expandedArea);
-    }
-
-    showDeploymentExpansionNotification(team, destroyedTowerSide) {
-        const isPlayer = (team === 'player');
-        const sideText = destroyedTowerSide.toUpperCase();
-        const message = `${sideText} SIDE DEPLOYMENT EXPANDED!`;
-        const subMessage = `${isPlayer ? 'You can' : 'Enemy can'} now deploy on the ${destroyedTowerSide} side closer to the river`;
-        const color = isPlayer ? '#44ff44' : '#ffaa44';
-
-        const notificationText = this.add.text(GAME_CONFIG.WIDTH / 2, 250, message, {
-            fontSize: '20px',
-            fill: color,
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        notificationText.setScrollFactor(0);
-        notificationText.setDepth(99);
-
-        const subText = this.add.text(GAME_CONFIG.WIDTH / 2, 275, subMessage, {
-            fontSize: '12px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 1
-        }).setOrigin(0.5);
-        subText.setScrollFactor(0);
-        subText.setDepth(99);
-
-        // Entrance animation
-        this.tweens.add({
-            targets: [notificationText, subText],
-            scaleX: { from: 0, to: 1 },
-            scaleY: { from: 0, to: 1 },
-            alpha: { from: 0, to: 1 },
-            duration: 400,
-            ease: 'Back.out',
-            onComplete: () => {
-                // Auto-hide after 3 seconds
-                this.time.delayedCall(3000, () => {
-                    this.tweens.add({
-                        targets: [notificationText, subText],
-                        alpha: 0,
-                        duration: 500,
-                        onComplete: () => {
-                            notificationText.destroy();
-                            subText.destroy();
-                        }
-                    });
-                });
-            }
-        });
     }
 
     highlightExpandedDeploymentArea(team, expandedArea) {
