@@ -128,8 +128,20 @@ class BattleScene extends Phaser.Scene {
         // Start AI opponent
         this.startAI();
 
-        // Input handling
-        this.input.on('pointerdown', this.onBattlefieldClick, this);
+        // Input handling - use separate handlers for preview deployment
+        this.input.on('pointerdown', this.onPointerDown, this);
+        this.input.on('pointermove', this.onPointerMove, this);
+        this.input.on('pointerup', this.onPointerUp, this);
+        
+        // Deployment preview state
+        this.deploymentPreview = {
+            active: false,
+            tankType: null,
+            previewTank: null,
+            previewRangeCircle: null,
+            validPosition: false,
+            startedInBattlefield: false
+        };
     }
 
     createBattlefield() {
@@ -1283,7 +1295,7 @@ class BattleScene extends Phaser.Scene {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    onBattlefieldClick(pointer) {
+    onPointerDown(pointer) {
         // Prevent interactions if battle has ended
         if (this.battleEnded) {
             return;
@@ -1294,27 +1306,172 @@ class BattleScene extends Phaser.Scene {
         const worldY = pointer.worldY;
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
-        // Only allow deployment in player zone using tile-based checking
-        if (!GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
+        // Check if click started in valid deployment area
+        if (GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
+            const selectedCardData = this.tankCards[this.selectedCard];
+            
+            // Always start preview - we'll check energy when actually deploying
+            this.startDeploymentPreview(tileCoords.tileX, tileCoords.tileY, selectedCardData);
+        }
+    }
+
+    onPointerMove(pointer) {
+        if (!this.deploymentPreview.active) {
             return;
         }
+        
+        // Convert screen coordinates to world coordinates
+        const worldX = pointer.worldX;
+        const worldY = pointer.worldY;
+        const tileCoords = GameHelpers.worldToTile(worldX, worldY);
+        
+        // Update preview position
+        this.updateDeploymentPreview(tileCoords.tileX, tileCoords.tileY);
+    }
 
-        // Snap to tile center for precise positioning
-        const snappedPos = GameHelpers.tileToWorld(tileCoords.tileX, tileCoords.tileY);
-
-        // Deploy selected tank if we have enough energy
-        const selectedCardData = this.tankCards[this.selectedCard];
-        if (this.energy >= selectedCardData.tankData.cost) {
-            this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
-            this.energy -= selectedCardData.tankData.cost;
-            this.updateEnergyBar();
-            
-            // Cycle the used card
-            this.cycleCard(this.selectedCard);
-        } else {
-            // Visual feedback for insufficient energy
-            this.showInsufficientEnergyFeedback();
+    onPointerUp(pointer) {
+        if (!this.deploymentPreview.active) {
+            return;
         }
+        
+        // If the preview is in a valid position, deploy the tank
+        if (this.deploymentPreview.validPosition) {
+            const selectedCardData = this.tankCards[this.selectedCard];
+            
+            // Check energy when actually deploying
+            if (this.energy >= selectedCardData.tankData.cost) {
+                const snappedPos = GameHelpers.tileToWorld(
+                    this.deploymentPreview.tileX, 
+                    this.deploymentPreview.tileY
+                );
+                
+                this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
+                this.energy -= selectedCardData.tankData.cost;
+                this.updateEnergyBar();
+                
+                // Cycle the used card
+                this.cycleCard(this.selectedCard);
+            } else {
+                // Show energy warning only when actually trying to deploy
+                this.showInsufficientEnergyFeedback();
+            }
+        }
+        
+        // Clean up preview
+        this.endDeploymentPreview();
+    }
+
+    startDeploymentPreview(tileX, tileY, selectedCardData) {
+        this.deploymentPreview.active = true;
+        this.deploymentPreview.tankType = selectedCardData.tankData.type;
+        this.deploymentPreview.startedInBattlefield = true;
+        
+        // Create preview tank graphics (semi-transparent)
+        const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
+        this.deploymentPreview.previewTank = this.createTankGraphics(
+            snappedPos.worldX, 
+            snappedPos.worldY, 
+            selectedCardData.tankData.type, 
+            true
+        );
+        this.deploymentPreview.previewTank.setAlpha(0.7);
+        this.deploymentPreview.previewTank.setDepth(15); // Above other tanks
+        
+        // Point the preview tank towards the enemy field
+        const enemyBase = this.buildings.find(b => !b.isPlayerBase && b.isMainTower);
+        if (enemyBase) {
+            const initialAngle = GameHelpers.angle(snappedPos.worldX, snappedPos.worldY, enemyBase.x, enemyBase.y);
+            this.deploymentPreview.previewTank.setRotation(initialAngle);
+        } else {
+            // If no enemy base found, face upward (towards enemy side)
+            this.deploymentPreview.previewTank.setRotation(-Math.PI / 2); // -90 degrees = upward
+        }
+        
+        // Create preview attack range circle
+        this.deploymentPreview.previewRangeCircle = this.add.graphics();
+        this.deploymentPreview.previewRangeCircle.setDepth(20); // Higher depth to ensure visibility
+        
+        this.updateDeploymentPreview(tileX, tileY);
+    }
+
+    updateDeploymentPreview(tileX, tileY) {
+        if (!this.deploymentPreview.active || !this.deploymentPreview.previewTank) {
+            return;
+        }
+        
+        // Check if current position is valid
+        const isValid = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
+        this.deploymentPreview.validPosition = isValid;
+        this.deploymentPreview.tileX = tileX;
+        this.deploymentPreview.tileY = tileY;
+        
+        // Update preview tank position
+        const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
+        this.deploymentPreview.previewTank.setPosition(snappedPos.worldX, snappedPos.worldY);
+        
+        // Update tank appearance based on validity
+        if (isValid) {
+            this.deploymentPreview.previewTank.setAlpha(0.8);
+            // For containers, we need to tint the child graphics objects
+            this.deploymentPreview.previewTank.list.forEach(child => {
+                if (child.clearTint) {
+                    child.clearTint();
+                }
+            });
+        } else {
+            this.deploymentPreview.previewTank.setAlpha(0.5);
+            // For containers, we need to tint the child graphics objects
+            this.deploymentPreview.previewTank.list.forEach(child => {
+                if (child.setTint) {
+                    child.setTint(0xff6666); // Red tint for invalid
+                }
+            });
+        }
+        
+        // Update attack range circle
+        this.updatePreviewAttackRange(snappedPos.worldX, snappedPos.worldY, isValid);
+    }
+
+    updatePreviewAttackRange(worldX, worldY, isValid) {
+        if (!this.deploymentPreview.previewRangeCircle) {
+            return;
+        }
+        
+        const selectedCardData = this.tankCards[this.selectedCard];
+        const range = selectedCardData.tankData.stats.range; // Range is already in pixels
+        
+        this.deploymentPreview.previewRangeCircle.clear();
+        
+        // Draw range circle with appropriate color
+        const circleColor = isValid ? 0x00ff00 : 0xff6666; // Green for valid, red for invalid
+        const circleAlpha = isValid ? 0.3 : 0.2;
+        
+        this.deploymentPreview.previewRangeCircle.lineStyle(2, circleColor, 0.8);
+        this.deploymentPreview.previewRangeCircle.fillStyle(circleColor, circleAlpha);
+        this.deploymentPreview.previewRangeCircle.fillCircle(worldX, worldY, range);
+        this.deploymentPreview.previewRangeCircle.strokeCircle(worldX, worldY, range);
+    }
+
+    endDeploymentPreview() {
+        if (this.deploymentPreview.previewTank) {
+            this.deploymentPreview.previewTank.destroy();
+            this.deploymentPreview.previewTank = null;
+        }
+        
+        if (this.deploymentPreview.previewRangeCircle) {
+            this.deploymentPreview.previewRangeCircle.destroy();
+            this.deploymentPreview.previewRangeCircle = null;
+        }
+        
+        this.deploymentPreview.active = false;
+        this.deploymentPreview.validPosition = false;
+        this.deploymentPreview.startedInBattlefield = false;
+    }
+
+    onBattlefieldClick(pointer) {
+        // This method is now replaced by the pointer down/move/up system
+        // Keeping it for backwards compatibility but it should not be called
+        return;
     }
 
     deployTank(tankId, x, y) {
@@ -4020,6 +4177,9 @@ class BattleScene extends Phaser.Scene {
         if (this.battleEnded) return;
         this.battleEnded = true;
         
+        // Clean up any active deployment preview
+        this.endDeploymentPreview();
+        
         // Record battle end time and finalize statistics
         this.battleStats.battle.endTime = this.time.now;
         this.battleStats.battle.overtimeActivated = this.overtimeActive;
@@ -4647,5 +4807,21 @@ class BattleScene extends Phaser.Scene {
         }
         
         super.destroy();
+    }
+
+    shutdown() {
+        // Clean up deployment preview when scene is shutting down
+        this.endDeploymentPreview();
+        
+        // Clean up tooltip if active
+        this.hideCardTooltip();
+        
+        // Cancel any pending tooltip timer
+        if (this.tooltipTimer) {
+            this.tooltipTimer.destroy();
+            this.tooltipTimer = null;
+        }
+        
+        super.shutdown();
     }
 }
