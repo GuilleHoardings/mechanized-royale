@@ -79,6 +79,9 @@ class BattleScene extends Phaser.Scene {
         // Battle control flag
         this.battleEnded = false;
         
+        // Pause state for analysis
+        this.gamePaused = false;
+        
     // Card deck system (8-card rotation)
     this.deck = [...DEFAULT_PLAYER_DECK];
         this.hand = [];
@@ -124,6 +127,11 @@ class BattleScene extends Phaser.Scene {
         // Initialize debug panel
         this.initializeDebugPanel();
         this.setSimulationSpeed(this.simulationSpeed);
+        
+        // Refresh pause button state
+        if (window.refreshPauseButtonState) {
+            window.refreshPauseButtonState();
+        }
         
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
@@ -1426,8 +1434,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerDown(pointer) {
-        // Prevent interactions if battle has ended
-        if (this.battleEnded) {
+        // Prevent interactions if battle has ended or game is paused
+        if (this.battleEnded || this.gamePaused) {
             return;
         }
         
@@ -1447,7 +1455,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerMove(pointer) {
-    if (!this.deploymentPreview.active) { return; }
+        if (!this.deploymentPreview.active || this.gamePaused) { return; }
         
         // Convert screen coordinates to world coordinates
         const worldX = pointer.worldX;
@@ -1459,6 +1467,12 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerUp(pointer) {
+        // Prevent deployment if game is paused
+        if (this.gamePaused) {
+            this.endDeploymentPreview();
+            return;
+        }
+        
         const selectedCard = this.tankCards[this.selectedCard];
         if (selectedCard.cardType !== CARD_TYPES.TROOP) {
             // Handle spells/buildings immediately on pointer up
@@ -2458,8 +2472,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     update() {
-        // Stop all game updates if battle has ended
-        if (this.battleEnded) {
+        // Stop all game updates if battle has ended or game is paused
+        if (this.battleEnded || this.gamePaused) {
             return;
         }
         
@@ -2554,7 +2568,7 @@ class BattleScene extends Phaser.Scene {
             // Game State
             window.debugPanel.updateValue('debug-scene', this.scene.key);
             window.debugPanel.updateValue('debug-time', this.formatTime(this.battleTime));
-            window.debugPanel.updateValue('debug-paused', this.battleEnded ? 'Yes' : 'No');
+            window.debugPanel.updateValue('debug-paused', this.gamePaused ? 'Paused' : (this.battleEnded ? 'Ended' : 'No'));
 
             // Player Stats
             window.debugPanel.updateValue('debug-player-energy', `${this.energy}/${this.maxEnergy}`);
@@ -3713,6 +3727,136 @@ class BattleScene extends Phaser.Scene {
         return this.setSimulationSpeed(nextSpeed);
     }
 
+    // Pause/Resume methods for game analysis
+    togglePause() {
+        if (this.battleEnded) return;
+        
+        this.gamePaused = !this.gamePaused;
+        
+        if (this.gamePaused) {
+            this.pauseGame();
+        } else {
+            this.resumeGame();
+        }
+        
+        // Update button state
+        if (window.updatePauseButtonState) {
+            window.updatePauseButtonState(this.gamePaused);
+        }
+        
+        return this.gamePaused;
+    }
+
+    pauseGame() {
+        // Cancel any active deployment preview
+        this.endDeploymentPreview();
+        
+        // Pause physics, tweens, and timers
+        if (this.physics && this.physics.world) {
+            this.physics.world.pause();
+        }
+        
+        // Pause all tweens
+        if (this.tweens) {
+            this.tweens.pauseAll();
+        }
+        
+        // Pause timers
+        if (this.time) {
+            this.time.paused = true;
+        }
+        
+        // Show pause overlay
+        this.showPauseOverlay();
+    }
+
+    resumeGame() {
+        // Resume physics
+        if (this.physics && this.physics.world) {
+            this.physics.world.resume();
+        }
+        
+        // Resume all tweens
+        if (this.tweens) {
+            this.tweens.resumeAll();
+        }
+        
+        // Resume timers
+        if (this.time) {
+            this.time.paused = false;
+        }
+        
+        // Hide pause overlay
+        this.hidePauseOverlay();
+    }
+
+    showPauseOverlay() {
+        if (this.pauseOverlay) return;
+        
+        // Create semi-transparent overlay
+        this.pauseOverlay = this.add.graphics();
+        this.pauseOverlay.fillStyle(0x000000, 0.5);
+        this.pauseOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+        this.pauseOverlay.setScrollFactor(0);
+        this.pauseOverlay.setDepth(90);
+        
+        // Create pause text
+        this.pauseText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 30, '⏸ PAUSED', {
+            fontSize: '48px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 4
+        }).setOrigin(0.5);
+        this.pauseText.setScrollFactor(0);
+        this.pauseText.setDepth(91);
+        
+        // Create subtitle
+        this.pauseSubtext = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 20, 'Click Resume or press the Pause button to continue', {
+            fontSize: '16px',
+            fill: '#cccccc',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        this.pauseSubtext.setScrollFactor(0);
+        this.pauseSubtext.setDepth(91);
+        
+        // Create analysis hint
+        this.pauseHint = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 50, 'Use this time to analyze tank positions and strategies', {
+            fontSize: '12px',
+            fill: '#888888',
+            fontFamily: 'Arial',
+            fontStyle: 'italic'
+        }).setOrigin(0.5);
+        this.pauseHint.setScrollFactor(0);
+        this.pauseHint.setDepth(91);
+    }
+
+    hidePauseOverlay() {
+        if (this.pauseOverlay) {
+            this.pauseOverlay.destroy();
+            this.pauseOverlay = null;
+        }
+        if (this.pauseText) {
+            this.pauseText.destroy();
+            this.pauseText = null;
+        }
+        if (this.pauseSubtext) {
+            this.pauseSubtext.destroy();
+            this.pauseSubtext = null;
+        }
+        if (this.pauseHint) {
+            this.pauseHint.destroy();
+            this.pauseHint = null;
+        }
+    }
+
+    isPaused() {
+        return this.gamePaused;
+    }
+
     applySimulationSpeed() {
         const speed = this.simulationSpeed || 1;
         if (this.time) {
@@ -3932,6 +4076,10 @@ class BattleScene extends Phaser.Scene {
             this.cardTooltip = null;
         }
         
+        // Clean up pause overlay
+        this.hidePauseOverlay();
+        this.gamePaused = false;
+        
         // Clean up row numbers when scene is destroyed
         this.hideRowNumbers();
         
@@ -3941,6 +4089,11 @@ class BattleScene extends Phaser.Scene {
         // Clear current scene reference
         if (window.currentScene === this) {
             window.currentScene = null;
+        }
+        
+        // Reset pause button state
+        if (window.refreshPauseButtonState) {
+            window.refreshPauseButtonState();
         }
         
         super.destroy();

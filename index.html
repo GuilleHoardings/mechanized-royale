@@ -12,6 +12,7 @@
     <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
     <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
     <button class="speed-toggle" id="speed-toggle" onclick="cycleGameSpeed()" disabled>Speed: 1.00x</button>
+    <button class="pause-toggle" id="pause-toggle" onclick="togglePause()" disabled>⏸ Pause</button>
     
     <div id="game-container">
         <div id="loading">
@@ -177,6 +178,39 @@
             }
         }
 
+        function togglePause() {
+            // Send message to game to toggle pause
+            if (window.currentScene && window.currentScene.togglePause) {
+                window.currentScene.togglePause();
+            }
+        }
+
+        function updatePauseButtonState(isPaused) {
+            const button = document.getElementById('pause-toggle');
+            if (!button) return;
+            if (isPaused) {
+                button.textContent = '▶ Resume';
+                button.classList.add('paused');
+            } else {
+                button.textContent = '⏸ Pause';
+                button.classList.remove('paused');
+            }
+        }
+
+        function refreshPauseButtonState() {
+            const button = document.getElementById('pause-toggle');
+            if (!button) return;
+            const scene = window.currentScene;
+            const hasControl = scene && typeof scene.togglePause === 'function';
+            button.disabled = !hasControl;
+            const isPaused = hasControl && scene.isPaused && scene.isPaused();
+            updatePauseButtonState(isPaused);
+            button.title = hasControl ? 'Pause/Resume game for analysis' : 'Available during battles';
+        }
+
+        window.updatePauseButtonState = updatePauseButtonState;
+        window.refreshPauseButtonState = refreshPauseButtonState;
+
         function updateSpeedButtonLabel(speed) {
             const button = document.getElementById('speed-toggle');
             if (!button) return;
@@ -214,6 +248,7 @@
         window.refreshSpeedButtonState = refreshSpeedButtonState;
 
         refreshSpeedButtonState();
+        refreshPauseButtonState();
         
         // Make debug functions globally accessible
         window.debugPanel = {

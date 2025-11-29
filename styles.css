@@ -173,6 +173,40 @@ body {
     opacity: 0.65;
 }
 
+.pause-toggle {
+    position: fixed;
+    top: 220px;
+    right: 20px;
+    background-color: #e74c3c;
+    color: white;
+    border: none;
+    padding: 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 12px;
+    z-index: 1000;
+    transition: background-color 0.2s ease;
+    min-width: 80px;
+}
+
+.pause-toggle:hover {
+    background-color: #c0392b;
+}
+
+.pause-toggle.paused {
+    background-color: #27ae60;
+}
+
+.pause-toggle.paused:hover {
+    background-color: #219a52;
+}
+
+.pause-toggle:disabled {
+    background-color: #7f8c8d;
+    cursor: not-allowed;
+    opacity: 0.65;
+}
+
 #loading {
     position: absolute;
     top: 50%;
