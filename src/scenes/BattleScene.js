@@ -407,7 +407,12 @@ class BattleScene extends Phaser.Scene {
             card.setScrollFactor(0);
 
             // Icon - use mini tank drawing; for non-troops, use representative type only for icon
-            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardsY + 30, iconTankType);
+            const tankIcon = this.createMiniTankGraphics(
+                cardX + cardWidth/2,
+                cardsY + 30,
+                iconTankType,
+                tankData ? tankData.id : null
+            );
             tankIcon.setScale(1.0); // Increased from 0.6 to 1.0 for bigger tanks
             card.tankIcon = tankIcon;
 
@@ -1510,7 +1515,8 @@ class BattleScene extends Phaser.Scene {
             snappedPos.worldX, 
             snappedPos.worldY, 
             selectedCardData.tankData.type, 
-            true
+            true,
+            selectedCardData.tankData.id
         );
         this.deploymentPreview.previewTank.setAlpha(0.7);
         this.deploymentPreview.previewTank.setDepth(15); // Above other tanks
@@ -1838,7 +1844,7 @@ class BattleScene extends Phaser.Scene {
     deployTank(tankId, x, y) {
         const tankData = TANK_DATA[tankId];
         
-        const tank = this.createTankGraphics(x, y, tankData.type, true); // true = player tank
+        const tank = this.createTankGraphics(x, y, tankData.type, true, tankData.id); // true = player tank
         
         // Tank properties
         tank.tankId = tankId;
@@ -1894,7 +1900,7 @@ class BattleScene extends Phaser.Scene {
         this.aiController.notifyAIOfPlayerAction('deploy', tankData);
     }
 
-    createTankGraphics(x, y, tankType, isPlayerTank) {
+    createTankGraphics(x, y, tankType, isPlayerTank, tankId = null) {
         // Team colors
         const playerColor = 0x2d7dd2; // Blue
         const enemyColor = 0xd22d2d;  // Red
@@ -1902,6 +1908,7 @@ class BattleScene extends Phaser.Scene {
         const darkColor = isPlayerTank ? 0x1a5aa3 : 0xa31a1a;
         const metalColor = 0x888888;
         const gunmetalColor = 0x444444;
+        const isMegaMinion = tankId === 'tank_megaminion';
         
         // Distinctive accent colors for different tank types (same as card system)
         let typeAccentColor = accentColor;
@@ -1959,53 +1966,79 @@ class BattleScene extends Phaser.Scene {
             graphics.fillCircle(8, -3, 1);
             
         } else if (tankType === TANK_TYPES.MEDIUM) {
-            // Medium Tank - Balanced design with enhanced details
-            graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
-            graphics.fillRoundedRect(-15, -10, 30, 20, 4);
-            
-            // Hull armor plating with distinctive orange accents
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillRect(-13, -8, 26, 3);
-            graphics.fillRect(-13, 5, 26, 3);
-            graphics.fillRect(-14, -2, 28, 1);
-            
-            // Side skirts
-            graphics.fillStyle(metalColor);
-            graphics.fillRect(-16, -6, 2, 12);
-            graphics.fillRect(14, -6, 2, 12);
-            
-            // Front armor detail
-            graphics.fillStyle(darkColor);
-            graphics.fillRect(13, -6, 2, 12);
-            
-            // Engine compartment
-            graphics.fillStyle(gunmetalColor);
-            graphics.fillRect(-15, -3, 4, 6);
-            
-            // Turret
-            graphics.fillStyle(darkColor);
-            graphics.fillCircle(0, 0, 8);
-            
-            // Turret details
-            graphics.fillStyle(metalColor);
-            graphics.strokeCircle(0, 0, 9, 1);
-            graphics.fillRect(-6, -6, 12, 2);
-            
-            // Barrel with thermal sleeve (orange accent)
-            graphics.fillStyle(gunmetalColor);
-            graphics.fillRect(8, -2, 15, 4);
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillRect(12, -3, 8, 6);
-            
-            // Commander's cupola with orange accent
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillCircle(-4, -4, 2);
-            
-            // Vision blocks
-            graphics.fillStyle(0x000000);
-            graphics.fillRect(-10, -7, 2, 1);
-            graphics.fillRect(-2, -7, 2, 1);
-            graphics.fillRect(6, -7, 2, 1);
+            if (isMegaMinion) {
+                // Mega Minion uses helicopter silhouette
+                graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+                graphics.fillRoundedRect(-12, -5, 24, 10, 5); // Fuselage
+                graphics.fillRect(8, -2, 14, 4); // Tail boom
+                
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(-10, -1, 20, 2); // Body stripe
+                graphics.fillRect(10, 0, 10, 1); // Tail accent
+                
+                graphics.fillStyle(isPlayerTank ? 0xaad4ff : 0xffc4c4);
+                graphics.fillRoundedRect(-7, -4, 12, 8, 4); // Canopy
+                
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(-1, -12, 2, 24); // Rotor mast
+                graphics.fillRect(-22, -1, 44, 2); // Rotor blades
+                graphics.fillCircle(0, 0, 3); // Rotor hub
+                
+                graphics.fillRect(20, -4, 8, 2); // Tail rotor blade
+                graphics.fillRect(20, 2, 8, 2); // Tail rotor opposite blade
+                graphics.fillRect(24, -5, 2, 10); // Tail rotor mast
+                
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(-6, 1, 12, 1); // Accent underbelly
+            } else {
+                // Medium Tank - Balanced design with enhanced details
+                graphics.fillStyle(isPlayerTank ? playerColor : enemyColor);
+                graphics.fillRoundedRect(-15, -10, 30, 20, 4);
+                
+                // Hull armor plating with distinctive orange accents
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(-13, -8, 26, 3);
+                graphics.fillRect(-13, 5, 26, 3);
+                graphics.fillRect(-14, -2, 28, 1);
+                
+                // Side skirts
+                graphics.fillStyle(metalColor);
+                graphics.fillRect(-16, -6, 2, 12);
+                graphics.fillRect(14, -6, 2, 12);
+                
+                // Front armor detail
+                graphics.fillStyle(darkColor);
+                graphics.fillRect(13, -6, 2, 12);
+                
+                // Engine compartment
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(-15, -3, 4, 6);
+                
+                // Turret
+                graphics.fillStyle(darkColor);
+                graphics.fillCircle(0, 0, 8);
+                
+                // Turret details
+                graphics.fillStyle(metalColor);
+                graphics.strokeCircle(0, 0, 9, 1);
+                graphics.fillRect(-6, -6, 12, 2);
+                
+                // Barrel with thermal sleeve (orange accent)
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(8, -2, 15, 4);
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(12, -3, 8, 6);
+                
+                // Commander's cupola with orange accent
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillCircle(-4, -4, 2);
+                
+                // Vision blocks
+                graphics.fillStyle(0x000000);
+                graphics.fillRect(-10, -7, 2, 1);
+                graphics.fillRect(-2, -7, 2, 1);
+                graphics.fillRect(6, -7, 2, 1);
+            }
             
         } else if (tankType === TANK_TYPES.HEAVY) {
             // Heavy Tank - Large, intimidating with complex armor
@@ -2188,38 +2221,51 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(4, -5, 3, 2);
         }
         
-        // Add tracks/treads for all tanks - enhanced with more detail
-        graphics.fillStyle(0x333333);
-        let trackWidth, trackHeight;
-        
-        if (tankType === TANK_TYPES.HEAVY) {
-            trackWidth = 20;
-            trackHeight = 3;
-        } else if (tankType === TANK_TYPES.ARTILLERY) {
-            trackWidth = 22;
-            trackHeight = 3;
-        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            trackWidth = 16;
-            trackHeight = 2;
-        } else { // LIGHT and FAST_ATTACK
-            trackWidth = 12;
-            trackHeight = 2;
-        }
-        
-        // Left track with road wheel details
-        graphics.fillRect(-trackWidth/2, -15, trackWidth, trackHeight);
-        graphics.fillStyle(0x666666);
-        const wheelCount = Math.floor(trackWidth / 4);
-        for (let i = 0; i < wheelCount; i++) {
-            graphics.fillCircle(-trackWidth/2 + 2 + i * 4, -15 + trackHeight/2, 1);
-        }
-        
-        // Right track with road wheel details
-        graphics.fillStyle(0x333333);
-        graphics.fillRect(-trackWidth/2, 13, trackWidth, trackHeight);
-        graphics.fillStyle(0x666666);
-        for (let i = 0; i < wheelCount; i++) {
-            graphics.fillCircle(-trackWidth/2 + 2 + i * 4, 13 + trackHeight/2, 1);
+        if (!isMegaMinion) {
+            // Add tracks/treads for ground vehicles - enhanced with more detail
+            graphics.fillStyle(0x333333);
+            let trackWidth;
+            let trackHeight;
+            
+            if (tankType === TANK_TYPES.HEAVY) {
+                trackWidth = 20;
+                trackHeight = 3;
+            } else if (tankType === TANK_TYPES.ARTILLERY) {
+                trackWidth = 22;
+                trackHeight = 3;
+            } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
+                trackWidth = 16;
+                trackHeight = 2;
+            } else { // LIGHT and FAST_ATTACK
+                trackWidth = 12;
+                trackHeight = 2;
+            }
+            
+            // Left track with road wheel details
+            graphics.fillRect(-trackWidth / 2, -15, trackWidth, trackHeight);
+            graphics.fillStyle(0x666666);
+            const wheelCount = Math.floor(trackWidth / 4);
+            for (let i = 0; i < wheelCount; i++) {
+                graphics.fillCircle(-trackWidth / 2 + 2 + i * 4, -15 + trackHeight / 2, 1);
+            }
+            
+            // Right track with road wheel details
+            graphics.fillStyle(0x333333);
+            graphics.fillRect(-trackWidth / 2, 13, trackWidth, trackHeight);
+            graphics.fillStyle(0x666666);
+            for (let i = 0; i < wheelCount; i++) {
+                graphics.fillCircle(-trackWidth / 2 + 2 + i * 4, 13 + trackHeight / 2, 1);
+            }
+        } else {
+            // Landing skids for Mega Minion helicopter profile
+            graphics.fillStyle(gunmetalColor);
+            graphics.fillRect(-14, 8, 28, 2); // Cross brace
+            graphics.fillRect(-16, 10, 14, 2); // Left skid
+            graphics.fillRect(2, 10, 14, 2); // Right skid
+            graphics.fillRect(-10, 6, 2, 4); // Left strut
+            graphics.fillRect(8, 6, 2, 4); // Right strut
+            graphics.fillStyle(typeAccentColor);
+            graphics.fillRect(-6, 7, 12, 1); // Accent stripe on skids
         }
         
         // Add the graphics to the container
@@ -2228,13 +2274,14 @@ class BattleScene extends Phaser.Scene {
         return tank;
     }
 
-    createMiniTankGraphics(x, y, tankType) {
+    createMiniTankGraphics(x, y, tankType, tankId = null) {
         // Create a simplified but distinctive version for cards - always blue (player color)
         const playerColor = 0x2d7dd2;
         const accentColor = 0x5599ff;
         const darkColor = 0x1a5aa3;
         const metalColor = 0x888888;
         const gunmetalColor = 0x444444;
+        const isMegaMinion = tankId === 'tank_megaminion';
         
         // Distinctive colors for different tank types
         let typeAccentColor = accentColor;
@@ -2281,36 +2328,57 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(2, -4, 1, 1);
             
         } else if (tankType === TANK_TYPES.MEDIUM) {
-            // Medium tank - Balanced design with enhanced details
-            graphics.fillStyle(playerColor);
-            graphics.fillRoundedRect(-12, -7, 24, 14, 3);
-            
-            // Hull armor plating with distinctive orange accents
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillRect(-10, -5, 20, 2);
-            graphics.fillRect(-10, 3, 20, 2);
-            graphics.fillRect(-11, -1, 22, 1);
-            
-            // Side skirts
-            graphics.fillStyle(metalColor);
-            graphics.fillRect(-12, -4, 2, 8);
-            graphics.fillRect(10, -4, 2, 8);
-            
-            // Medium turret
-            graphics.fillStyle(darkColor);
-            graphics.fillCircle(0, 0, 5);
-            
-            // Medium barrel with thermal sleeve
-            graphics.fillStyle(gunmetalColor);
-            graphics.fillRect(5, -2, 10, 4);
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillRect(7, -2, 6, 4); // Thermal sleeve with orange accent
-            graphics.fillStyle(gunmetalColor);
-            graphics.fillRect(13, -1, 3, 2); // Muzzle brake
-            
-            // Commander cupola
-            graphics.fillStyle(typeAccentColor);
-            graphics.fillCircle(-2, -3, 1);
+            if (isMegaMinion) {
+                graphics.fillStyle(playerColor);
+                graphics.fillRoundedRect(-9, -4, 18, 8, 4); // Fuselage
+                graphics.fillRect(6, -1, 9, 2); // Tail boom
+
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(-7, -1, 14, 1); // Body stripe
+                graphics.fillRect(8, 0, 6, 1); // Tail accent
+
+                graphics.fillStyle(0xaad4ff);
+                graphics.fillRoundedRect(-4, -3, 8, 6, 3); // Canopy
+
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(-1, -7, 2, 14); // Rotor mast
+                graphics.fillRect(-13, -1, 26, 2); // Rotor blades
+                graphics.fillCircle(0, 0, 2); // Rotor hub
+                graphics.fillRect(12, -3, 5, 1); // Tail rotor top blade
+                graphics.fillRect(12, 2, 5, 1); // Tail rotor bottom blade
+                graphics.fillRect(14, -4, 1, 8); // Tail rotor mast
+            } else {
+                // Medium tank - Balanced design with enhanced details
+                graphics.fillStyle(playerColor);
+                graphics.fillRoundedRect(-12, -7, 24, 14, 3);
+                
+                // Hull armor plating with distinctive orange accents
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(-10, -5, 20, 2);
+                graphics.fillRect(-10, 3, 20, 2);
+                graphics.fillRect(-11, -1, 22, 1);
+                
+                // Side skirts
+                graphics.fillStyle(metalColor);
+                graphics.fillRect(-12, -4, 2, 8);
+                graphics.fillRect(10, -4, 2, 8);
+                
+                // Medium turret
+                graphics.fillStyle(darkColor);
+                graphics.fillCircle(0, 0, 5);
+                
+                // Medium barrel with thermal sleeve
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(5, -2, 10, 4);
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillRect(7, -2, 6, 4); // Thermal sleeve with orange accent
+                graphics.fillStyle(gunmetalColor);
+                graphics.fillRect(13, -1, 3, 2); // Muzzle brake
+                
+                // Commander cupola
+                graphics.fillStyle(typeAccentColor);
+                graphics.fillCircle(-2, -3, 1);
+            }
             
         } else if (tankType === TANK_TYPES.HEAVY) {
             // Heavy tank - Large, imposing with complex details
@@ -2448,35 +2516,47 @@ class BattleScene extends Phaser.Scene {
             graphics.fillRect(4, -4, 2, 1);
         }
         
-        // Enhanced tracks with more detail
-        graphics.fillStyle(0x333333);
-        let trackWidth;
-        if (tankType === TANK_TYPES.HEAVY) {
-            trackWidth = 16;
-        } else if (tankType === TANK_TYPES.ARTILLERY) {
-            trackWidth = 18;
-        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            trackWidth = 14;
-        } else { // LIGHT and FAST_ATTACK
-            trackWidth = 12;
-        }
-        
-        // Track base with better definition
-        graphics.fillRect(-trackWidth/2, -12, trackWidth, 2);
-        graphics.fillRect(-trackWidth/2, 10, trackWidth, 2);
-        
-        // Road wheels (more detailed)
-        graphics.fillStyle(0x666666);
-        const wheelCount = Math.floor(trackWidth / 4);
-        for (let i = 0; i < wheelCount; i++) {
-            const wheelX = -trackWidth/2 + 2 + i * 4;
-            graphics.fillCircle(wheelX, -11, 1);
-            graphics.fillCircle(wheelX, 11, 1);
-            // Add rim detail
-            graphics.fillStyle(0x888888);
-            graphics.fillCircle(wheelX, -11, 0.5);
-            graphics.fillCircle(wheelX, 11, 0.5);
+        if (!isMegaMinion) {
+            // Enhanced tracks with more detail
+            graphics.fillStyle(0x333333);
+            let trackWidth;
+            if (tankType === TANK_TYPES.HEAVY) {
+                trackWidth = 16;
+            } else if (tankType === TANK_TYPES.ARTILLERY) {
+                trackWidth = 18;
+            } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
+                trackWidth = 14;
+            } else { // LIGHT and FAST_ATTACK
+                trackWidth = 12;
+            }
+            
+            // Track base with better definition
+            graphics.fillRect(-trackWidth / 2, -12, trackWidth, 2);
+            graphics.fillRect(-trackWidth / 2, 10, trackWidth, 2);
+            
+            // Road wheels (more detailed)
             graphics.fillStyle(0x666666);
+            const wheelCount = Math.floor(trackWidth / 4);
+            for (let i = 0; i < wheelCount; i++) {
+                const wheelX = -trackWidth / 2 + 2 + i * 4;
+                graphics.fillCircle(wheelX, -11, 1);
+                graphics.fillCircle(wheelX, 11, 1);
+                // Add rim detail
+                graphics.fillStyle(0x888888);
+                graphics.fillCircle(wheelX, -11, 0.5);
+                graphics.fillCircle(wheelX, 11, 0.5);
+                graphics.fillStyle(0x666666);
+            }
+        } else {
+            // Landing skids instead of tracks for helicopter icon
+            graphics.fillStyle(gunmetalColor);
+            graphics.fillRect(-10, 4, 20, 1); // Cross brace
+            graphics.fillRect(-12, 5, 8, 1); // Left skid
+            graphics.fillRect(4, 5, 8, 1); // Right skid
+            graphics.fillRect(-7, 2, 1, 3); // Left strut
+            graphics.fillRect(6, 2, 1, 3); // Right strut
+            graphics.fillStyle(typeAccentColor);
+            graphics.fillRect(-6, 4, 12, 1); // Accent stripe on skids
         }
         
         tank.add(graphics);
@@ -2991,7 +3071,7 @@ class BattleScene extends Phaser.Scene {
         const tankData = TANK_DATA[tankId];
         
         // Create tank with custom graphics
-        const tank = this.createTankGraphics(x, y, tankData.type, false); // false = AI tank
+        const tank = this.createTankGraphics(x, y, tankData.type, false, tankData.id); // false = AI tank
         
         // Tank properties
         tank.tankId = tankId;
@@ -3264,22 +3344,28 @@ class BattleScene extends Phaser.Scene {
         const cardX = card.x;
         const cardY = card.y;
         const cardWidth = UI_CONFIG.CARDS.WIDTH;
-    const iconType = tankData ? tankData.type : TANK_TYPES.MEDIUM;
-    card.tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 30, iconType);
+        const iconType = tankData ? tankData.type : TANK_TYPES.MEDIUM;
+        const iconTankId = tankData ? tankData.id : null;
+        card.tankIcon = this.createMiniTankGraphics(
+            cardX + cardWidth / 2,
+            cardY + 30,
+            iconType,
+            iconTankId
+        );
         card.tankIcon.setScale(1.0); // Use larger scale for better visibility
         
         // Update cost
-    card.costText.setText(def.cost);
+        card.costText.setText(def.cost);
         
         // Update name
-    card.nameText.setText(def.name);
+        card.nameText.setText(def.name);
         
         // Update card references
-    card.cardId = cardId;
-    card.cardDef = def;
-    card.cardType = def.type;
-    card.tankId = def.type === CARD_TYPES.TROOP ? def.payload.tankId : null;
-    card.tankData = tankData;
+        card.cardId = cardId;
+        card.cardDef = def;
+        card.cardType = def.type;
+        card.tankId = def.type === CARD_TYPES.TROOP ? def.payload.tankId : null;
+        card.tankData = tankData;
         
         // Brief highlight animation to show card changed
         this.tweens.add({
