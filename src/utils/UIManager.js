@@ -22,12 +22,12 @@ class UIManager {
         overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.1);
         overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         overlay.setScrollFactor(0);
-        overlay.setDepth(100);
+        overlay.setDepth(1100);
         
         // Add subtle vignette effect
         const vignette = this.scene.add.graphics();
         vignette.setScrollFactor(0);
-        vignette.setDepth(100);
+        vignette.setDepth(1100);
         // Draw concentric ellipses for vignette effect
         const centerX = GAME_CONFIG.WIDTH / 2;
         const centerY = GAME_CONFIG.HEIGHT / 2;
@@ -49,10 +49,10 @@ class UIManager {
             ease: 'Cubic.easeOut'
         });
         
-        // Result container
-        const container = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2);
+        // Result container - positioned slightly higher to prevent bottom overflow
+        const container = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20);
         container.setScrollFactor(0);
-        container.setDepth(101);
+        container.setDepth(1101);
         
         // Determine final result and colors
         const finalResult = this._determineFinalResult(result, buildings);
@@ -147,19 +147,19 @@ class UIManager {
         
         // Outer glow effect
         resultCard.fillStyle(0x3d5a80, 0.3);
-        resultCard.fillRoundedRect(-310, -290, 620, 580, 24);
+        resultCard.fillRoundedRect(-290, -270, 580, 520, 24);
         
         // Main card background with gradient effect
         resultCard.fillStyle(UI_COLORS.GAME_OVER.CARD_BACKGROUND, 0.98);
-        resultCard.fillRoundedRect(-300, -280, 600, 560, 20);
+        resultCard.fillRoundedRect(-280, -260, 560, 500, 20);
         
         // Inner highlight for depth
         resultCard.fillStyle(0xffffff, 0.02);
-        resultCard.fillRoundedRect(-298, -278, 596, 280, 18);
+        resultCard.fillRoundedRect(-278, -258, 556, 250, 18);
         
         // Modern border with glow
         resultCard.lineStyle(2, UI_COLORS.GAME_OVER.CARD_BORDER, 0.6);
-        resultCard.strokeRoundedRect(-300, -280, 600, 560, 20);
+        resultCard.strokeRoundedRect(-280, -260, 560, 500, 20);
         
         container.add(resultCard);
     }
@@ -169,8 +169,8 @@ class UIManager {
      */
     _createTitle(container, titleText, titleColor) {
         // Glow effect behind title
-        const titleGlow = this.scene.add.text(0, -220, titleText, {
-            fontSize: '52px',
+        const titleGlow = this.scene.add.text(0, -200, titleText, {
+            fontSize: '48px',
             fill: titleColor,
             fontFamily: 'Arial',
             fontWeight: '700'
@@ -180,8 +180,8 @@ class UIManager {
         container.add(titleGlow);
         
         // Main title
-        const title = this.scene.add.text(0, -220, titleText, {
-            fontSize: '52px',
+        const title = this.scene.add.text(0, -200, titleText, {
+            fontSize: '48px',
             fill: titleColor,
             fontFamily: 'Arial',
             fontWeight: '700'
@@ -311,7 +311,7 @@ class UIManager {
      * Creates the bottom section with duration, rewards, and overtime info
      */
     _createBottomSection(container, battleStats, result, resultTitleColor, overtimeActive) {
-        const bottomContainer = this.scene.add.container(0, 160);
+        const bottomContainer = this.scene.add.container(0, 100);
         container.add(bottomContainer);
         
         // Battle duration with icon
@@ -339,10 +339,10 @@ class UIManager {
         if (overtimeActive) {
             const overtimeBg = this.scene.add.graphics();
             overtimeBg.fillStyle(0xfb923c, 0.2);
-            overtimeBg.fillRoundedRect(-50, 60, 100, 28, 6);
+            overtimeBg.fillRoundedRect(-50, 50, 100, 28, 6);
             bottomContainer.add(overtimeBg);
             
-            const overtimeText = this.scene.add.text(0, 74, '⚡ OVERTIME', {
+            const overtimeText = this.scene.add.text(0, 64, '⚡ OVERTIME', {
                 fontSize: '14px',
                 fill: '#fb923c',
                 fontFamily: 'Arial',
@@ -401,9 +401,9 @@ class UIManager {
      * Creates the continue button
      */
     _createContinueButton(container, resultTitleColor, accentColor) {
-        const bottomContainer = container.list.find(child => child.y === 160);
+        const bottomContainer = container.list.find(child => child.y === 100);
         
-        const continueButton = this.scene.add.container(0, 115);
+        const continueButton = this.scene.add.container(0, 90);
         continueButton.setAlpha(0.3);
         bottomContainer.add(continueButton);
         
@@ -460,18 +460,24 @@ class UIManager {
      */
     _setupClickHandling(overlay, container, result, gameState, battleStats, continueButton) {
         // Add wait message
-        const waitMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'Please wait...', {
+        const waitMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'Please wait...', {
             fontSize: '14px',
             fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
             fontFamily: 'Arial',
             alpha: 0.8
         }).setOrigin(0.5);
         waitMessage.setScrollFactor(0);
-        waitMessage.setDepth(102);
+        waitMessage.setDepth(1102);
         
         // Make interactive areas
         overlay.setInteractive();
-        container.setInteractive(new Phaser.Geom.Rectangle(-300, -280, 600, 560), Phaser.Geom.Rectangle.Contains);
+        // Use card size constants for interactive area
+        const cardWidth = UI_CONFIG.GAME_OVER.CARD_WIDTH;
+        const cardHeight = UI_CONFIG.GAME_OVER.CARD_HEIGHT;
+        container.setInteractive(
+            new Phaser.Geom.Rectangle(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight),
+            Phaser.Geom.Rectangle.Contains
+        );
         
         // Click handler function
         const clickHandler = () => {
@@ -497,14 +503,14 @@ class UIManager {
         });
         
         // Show ready message briefly
-        const readyMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 50, 'Click anywhere to continue', {
+        const readyMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'Click anywhere to continue', {
             fontSize: '14px',
             fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
             fontFamily: 'Arial',
             alpha: 0
         }).setOrigin(0.5);
         readyMessage.setScrollFactor(0);
-        readyMessage.setDepth(102);
+        readyMessage.setDepth(1102);
         
         this.scene.tweens.add({
             targets: readyMessage,
