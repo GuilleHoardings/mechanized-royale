@@ -178,7 +178,7 @@ const TANK_DATA = {
             hp: 1300,           // Very high HP
             damage: 70,         // Moderate damage
             speed: 28,          // Slow
-            range: 140,         // Short
+            range: 40,          // Melee
             armor: { front: 90, side: 70, rear: 50 },
             penetration: 90
         },
