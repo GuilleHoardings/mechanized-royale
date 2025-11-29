@@ -95,6 +95,11 @@ class BattleScene extends Phaser.Scene {
         
         // Textures mode - toggles between textures and graphics for all game elements
         this.useGraphicsMode = false;
+
+        // Simulation speed control (1x, then slower steps for analysis)
+        this.simulationSpeedOptions = [1, 0.5, 0.25];
+        this.simulationSpeedIndex = 0;
+        this.simulationSpeed = this.simulationSpeedOptions[this.simulationSpeedIndex];
     }
 
     create() {
@@ -115,6 +120,7 @@ class BattleScene extends Phaser.Scene {
         
         // Initialize debug panel
         this.initializeDebugPanel();
+        this.setSimulationSpeed(this.simulationSpeed);
         
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
@@ -2634,11 +2640,12 @@ class BattleScene extends Phaser.Scene {
 
                 // Calculate movement direction towards waypoint
                 const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
-                const speed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
+                const baseSpeed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
+                const speedFactor = this.simulationSpeed || 1;
                 
-                // Apply movement with avoidance
-                const moveX = Math.cos(targetAngle) * speed + avoidanceX * 0.1;
-                const moveY = Math.sin(targetAngle) * speed + avoidanceY * 0.1;
+                // Apply movement with avoidance, scaled by simulation speed factor for slow motion
+                const moveX = (Math.cos(targetAngle) * baseSpeed + avoidanceX * 0.1) * speedFactor;
+                const moveY = (Math.sin(targetAngle) * baseSpeed + avoidanceY * 0.1) * speedFactor;
                 
                 tank.x += moveX;
                 tank.y += moveY;
@@ -3183,6 +3190,7 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-textures-mode', this.useGraphicsMode ? 'Graphics' : 'Textures');
             window.debugPanel.updateValue('debug-row-numbers', this.rowNumbersVisible ? 'Visible' : 'Hidden');
             window.debugPanel.updateValue('debug-attack-ranges', this.attackRangesVisible ? 'Visible' : 'Hidden');
+            window.debugPanel.updateValue('debug-speed', `${(this.simulationSpeed || 1).toFixed(2)}x`);
 
         } catch (error) {
             console.warn('Debug panel update error:', error);
@@ -4227,6 +4235,54 @@ class BattleScene extends Phaser.Scene {
             this.overtimeActive, 
             this.buildings
         );
+    }
+
+    getSimulationSpeed() {
+        return this.simulationSpeed || 1;
+    }
+
+    setSimulationSpeed(speed) {
+        const parsedSpeed = Number(speed);
+        const numericSpeed = Math.max(0.1, Number.isFinite(parsedSpeed) ? parsedSpeed : 1);
+        this.simulationSpeed = numericSpeed;
+        const matchedIndex = this.simulationSpeedOptions.indexOf(numericSpeed);
+        if (matchedIndex !== -1) {
+            this.simulationSpeedIndex = matchedIndex;
+        }
+        this.applySimulationSpeed();
+        if (window.refreshSpeedButtonState) {
+            window.refreshSpeedButtonState();
+        }
+        // Force immediate debug panel refresh on next frame
+        if (typeof this.debugUpdateInterval === 'number') {
+            this.debugUpdateTimer = this.debugUpdateInterval;
+        }
+        return this.simulationSpeed;
+    }
+
+    toggleSimulationSpeed() {
+        if (!Array.isArray(this.simulationSpeedOptions) || this.simulationSpeedOptions.length === 0) {
+            this.simulationSpeedOptions = [1];
+        }
+        this.simulationSpeedIndex = (this.simulationSpeedIndex + 1) % this.simulationSpeedOptions.length;
+        const nextSpeed = this.simulationSpeedOptions[this.simulationSpeedIndex];
+        return this.setSimulationSpeed(nextSpeed);
+    }
+
+    applySimulationSpeed() {
+        const speed = this.simulationSpeed || 1;
+        if (this.time) {
+            this.time.timeScale = speed;
+        }
+        if (this.tweens) {
+            this.tweens.timeScale = speed;
+        }
+        if (this.physics && this.physics.world) {
+            this.physics.world.timeScale = speed;
+        }
+        if (window.debugPanel) {
+            window.debugPanel.updateValue('debug-speed', `${speed.toFixed(2)}x`);
+        }
     }
     
     // Row Numbers Display Methods

@@ -9,6 +9,9 @@ class MenuScene extends Phaser.Scene {
         
         // Make this scene accessible to HTML buttons
         window.currentScene = this;
+        if (window.refreshSpeedButtonState) {
+            window.refreshSpeedButtonState();
+        }
         
         // Background
         this.cameras.main.setBackgroundColor('#2c5234');
@@ -174,6 +177,8 @@ class MenuScene extends Phaser.Scene {
             // Deployment Zones
             window.debugPanel.updateValue('debug-player-expanded', '-');
             window.debugPanel.updateValue('debug-ai-expanded', '-');
+
+            window.debugPanel.updateValue('debug-speed', '-');
 
         } catch (error) {
             console.warn('Debug panel update error in menu:', error);

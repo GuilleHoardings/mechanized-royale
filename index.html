@@ -11,6 +11,7 @@
     <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
     <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
     <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
+    <button class="speed-toggle" id="speed-toggle" onclick="cycleGameSpeed()" disabled>Speed: 1.00x</button>
     
     <div id="game-container">
         <div id="loading">
@@ -142,6 +143,10 @@
                 <span class="debug-label">Attack Ranges:</span>
                 <span class="debug-value" id="debug-attack-ranges">-</span>
             </div>
+            <div class="debug-item">
+                <span class="debug-label">Speed:</span>
+                <span class="debug-value" id="debug-speed">1.00x</span>
+            </div>
         </div>
     </div>
 
@@ -171,6 +176,44 @@
                 window.currentScene.toggleTextures();
             }
         }
+
+        function updateSpeedButtonLabel(speed) {
+            const button = document.getElementById('speed-toggle');
+            if (!button) return;
+            const displaySpeed = typeof speed === 'number' ? speed : 1;
+            button.textContent = `Speed: ${displaySpeed.toFixed(2)}x`;
+            if (displaySpeed < 1) {
+                button.classList.add('speed-slow');
+            } else {
+                button.classList.remove('speed-slow');
+            }
+        }
+
+        function refreshSpeedButtonState() {
+            const button = document.getElementById('speed-toggle');
+            if (!button) return;
+            const scene = window.currentScene;
+            const hasControl = scene && typeof scene.toggleSimulationSpeed === 'function';
+            button.disabled = !hasControl;
+            const speed = hasControl && typeof scene.getSimulationSpeed === 'function'
+                ? scene.getSimulationSpeed()
+                : 1;
+            updateSpeedButtonLabel(speed);
+            button.title = hasControl ? 'Cycle through analysis-friendly slow speeds' : 'Available during battles';
+        }
+
+        function cycleGameSpeed() {
+            const scene = window.currentScene;
+            if (!scene || typeof scene.toggleSimulationSpeed !== 'function') {
+                return;
+            }
+            scene.toggleSimulationSpeed();
+        }
+
+        window.updateSpeedButtonLabel = updateSpeedButtonLabel;
+        window.refreshSpeedButtonState = refreshSpeedButtonState;
+
+        refreshSpeedButtonState();
         
         // Make debug functions globally accessible
         window.debugPanel = {
