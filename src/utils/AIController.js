@@ -99,7 +99,7 @@ class AIController {
     }
 
     /**
-     * Updates the debug display for AI strategy
+     * Updates the display for AI strategy
      */
     updateAIStrategyDisplay() {
         if (this.scene.aiStrategyText) {

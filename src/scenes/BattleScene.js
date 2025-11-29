@@ -362,37 +362,42 @@ class BattleScene extends Phaser.Scene {
         // Timer in top right corner
         this.createTimer();
 
-        // AI Strategy indicator with modern panel
+        // AI Strategy indicator - sized for 5 lines of debug info
         const aiStatusBg = this.add.graphics();
         aiStatusBg.fillStyle(0x1e293b, 0.85);
-        aiStatusBg.fillRoundedRect(15, 45, 220, 28, 6);
+        aiStatusBg.fillRoundedRect(5, 32, 105, 70, 4);
         aiStatusBg.lineStyle(1, 0x3d5a80, 0.4);
-        aiStatusBg.strokeRoundedRect(15, 45, 220, 28, 6);
+        aiStatusBg.strokeRoundedRect(5, 32, 105, 70, 4);
         aiStatusBg.setScrollFactor(0);
+        aiStatusBg.setDepth(1000);
         
-        this.aiStrategyText = this.add.text(25, 59, '🤖 AI: Analyzing...', {
-            fontSize: '13px',
+        this.aiStrategyText = this.add.text(10, 36, 'AI: ---', {
+            fontSize: '9px',
             fill: '#fbbf24',
             fontFamily: 'Arial',
-            fontWeight: '600'
+            fontWeight: '600',
+            lineSpacing: 2
         });
         this.aiStrategyText.setScrollFactor(0);
+        this.aiStrategyText.setDepth(1000);
 
-        // Back button with modern styling
+        // Back button with modern styling - compact in top left margin
         const backButtonBg = this.add.graphics();
         backButtonBg.fillStyle(0x1e293b, 0.9);
-        backButtonBg.fillRoundedRect(15, 10, 80, 30, 6);
+        backButtonBg.fillRoundedRect(5, 5, 70, 24, 4);
         backButtonBg.lineStyle(1, 0x3d5a80, 0.5);
-        backButtonBg.strokeRoundedRect(15, 10, 80, 30, 6);
+        backButtonBg.strokeRoundedRect(5, 5, 70, 24, 4);
         backButtonBg.setScrollFactor(0);
+        backButtonBg.setDepth(1000);
         
-        const backButton = this.add.text(55, 25, '← Menu', {
-            fontSize: '14px',
+        const backButton = this.add.text(40, 17, '← Menu', {
+            fontSize: '11px',
             fill: '#e2e8f0',
             fontFamily: 'Arial',
             fontWeight: '600'
         }).setOrigin(0.5).setInteractive();
         backButton.setScrollFactor(0);
+        backButton.setDepth(1000);
 
         backButton.on('pointerover', () => {
             backButton.setFill('#60a5fa');
@@ -572,61 +577,67 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTimer() {
-        // Timer background panel
+        // Timer background panel - compact in top right margin
         const timerBg = this.add.graphics();
         timerBg.fillStyle(0x1e293b, 0.9);
-        timerBg.fillRoundedRect(GAME_CONFIG.WIDTH - 85, 12, 75, 32, 8);
+        timerBg.fillRoundedRect(GAME_CONFIG.WIDTH - 70, 5, 65, 24, 4);
         timerBg.lineStyle(1, 0x3d5a80, 0.5);
-        timerBg.strokeRoundedRect(GAME_CONFIG.WIDTH - 85, 12, 75, 32, 8);
+        timerBg.strokeRoundedRect(GAME_CONFIG.WIDTH - 70, 5, 65, 24, 4);
         timerBg.setScrollFactor(0);
+        timerBg.setDepth(1000);
         
         // Timer text with icon
-        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 48, 28, `⏱ ${this.formatTime(this.battleTime)}`, {
-            fontSize: '16px',
+        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 38, 17, `⏱ ${this.formatTime(this.battleTime)}`, {
+            fontSize: '12px',
             fill: '#f1f5f9',
             fontFamily: 'Arial',
             fontWeight: 'bold'
         }).setOrigin(0.5);
         this.timerText.setScrollFactor(0);
+        this.timerText.setDepth(1000);
 
         // Tower status display
         this.createTowerStatusDisplay();
     }
 
     createTowerStatusDisplay() {
-        // Player tower status panel (bottom left)
-        const playerPanelBg = this.add.graphics();
-        playerPanelBg.fillStyle(0x1e293b, 0.85);
-        playerPanelBg.fillRoundedRect(15, GAME_CONFIG.HEIGHT - 160, 130, 95, 8);
-        playerPanelBg.lineStyle(1, 0x60a5fa, 0.4);
-        playerPanelBg.strokeRoundedRect(15, GAME_CONFIG.HEIGHT - 160, 130, 95, 8);
-        playerPanelBg.setScrollFactor(0);
-        
-        this.playerTowerStatus = this.add.text(25, GAME_CONFIG.HEIGHT - 150, '', {
-            fontSize: '11px',
-            fill: '#60a5fa',
-            fontFamily: 'Arial',
-            fontWeight: '600',
-            lineSpacing: 3
-        });
-        this.playerTowerStatus.setScrollFactor(0);
-
-        // Enemy tower status panel (top left, below AI status)
+        // Enemy tower status panel - below AI status panel (which ends at y=102)
         const enemyPanelBg = this.add.graphics();
         enemyPanelBg.fillStyle(0x1e293b, 0.85);
-        enemyPanelBg.fillRoundedRect(15, 78, 130, 95, 8);
+        enemyPanelBg.fillRoundedRect(5, 108, 85, 45, 4);
         enemyPanelBg.lineStyle(1, 0xf87171, 0.4);
-        enemyPanelBg.strokeRoundedRect(15, 78, 130, 95, 8);
+        enemyPanelBg.strokeRoundedRect(5, 108, 85, 45, 4);
         enemyPanelBg.setScrollFactor(0);
+        enemyPanelBg.setDepth(1000);
         
-        this.enemyTowerStatus = this.add.text(25, 88, '', {
-            fontSize: '11px',
+        this.enemyTowerStatus = this.add.text(10, 112, '', {
+            fontSize: '9px',
             fill: '#f87171',
             fontFamily: 'Arial',
             fontWeight: '600',
-            lineSpacing: 3
+            lineSpacing: 2
         });
         this.enemyTowerStatus.setScrollFactor(0);
+        this.enemyTowerStatus.setDepth(1000);
+
+        // Player tower status panel - below enemy panel (which ends at y=153)
+        const playerPanelBg = this.add.graphics();
+        playerPanelBg.fillStyle(0x1e293b, 0.85);
+        playerPanelBg.fillRoundedRect(5, 156, 85, 45, 4);
+        playerPanelBg.lineStyle(1, 0x60a5fa, 0.4);
+        playerPanelBg.strokeRoundedRect(5, 156, 85, 45, 4);
+        playerPanelBg.setScrollFactor(0);
+        playerPanelBg.setDepth(1000);
+        
+        this.playerTowerStatus = this.add.text(10, 160, '', {
+            fontSize: '9px',
+            fill: '#60a5fa',
+            fontFamily: 'Arial',
+            fontWeight: '600',
+            lineSpacing: 2
+        });
+        this.playerTowerStatus.setScrollFactor(0);
+        this.playerTowerStatus.setDepth(1000);
 
         this.updateTowerStatusDisplay();
     }
@@ -635,19 +646,17 @@ class BattleScene extends Phaser.Scene {
         const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
         const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
 
-        // Player towers with icons
-        let playerStatus = '⚔️ YOUR TOWERS\n';
-        playerStatus += `💀 ${this.towerStats.enemy.towersDestroyed}/3 Destroyed\n`;
-        playerStatus += playerTowers.find(t => t.towerType === 'left') ? '🟢 Left\n' : '🔴 Left\n';
-        playerStatus += playerTowers.find(t => t.towerType === 'right') ? '🟢 Right\n' : '🔴 Right\n';
-        playerStatus += playerTowers.find(t => t.isMainTower) ? '👑 Main' : '💀 Main';
+        // Compact player towers display without emojis
+        const pL = playerTowers.find(t => t.towerType === 'left') ? '+' : 'x';
+        const pR = playerTowers.find(t => t.towerType === 'right') ? '+' : 'x';
+        const pM = playerTowers.find(t => t.isMainTower) ? '+' : 'x';
+        let playerStatus = `YOU\nL:${pL} R:${pR}\nMain:${pM}`;
 
-        // Enemy towers with icons
-        let enemyStatus = '🤖 ENEMY TOWERS\n';
-        enemyStatus += `💀 ${this.towerStats.player.towersDestroyed}/3 Destroyed\n`;
-        enemyStatus += enemyTowers.find(t => t.towerType === 'left') ? '🟢 Left\n' : '🔴 Left\n';
-        enemyStatus += enemyTowers.find(t => t.towerType === 'right') ? '🟢 Right\n' : '🔴 Right\n';
-        enemyStatus += enemyTowers.find(t => t.isMainTower) ? '👑 Main' : '💀 Main';
+        // Compact enemy towers display without emojis
+        const eL = enemyTowers.find(t => t.towerType === 'left') ? '+' : 'x';
+        const eR = enemyTowers.find(t => t.towerType === 'right') ? '+' : 'x';
+        const eM = enemyTowers.find(t => t.isMainTower) ? '+' : 'x';
+        let enemyStatus = `ENEMY\nL:${eL} R:${eR}\nMain:${eM}`;
 
         this.playerTowerStatus.setText(playerStatus);
         this.enemyTowerStatus.setText(enemyStatus);
@@ -2422,41 +2431,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateAIStrategy() {
-        // Analyze current battlefield situation
-        const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
-        const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-        const playerBase = this.buildings.find(b => b.isPlayerBase);
-        const aiBase = this.buildings.find(b => !b.isPlayerBase);
-        
-        this.aiStrategy.playerTankCount = playerTanks.length;
-        this.aiStrategy.baseHealthPercent = aiBase ? aiBase.health / aiBase.maxHealth : 0;
-        
-        // Strategic mode switching
-        if (this.aiStrategy.baseHealthPercent < 0.3) {
-            // Base under threat - go defensive
-            this.aiStrategy.mode = 'defensive';
-            this.aiStrategy.defensiveMode = true;
-            this.aiStrategy.preferredTankTypes = ['tank_heavy_1', 'tank_medium_1'];
-        } else if (playerBase && playerBase.health / playerBase.maxHealth < 0.4) {
-            // Player base weak - go aggressive
-            this.aiStrategy.mode = 'aggressive';
-            this.aiStrategy.rushMode = true;
-            this.aiStrategy.preferredTankTypes = ['tank_light_1', 'tank_light_2', 'tank_medium_1'];
-        } else if (this.battleTime < 60) {
-            // Low time - final push
-            this.aiStrategy.mode = 'aggressive';
-            this.aiStrategy.rushMode = true;
-            this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_heavy_1'];
-        } else if (aiTanks.length < playerTanks.length - 1) {
-            // Outnumbered - defensive play
-            this.aiStrategy.mode = 'defensive';
-            this.aiStrategy.preferredTankTypes = ['tank_heavy_1', 'tank_medium_1'];
-        } else {
-            // Balanced gameplay
-            this.aiStrategy.mode = 'balanced';
-            this.aiStrategy.rushMode = false;
-            this.aiStrategy.defensiveMode = false;
-            this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_light_1'];
+        // Delegate to AIController which manages the strategy
+        if (this.aiController) {
+            this.aiController.updateAIStrategy();
         }
         
         // Update AI strategy display
@@ -2465,23 +2442,26 @@ class BattleScene extends Phaser.Scene {
 
     updateAIStrategyDisplay() {
         if (!this.aiStrategyText) return;
+        if (!this.aiController || !this.aiController.aiStrategy) return;
         
         const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-        const energyStatus = this.aiEnergy >= 6 ? '🔋' : this.aiEnergy >= 3 ? '⚡' : '🪫';
+        const strategy = this.aiController.aiStrategy;
         
-        let strategyText = `🤖 ${this.aiStrategy.mode.toUpperCase()}`;
+        // Compact single-line display
+        let strategyText = 'AI: ';
         
-        if (this.aiStrategy.rushMode) {
-            strategyText += ' ⚔️ RUSHING';
+        if (strategy.rushMode) {
+            strategyText += 'RUSH';
             this.aiStrategyText.setFill('#f87171');
-        } else if (this.aiStrategy.defensiveMode) {
-            strategyText += ' 🛡️ DEFENDING';
+        } else if (strategy.defensiveMode) {
+            strategyText += 'DEF';
             this.aiStrategyText.setFill('#60a5fa');
         } else {
+            strategyText += strategy.mode.substring(0, 3).toUpperCase();
             this.aiStrategyText.setFill('#fbbf24');
         }
         
-        strategyText += ` | ${energyStatus} | 🛡️${aiTanks.length}`;
+        strategyText += ` [${aiTanks.length}]`;
         this.aiStrategyText.setText(strategyText);
     }
 
