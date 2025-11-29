@@ -2652,16 +2652,36 @@ class BattleScene extends Phaser.Scene {
         this.nextCardIndex = 0;
     }
 
-    getNextCard() {
+    getNextCard(excludeSlotIndex = -1) {
+        // Build list of cards currently in hand (excluding the slot being replaced)
+        const cardsInHand = this.hand.filter((_, idx) => idx !== excludeSlotIndex);
+        
+        // Try to find a card not already in hand
+        let attempts = 0;
+        const maxAttempts = this.deck.length * 2; // Prevent infinite loop
+        
+        while (attempts < maxAttempts) {
+            if (this.nextCardIndex >= this.deck.length) {
+                this.shuffleDeck();
+            }
+            const id = this.deck[this.nextCardIndex++];
+            
+            // If this card is not already in hand, use it
+            if (!cardsInHand.includes(id)) {
+                return id;
+            }
+            attempts++;
+        }
+        
+        // Fallback: if all cards are duplicates (shouldn't happen with proper deck), just return any
         if (this.nextCardIndex >= this.deck.length) {
             this.shuffleDeck();
         }
-        const id = this.deck[this.nextCardIndex++];
-        return id;
+        return this.deck[this.nextCardIndex++];
     }
 
     cycleCard(usedCardIndex) {
-        const newCardId = this.getNextCard();
+        const newCardId = this.getNextCard(usedCardIndex);
         this.hand[usedCardIndex] = newCardId;
         this.updateCardDisplay(usedCardIndex);
     }
