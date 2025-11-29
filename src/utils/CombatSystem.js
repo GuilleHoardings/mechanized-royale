@@ -13,7 +13,9 @@ class CombatSystem {
      * @param {Object} tank - Tank object to check
      */
     checkTankCombat(tank) {
-        if (!tank.target || tank.moving) return;
+    // Skip if stunned
+    if (tank.stunnedUntil && this.scene.time.now < tank.stunnedUntil) return;
+    if (!tank.target || tank.moving) return;
 
         const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - tank.lastShotTime;
@@ -34,7 +36,10 @@ class CombatSystem {
      * @param {Object} base - Base object to check
      */
     checkBaseCombat(base) {
-        if (!base.target) return;
+    // Skip if stunned or shooting disabled
+    if (base.stunnedUntil && this.scene.time.now < base.stunnedUntil) return;
+    if (base.canShoot === false) return;
+    if (!base.target) return;
 
         const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - base.lastShotTime;

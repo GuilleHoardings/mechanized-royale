@@ -170,6 +170,16 @@ const GameHelpers = {
         };
     },
 
+    // Check if a world position falls within the battlefield bounds
+    isWithinBattlefieldWorld(x, y) {
+        const offsetX = this.getBattlefieldOffset();
+        const minX = offsetX;
+        const maxX = offsetX + GAME_CONFIG.WORLD_WIDTH;
+        const minY = 0;
+        const maxY = GAME_CONFIG.WORLD_HEIGHT;
+        return x >= minX && x <= maxX && y >= minY && y <= maxY;
+    },
+
     // Save game state to localStorage
     saveGameState(gameState) {
         try {

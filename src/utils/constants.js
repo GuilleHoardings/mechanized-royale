@@ -20,6 +20,13 @@ const TANK_TYPES = {
     FAST_ATTACK: 'fast_attack'
 };
 
+// Card categories for the deck/hand system
+const CARD_TYPES = {
+    TROOP: 'troop',
+    SPELL: 'spell',
+    BUILDING: 'building'
+};
+
 const GAME_STATES = {
     MENU: 'menu',
     BATTLE: 'battle',

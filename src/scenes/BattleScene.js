@@ -79,8 +79,8 @@ class BattleScene extends Phaser.Scene {
         // Battle control flag
         this.battleEnded = false;
         
-        // Card deck system
-        this.deck = [...this.gameState.player.tanks]; // Copy player's tanks
+    // Card deck system (8-card rotation)
+    this.deck = [...DEFAULT_PLAYER_DECK];
         this.hand = [];
         this.nextCardIndex = 0;
         this.initializeDeck();
@@ -382,8 +382,15 @@ class BattleScene extends Phaser.Scene {
         
         // Create 4 cards from hand
         for (let index = 0; index < 4; index++) {
-            const tankId = this.hand[index];
-            const tankData = TANK_DATA[tankId];
+            const cardId = this.hand[index];
+            const cardDef = CARDS[cardId];
+            // Determine a representative tank type for icon rendering
+            const iconTankType = cardDef.type === CARD_TYPES.TROOP
+                ? TANK_DATA[cardDef.payload.tankId]?.type || TANK_TYPES.LIGHT
+                : (cardDef.type === CARD_TYPES.BUILDING ? TANK_TYPES.MEDIUM : TANK_TYPES.LIGHT);
+            const tankData = cardDef.type === CARD_TYPES.TROOP
+                ? TANK_DATA[cardDef.payload.tankId]
+                : null;
             const cardX = startX + index * cardSpacing;
 
             // Card background
@@ -393,13 +400,14 @@ class BattleScene extends Phaser.Scene {
                 .setOrigin(0);
             card.setScrollFactor(0);
 
-            // Tank icon - create miniature version of actual tank, positioned higher and larger
-            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardsY + 30, tankData.type);
+            // Icon - use mini tank drawing; for non-troops, use representative type only for icon
+            const tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardsY + 30, iconTankType);
             tankIcon.setScale(1.0); // Increased from 0.6 to 1.0 for bigger tanks
             card.tankIcon = tankIcon;
 
             // Cost - moved to top right corner with better styling
-            const costText = this.add.text(cardX + cardWidth - 8, cardsY + 8, tankData.cost, {
+            const costValue = cardDef.cost;
+            const costText = this.add.text(cardX + cardWidth - 8, cardsY + 8, costValue, {
                 fontSize: UI_CONFIG.CARDS.COST_TEXT.FONT_SIZE,
                 fill: UI_CONFIG.CARDS.COST_TEXT.COLOR,
                 fontFamily: 'Arial',
@@ -409,7 +417,8 @@ class BattleScene extends Phaser.Scene {
             costText.setScrollFactor(0);
 
             // Card name - positioned lower with improved styling
-            const nameText = this.add.text(cardX + cardWidth/2, cardsY + cardHeight - 12, tankData.name, {
+            const displayName = cardDef.name;
+            const nameText = this.add.text(cardX + cardWidth/2, cardsY + cardHeight - 12, displayName, {
                 fontSize: UI_CONFIG.CARDS.NAME_TEXT.FONT_SIZE,
                 fill: UI_CONFIG.CARDS.NAME_TEXT.COLOR,
                 fontFamily: 'Arial'
@@ -425,7 +434,10 @@ class BattleScene extends Phaser.Scene {
 
             // Store references
             card.index = index;
-            card.tankId = tankId;
+            card.cardId = cardId;
+            card.cardDef = cardDef;
+            card.cardType = cardDef.type;
+            card.tankId = cardDef.type === CARD_TYPES.TROOP ? cardDef.payload.tankId : null;
             card.tankData = tankData;
             card.costText = costText;
             card.nameText = nameText;
@@ -610,8 +622,9 @@ class BattleScene extends Phaser.Scene {
     showCardTooltip(cardIndex, x, y) {
         // Always hide any existing tooltip first to prevent overlaps
         this.hideCardTooltip();
-        
-        const tankData = this.tankCards[cardIndex].tankData;
+        const cardRef = this.tankCards[cardIndex];
+        const isTroop = cardRef.cardType === CARD_TYPES.TROOP;
+        const tankData = isTroop ? cardRef.tankData : null;
         
         // Dynamic positioning to avoid edge clipping
         const tooltipWidth = 280;
@@ -630,19 +643,20 @@ class BattleScene extends Phaser.Scene {
         this.cardTooltip.setScrollFactor(0);
         this.cardTooltip.setDepth(100); // Ensure tooltip is on top
         
-        // Enhanced tooltip background with gradient effect
+    // Enhanced tooltip background with gradient effect
         const tooltipBg = this.add.graphics();
         
         // Main background
         tooltipBg.fillStyle(0x1a1a1a, 0.95);
         tooltipBg.fillRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
         
-        // Border with team color accent
-        const borderColor = tankData.cost <= this.energy ? 0x4a90e2 : 0x666666;
+    // Determine cost (troop vs non-troop) and draw border with energy accent
+    const costVal = isTroop ? tankData.cost : cardRef.cardDef.cost;
+    const borderColor = costVal <= this.energy ? 0x4a90e2 : 0x666666;
         tooltipBg.lineStyle(3, borderColor, 0.8);
         tooltipBg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
         
-        // Header section with tank type color
+        // Header section with type color
         const typeColors = {
             [TANK_TYPES.LIGHT]: 0x00ff88,
             [TANK_TYPES.MEDIUM]: 0xffaa00,
@@ -651,41 +665,56 @@ class BattleScene extends Phaser.Scene {
             [TANK_TYPES.ARTILLERY]: 0xffff00,
             [TANK_TYPES.FAST_ATTACK]: 0x00ccff
         };
-        const headerColor = typeColors[tankData.type] || 0x4a90e2;
+        const headerColor = isTroop ? (typeColors[tankData.type] || 0x4a90e2) : 0x4a90e2;
         tooltipBg.fillStyle(headerColor, 0.3);
         tooltipBg.fillRoundedRect(2, 2, tooltipWidth - 4, 35, 6);
         
         // Tank name and tier
-        const nameText = this.add.text(15, 12, `${tankData.name}`, {
+        const nameText = this.add.text(15, 12, isTroop ? `${tankData.name}` : `${cardRef.cardDef.name}`, {
             fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Arial',
             fontStyle: 'bold'
         });
-        
-        const tierText = this.add.text(tooltipWidth - 15, 12, `Tier ${tankData.tier}`, {
+        const tierText = this.add.text(tooltipWidth - 15, 12, isTroop ? `Tier ${tankData.tier}` : `${cardRef.cardDef.type.toUpperCase()}`, {
             fontSize: '12px',
             fill: '#cccccc',
             fontFamily: 'Arial'
         }).setOrigin(1, 0);
         
         // Tank type indicator
-        const typeText = this.add.text(15, 28, tankData.type.toUpperCase(), {
+        const typeText = this.add.text(15, 28, isTroop ? tankData.type.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
             fontSize: '10px',
             fill: '#aaaaaa',
             fontFamily: 'Arial'
         });
         
-        // Cost indicator with energy status
-        const costColor = tankData.cost <= this.energy ? '#00ff00' : '#ff6666';
-        const costText = this.add.text(tooltipWidth - 15, 28, `Cost: ${tankData.cost}`, {
+    // Cost indicator with energy status
+        const costColor = costVal <= this.energy ? '#00ff00' : '#ff6666';
+        const costText = this.add.text(tooltipWidth - 15, 28, `Cost: ${costVal}`, {
             fontSize: '12px',
             fill: costColor,
             fontFamily: 'Arial',
             fontStyle: 'bold'
         }).setOrigin(1, 0);
         
-        // Main stats section
+        if (!isTroop) {
+            // Simple content for spells/buildings
+            const descY = 55;
+            const desc = cardRef.cardDef.id === 'zap' ? `Small area damage and brief stun.`
+                        : cardRef.cardDef.id === 'fireball' ? `Medium-radius area damage.`
+                        : cardRef.cardDef.id === 'furnace' ? `Spawns fire spirits periodically.`
+                        : `Special card.`;
+            const body = this.add.text(15, descY, desc, {
+                fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', wordWrap: { width: tooltipWidth - 30 }
+            });
+            this.cardTooltip.add([tooltipBg, nameText, tierText, typeText, costText, body]);
+            this.cardTooltip.alpha = 0;
+            this.tooltipFadeInTween = this.tweens.add({ targets: this.cardTooltip, alpha: 1, duration: 150 });
+            return;
+        }
+        
+        // Main stats section (troop)
         const statsY = 50;
         const leftColumnX = 15;
         const rightColumnX = 150;
@@ -728,9 +757,9 @@ class BattleScene extends Phaser.Scene {
             lineSpacing: 2
         });
         
-        // Abilities section
+    // Abilities section
         const abilitiesY = 120;
-        if (tankData.abilities && tankData.abilities.length > 0) {
+    if (tankData.abilities && tankData.abilities.length > 0) {
             const abilitiesTitle = this.add.text(leftColumnX, abilitiesY, 'ABILITIES', {
                 fontSize: '11px',
                 fill: '#ff6699',
@@ -1395,17 +1424,16 @@ class BattleScene extends Phaser.Scene {
         
         // Check if click started in valid deployment area
         if (GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
-            const selectedCardData = this.tankCards[this.selectedCard];
-            
-            // Always start preview - we'll check energy when actually deploying
-            this.startDeploymentPreview(tileCoords.tileX, tileCoords.tileY, selectedCardData);
+            const selectedCard = this.tankCards[this.selectedCard];
+            // Only show preview for troop cards
+            if (selectedCard.cardType === CARD_TYPES.TROOP) {
+                this.startDeploymentPreview(tileCoords.tileX, tileCoords.tileY, selectedCard);
+            }
         }
     }
 
     onPointerMove(pointer) {
-        if (!this.deploymentPreview.active) {
-            return;
-        }
+    if (!this.deploymentPreview.active) { return; }
         
         // Convert screen coordinates to world coordinates
         const worldX = pointer.worldX;
@@ -1417,23 +1445,40 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerUp(pointer) {
-        if (!this.deploymentPreview.active) {
+        const selectedCard = this.tankCards[this.selectedCard];
+        if (selectedCard.cardType !== CARD_TYPES.TROOP) {
+            // Handle spells/buildings immediately on pointer up
+            const worldX = pointer.worldX;
+            const worldY = pointer.worldY;
+            this.useNonTroopCardAt(selectedCard, worldX, worldY);
             return;
         }
+        if (!this.deploymentPreview.active) { return; }
         
         // If the preview is in a valid position, deploy the tank
         if (this.deploymentPreview.validPosition) {
             const selectedCardData = this.tankCards[this.selectedCard];
             
-            // Check energy when actually deploying
-            if (this.energy >= selectedCardData.tankData.cost) {
+            // Check energy when actually deploying (use card cost)
+            if (this.energy >= selectedCardData.cardDef.cost) {
                 const snappedPos = GameHelpers.tileToWorld(
                     this.deploymentPreview.tileX, 
                     this.deploymentPreview.tileY
                 );
                 
-                this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
-                this.energy -= selectedCardData.tankData.cost;
+                // Swarm support (e.g., Skeleton Army)
+                const payload = selectedCardData.cardDef.payload || {};
+                if (payload.swarm && payload.count && selectedCardData.tankId) {
+                    for (let i = 0; i < payload.count; i++) {
+                        const ox = GameHelpers.randomInt(-15, 15);
+                        const oy = GameHelpers.randomInt(-10, 10);
+                        this.deployTank(selectedCardData.tankId, snappedPos.worldX + ox, snappedPos.worldY + oy);
+                    }
+                } else {
+                    this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
+                }
+                // Deduct card cost
+                this.energy -= selectedCardData.cardDef.cost;
                 this.updateEnergyBar();
                 
                 // Cycle the used card
@@ -1481,6 +1526,185 @@ class BattleScene extends Phaser.Scene {
         this.updateDeploymentPreview(tileX, tileY);
     }
 
+    // Use a non-troop card (spell or building) at world position
+    useNonTroopCardAt(selectedCard, worldX, worldY) {
+        const card = selectedCard.cardDef;
+        if (!card) return;
+        if (this.energy < card.cost) {
+            this.showInsufficientEnergyFeedback();
+            return;
+        }
+        // Basic placement validation
+        if (!GameHelpers.isWithinBattlefieldWorld(worldX, worldY)) {
+            this.showInvalidPlacementFeedback('Place inside the battlefield');
+            return;
+        }
+        const { tileX, tileY } = GameHelpers.worldToTile(worldX, worldY);
+        if (card.type === CARD_TYPES.BUILDING) {
+            // Buildings must be placed in player's current deployment zones (including expansions)
+            if (!GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones)) {
+                this.showInvalidPlacementFeedback('Place building on your side');
+                return;
+            }
+        }
+        if (card.type === CARD_TYPES.SPELL) {
+            // Spells can be cast anywhere on battlefield, but we'll bias toward targeting enemies
+            // If no enemies in radius, warn once and still allow
+            const radius = card.payload?.radius || 0;
+            const anyEnemyInRadius = this.tanks.concat(this.buildings).some(o => {
+                if (!o || o.health <= 0) return false;
+                const isEnemy = (o.isPlayerTank === false) || (!o.isPlayerTank && o.isPlayerBase === false);
+                const d = GameHelpers.distance(worldX, worldY, o.x, o.y);
+                return isEnemy && d <= radius;
+            });
+            if (radius > 0 && !anyEnemyInRadius) {
+                this.showInvalidPlacementFeedback('No enemies in spell radius');
+                // Still allow casting for flexibility; comment next line to block
+                // return;
+            }
+        }
+        if (card.type === CARD_TYPES.SPELL) {
+            this.castSpell(card, worldX, worldY);
+        } else if (card.type === CARD_TYPES.BUILDING) {
+            this.placeBuilding(card, worldX, worldY);
+        }
+        this.energy -= card.cost;
+        this.updateEnergyBar();
+        this.cycleCard(this.selectedCard);
+    }
+
+    castSpell(card, x, y) {
+        if (card.id === 'zap') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, 0x66ccff);
+            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+                // Only affect enemies
+                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
+                if (!isEnemy) return;
+                target.health = Math.max(0, target.health - card.payload.damage);
+                target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
+                this.combatSystem.updateHealthDisplay(target);
+                if (target.health <= 0) {
+                    this.combatSystem.handleTargetDestruction(target, null);
+                }
+            });
+            this.playUISound('shoot');
+        } else if (card.id === 'fireball') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff7733);
+            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
+                if (!isEnemy) return;
+                target.health = Math.max(0, target.health - card.payload.damage);
+                this.combatSystem.updateHealthDisplay(target);
+                if (target.health <= 0) {
+                    this.combatSystem.handleTargetDestruction(target, null);
+                }
+            });
+            this.combatSystem.showExplosionEffect(x, y, 1.2);
+            this.playUISound('explosion');
+        }
+    }
+
+    placeBuilding(card, x, y) {
+        // Simple furnace: periodically spawns fire spirits toward enemy side
+        const furnace = this.add.container(x, y);
+        const g = this.add.graphics();
+        g.fillStyle(0x444444);
+        g.fillRect(-12, -8, 24, 16);
+        g.fillStyle(0xff5500);
+        g.fillCircle(0, 0, 5);
+        furnace.add(g);
+    furnace.health = 400;
+        furnace.maxHealth = 400;
+        furnace.isPlayerBase = true; // So it can be targeted like a building
+        furnace.lastShotTime = 0;
+        furnace.target = null;
+        furnace.lastTargetUpdate = 0;
+    furnace.canShoot = false; // Decorative spawner, not a tower
+        this.buildings.push(furnace);
+        // Create a health bar for the building
+        const config = UI_CONFIG.HEALTH_BARS.TOWER;
+        const healthBg = this.add.graphics();
+        healthBg.fillStyle(config.BACKGROUND_COLOR);
+        healthBg.fillRect(
+            furnace.x - config.OFFSET_X,
+            furnace.y - config.OFFSET_Y,
+            config.WIDTH,
+            config.HEIGHT
+        );
+        furnace.healthBg = healthBg;
+        const healthFill = this.add.graphics();
+        furnace.healthFill = healthFill;
+        const healthText = this.add.text(
+            furnace.x,
+            furnace.y - config.OFFSET_Y - 15,
+            `${furnace.health}/${furnace.maxHealth}`,
+            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
+        ).setOrigin(0.5);
+        furnace.healthText = healthText;
+        this.updateBuildingHealth(furnace);
+        // Lifetime
+        this.time.delayedCall(card.payload.lifetimeMs, () => {
+            const idx = this.buildings.indexOf(furnace);
+            if (idx >= 0) this.buildings.splice(idx, 1);
+            // Clean up health UI
+            if (furnace.healthBg) furnace.healthBg.destroy();
+            if (furnace.healthFill) furnace.healthFill.destroy();
+            if (furnace.healthText) furnace.healthText.destroy();
+            furnace.destroy();
+        });
+        // Spawn loop
+        const timer = this.time.addEvent({
+            delay: card.payload.spawnIntervalMs,
+            loop: true,
+            callback: () => {
+                if (!furnace.scene) { timer.remove(); return; }
+                for (let i = 0; i < (card.payload.spawnCount || 1); i++) {
+                    const spawnX = x + (i - ((card.payload.spawnCount||1)-1)/2) * 12;
+                    const spawnY = y - 10;
+                    this.deployTank('tank_fire_spirit', spawnX, spawnY);
+                }
+            }
+        });
+    }
+
+    createSpellEffectCircle(x, y, radius, color) {
+        const gfx = this.add.graphics();
+        gfx.lineStyle(3, color, 1);
+        gfx.strokeCircle(x, y, radius);
+        gfx.setDepth(999);
+        this.tweens.add({ targets: gfx, alpha: 0, duration: 500, onComplete: () => gfx.destroy() });
+    }
+
+    applyAreaEffect(x, y, radius, fn) {
+        const all = [...this.tanks, ...this.buildings];
+        for (const obj of all) {
+            if (!obj || typeof obj.health !== 'number' || obj.health <= 0) continue;
+            const d = GameHelpers.distance(x, y, obj.x, obj.y);
+            if (d <= radius) {
+                fn(obj);
+            }
+        }
+    }
+
+    showInvalidPlacementFeedback(message = 'Invalid placement') {
+        const text = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 220, message, {
+            fontSize: '14px',
+            fill: '#ff6666',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        text.setScrollFactor(0);
+        text.setDepth(60);
+        this.tweens.add({
+            targets: text,
+            alpha: 0,
+            duration: 700,
+            delay: 600,
+            onComplete: () => text.destroy()
+        });
+    }
+
     updateDeploymentPreview(tileX, tileY) {
         if (!this.deploymentPreview.active || !this.deploymentPreview.previewTank) {
             return;
@@ -1500,8 +1724,9 @@ class BattleScene extends Phaser.Scene {
         const isValid = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
         
         // Check if there's enough energy
-        const selectedCardData = this.tankCards[this.selectedCard];
-        const hasEnoughEnergy = this.energy >= selectedCardData.tankData.cost;
+    const selectedCardData = this.tankCards[this.selectedCard];
+    const cost = selectedCardData.cardType === CARD_TYPES.TROOP ? selectedCardData.tankData.cost : selectedCardData.cardDef.cost;
+    const hasEnoughEnergy = this.energy >= cost;
         
         this.deploymentPreview.validPosition = isValid && hasEnoughEnergy;
         
@@ -1552,8 +1777,8 @@ class BattleScene extends Phaser.Scene {
             return;
         }
         
-        const selectedCardData = this.tankCards[this.selectedCard];
-        const range = selectedCardData.tankData.stats.range; // Range is already in pixels
+    const selectedCardData = this.tankCards[this.selectedCard];
+    const range = selectedCardData.tankData?.stats?.range || 0; // Only for troops
         
         this.deploymentPreview.previewRangeCircle.clear();
         
@@ -1576,8 +1801,10 @@ class BattleScene extends Phaser.Scene {
         
         this.deploymentPreview.previewRangeCircle.lineStyle(2, circleColor, 0.8);
         this.deploymentPreview.previewRangeCircle.fillStyle(circleColor, circleAlpha);
-        this.deploymentPreview.previewRangeCircle.fillCircle(worldX, worldY, range);
-        this.deploymentPreview.previewRangeCircle.strokeCircle(worldX, worldY, range);
+        if (range > 0) {
+            this.deploymentPreview.previewRangeCircle.fillCircle(worldX, worldY, range);
+            this.deploymentPreview.previewRangeCircle.strokeCircle(worldX, worldY, range);
+        }
     }
 
     endDeploymentPreview() {
@@ -2296,6 +2523,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateTankMovement(tank) {
+        // Skip movement if stunned
+        if (tank.stunnedUntil && this.time.now < tank.stunnedUntil) {
+            tank.moving = false;
+            return;
+        }
         this.aiController.updateTankAI(tank); // Update AI targeting
         
         // If no target, don't move
@@ -2903,7 +3135,10 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-player-energy', `${this.energy}/${this.maxEnergy}`);
             const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
             window.debugPanel.updateValue('debug-player-tanks', playerTanks.length);
-            window.debugPanel.updateValue('debug-player-hand', this.hand ? this.hand.join(', ') : '-');
+            const handNames = this.hand && Array.isArray(this.hand)
+                ? this.hand.map(id => CARDS?.[id]?.name || id).join(', ')
+                : '-';
+            window.debugPanel.updateValue('debug-player-hand', handNames);
 
             // AI Stats
             window.debugPanel.updateValue('debug-ai-energy', `${this.aiEnergy || 0}/${this.maxEnergy}`);
@@ -2972,15 +3207,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     initializeDeck() {
-        // Ensure we have at least 4 different tanks by filling with available tanks
-        while (this.deck.length < 8) {
-            this.deck.push(...this.gameState.player.tanks);
+        // Ensure 8 cards
+        if (!this.deck || this.deck.length !== 8) {
+            this.deck = [...DEFAULT_PLAYER_DECK];
         }
-        
-        // Shuffle the deck
         this.shuffleDeck();
-        
-        // Fill initial hand of 4 cards
         for (let i = 0; i < 4; i++) {
             this.hand.push(this.getNextCard());
         }
@@ -2997,30 +3228,24 @@ class BattleScene extends Phaser.Scene {
 
     getNextCard() {
         if (this.nextCardIndex >= this.deck.length) {
-            // Reshuffle when deck is exhausted
             this.shuffleDeck();
         }
-        
-        const card = this.deck[this.nextCardIndex];
-        this.nextCardIndex++;
-        return card;
+        const id = this.deck[this.nextCardIndex++];
+        return id;
     }
 
     cycleCard(usedCardIndex) {
-        // Replace used card with next card from deck
-        const newCard = this.getNextCard();
-        this.hand[usedCardIndex] = newCard;
-        
-        // Update the visual representation
+        const newCardId = this.getNextCard();
+        this.hand[usedCardIndex] = newCardId;
         this.updateCardDisplay(usedCardIndex);
     }
 
     updateCardDisplay(cardIndex) {
         if (!this.tankCards[cardIndex]) return;
-        
-        const tankId = this.hand[cardIndex];
-        const tankData = TANK_DATA[tankId];
         const card = this.tankCards[cardIndex];
+        const cardId = this.hand[cardIndex];
+        const def = CARDS[cardId];
+        const tankData = def.type === CARD_TYPES.TROOP ? TANK_DATA[def.payload.tankId] : null;
         
         // Destroy old tank icon and create new one
         if (card.tankIcon) {
@@ -3031,18 +3256,22 @@ class BattleScene extends Phaser.Scene {
         const cardX = card.x;
         const cardY = card.y;
         const cardWidth = UI_CONFIG.CARDS.WIDTH;
-        card.tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 30, tankData.type);
+    const iconType = tankData ? tankData.type : TANK_TYPES.MEDIUM;
+    card.tankIcon = this.createMiniTankGraphics(cardX + cardWidth/2, cardY + 30, iconType);
         card.tankIcon.setScale(1.0); // Use larger scale for better visibility
         
         // Update cost
-        card.costText.setText(tankData.cost);
+    card.costText.setText(def.cost);
         
         // Update name
-        card.nameText.setText(tankData.name);
+    card.nameText.setText(def.name);
         
         // Update card references
-        card.tankId = tankId;
-        card.tankData = tankData;
+    card.cardId = cardId;
+    card.cardDef = def;
+    card.cardType = def.type;
+    card.tankId = def.type === CARD_TYPES.TROOP ? def.payload.tankId : null;
+    card.tankData = tankData;
         
         // Brief highlight animation to show card changed
         this.tweens.add({
@@ -3056,9 +3285,10 @@ class BattleScene extends Phaser.Scene {
     }
 
     showInsufficientEnergyFeedback() {
-        const selectedCard = this.tankCards[this.selectedCard];
-        const tankData = selectedCard.tankData;
-        const energyNeeded = tankData.cost - this.energy;
+    const selectedCard = this.tankCards[this.selectedCard];
+    const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
+    const displayName = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.name : selectedCard.cardDef.name;
+    const energyNeeded = cost - this.energy;
         
         // Flash the energy bar red
         const barWidth = 200;
@@ -3097,7 +3327,7 @@ class BattleScene extends Phaser.Scene {
         
         // Detailed energy info
         const detailText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20, 
-            `${tankData.name} costs ${tankData.cost} energy\n` +
+            `${displayName} costs ${cost} energy\n` +
             `You have ${this.energy} energy\n` +
             `Need ${energyNeeded} more energy`, {
             fontSize: '14px',
@@ -3653,12 +3883,25 @@ class BattleScene extends Phaser.Scene {
             onComplete: () => selectionPulse.destroy()
         });
         
-        // Show brief deployment info
-        const tankData = card.tankData;
-        const canAfford = this.energy >= tankData.cost;
-        const infoText = canAfford ? 
-            `${tankData.name} selected - Click to deploy` : 
-            `${tankData.name} selected - Need ${tankData.cost - this.energy} more energy`;
+        // Show brief selection info (troop vs non-troop)
+        const isTroop = card.cardType === CARD_TYPES.TROOP;
+        const displayName = isTroop ? card.tankData?.name : card.cardDef?.name;
+        const costVal = isTroop ? card.tankData?.cost : card.cardDef?.cost;
+        const canAfford = typeof costVal === 'number' ? (this.energy >= costVal) : true;
+        let infoText;
+        if (isTroop) {
+            infoText = canAfford ?
+                `${displayName} selected - Click to deploy` :
+                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+        } else if (card.cardType === CARD_TYPES.SPELL) {
+            infoText = canAfford ?
+                `${displayName} selected - Click to cast` :
+                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+        } else {
+            infoText = canAfford ?
+                `${displayName} selected - Click to place` :
+                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+        }
         
         const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, infoText, {
             fontSize: '14px',

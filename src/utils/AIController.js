@@ -406,10 +406,12 @@ class AIController {
         
         if (tank.isPlayerTank) {
             // Player tank: target AI tanks and enemy buildings
-            const enemies = [
-                ...this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0),
-                ...this.scene.buildings.filter(b => !b.isPlayerBase && b.health > 0)
-            ];
+            let enemies = [];
+            const canAttackTanks = !tank.tankData?.targetBuildingsOnly;
+            if (canAttackTanks) {
+                enemies.push(...this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0));
+            }
+            enemies.push(...this.scene.buildings.filter(b => !b.isPlayerBase && b.health > 0));
             
             enemies.forEach(enemy => {
                 const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
@@ -430,7 +432,8 @@ class AIController {
             });
         } else {
             // AI tank: target player tanks and player buildings (prioritize buildings if close)
-            const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
+            const canAttackTanks = !tank.tankData?.targetBuildingsOnly;
+            const playerTanks = canAttackTanks ? this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0) : [];
             const playerBuildings = this.scene.buildings.filter(b => b.isPlayerBase && b.health > 0);
             
             // Combined enemy list with building priority
