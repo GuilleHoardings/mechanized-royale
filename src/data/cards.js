@@ -60,9 +60,11 @@ const CARDS = {
         cost: 4,
         payload: {
             lifetimeMs: 50000,
-            spawnIntervalMs: 4000,
-            spawnCount: 2,
-            spawnTankId: 'tank_fire_spirit'
+            launchIntervalMs: 3000,
+            missileCount: 1,
+            missileDamage: 100,
+            missileSpeed: 180,
+            blastRadius: 60
         }
     },
     skeleton_army: {

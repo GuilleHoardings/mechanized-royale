@@ -352,12 +352,15 @@ class CombatSystem {
      * @param {Object} target - Target whose health display needs updating
      */
     updateHealthDisplay(target) {
-        if (target.healthFill) {
-            if (this.scene.updateTankHealth && target.tankData) {
-                this.scene.updateTankHealth(target);
-            } else if (this.scene.updateBuildingHealth) {
-                this.scene.updateBuildingHealth(target);
-            }
+        // Safety check - target may have been destroyed
+        if (!target || !target.active || !target.healthFill) {
+            return;
+        }
+        
+        if (this.scene.updateTankHealth && target.tankData) {
+            this.scene.updateTankHealth(target);
+        } else if (this.scene.updateBuildingHealth) {
+            this.scene.updateBuildingHealth(target);
         }
     }
 

@@ -725,7 +725,7 @@ class BattleScene extends Phaser.Scene {
             const descY = 55;
             const desc = cardRef.cardDef.id === 'zap' ? `Small area damage and brief stun.`
                         : cardRef.cardDef.id === 'fireball' ? `Medium-radius area damage.`
-                        : cardRef.cardDef.id === 'furnace' ? `Spawns fire spirits periodically.`
+                        : cardRef.cardDef.id === 'furnace' ? `Launches homing missiles that explode on impact.`
                         : `Special card.`;
             const body = this.add.text(15, descY, desc, {
                 fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', wordWrap: { width: tooltipWidth - 30 }
@@ -1068,6 +1068,11 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateBuildingHealth(building) {
+        // Safety check - building may have been destroyed
+        if (!building || !building.active || !building.healthFill) {
+            return;
+        }
+        
         const config = UI_CONFIG.HEALTH_BARS.TOWER;
         const healthPercent = building.health / building.maxHealth;
         
@@ -1681,19 +1686,241 @@ class BattleScene extends Phaser.Scene {
             if (furnace.healthText) furnace.healthText.destroy();
             furnace.destroy();
         });
-        // Spawn loop
+        // Missile launch loop
         const timer = this.time.addEvent({
-            delay: card.payload.spawnIntervalMs,
+            delay: card.payload.launchIntervalMs,
             loop: true,
             callback: () => {
                 if (!furnace.scene) { timer.remove(); return; }
-                for (let i = 0; i < (card.payload.spawnCount || 1); i++) {
-                    const spawnX = x + (i - ((card.payload.spawnCount||1)-1)/2) * 12;
-                    const spawnY = y - 10;
-                    this.deployTank('tank_fire_spirit', spawnX, spawnY);
+                for (let i = 0; i < (card.payload.missileCount || 1); i++) {
+                    this.launchFurnaceMissile(furnace, card.payload);
                 }
             }
         });
+    }
+
+    /**
+     * Launch a missile from the furnace that tracks toward the closest enemy
+     * @param {Object} furnace - The furnace building launching the missile
+     * @param {Object} payload - Missile configuration from the card
+     */
+    launchFurnaceMissile(furnace, payload) {
+        // Find closest enemy target
+        const isPlayerFurnace = furnace.isPlayerBase;
+        const enemies = [
+            ...this.tanks.filter(t => t.isPlayerTank !== isPlayerFurnace && t.health > 0),
+            ...this.buildings.filter(b => b.isPlayerBase !== isPlayerFurnace && b.health > 0 && b !== furnace)
+        ];
+        
+        if (enemies.length === 0) return; // No targets available
+        
+        // Find closest enemy
+        let closestEnemy = null;
+        let closestDistance = Infinity;
+        enemies.forEach(enemy => {
+            const distance = GameHelpers.distance(furnace.x, furnace.y, enemy.x, enemy.y);
+            if (distance < closestDistance) {
+                closestDistance = distance;
+                closestEnemy = enemy;
+            }
+        });
+        
+        if (!closestEnemy) return;
+        
+        // Create missile graphics
+        const missile = this.add.container(furnace.x, furnace.y);
+        const missileBody = this.add.graphics();
+        
+        // Draw missile shape (pointed cylinder)
+        missileBody.fillStyle(0xff4400);
+        missileBody.fillRect(-3, -8, 6, 16); // Body
+        missileBody.fillStyle(0xffaa00);
+        missileBody.beginPath();
+        missileBody.moveTo(0, -12); // Nose tip
+        missileBody.lineTo(-3, -8);
+        missileBody.lineTo(3, -8);
+        missileBody.closePath();
+        missileBody.fillPath();
+        // Fins
+        missileBody.fillStyle(0x880000);
+        missileBody.fillTriangle(-3, 8, -7, 12, -3, 4);
+        missileBody.fillTriangle(3, 8, 7, 12, 3, 4);
+        // Engine glow
+        missileBody.fillStyle(0xffff00);
+        missileBody.fillCircle(0, 10, 3);
+        
+        missile.add(missileBody);
+        missile.setDepth(500);
+        
+        // Missile properties
+        missile.target = closestEnemy;
+        missile.damage = payload.missileDamage || 100;
+        missile.speed = payload.missileSpeed || 180;
+        missile.blastRadius = payload.blastRadius || 60;
+        missile.isPlayerMissile = isPlayerFurnace;
+        missile.isMissile = true;
+        
+        // Add to projectiles array for cleanup tracking
+        this.projectiles.push(missile);
+        
+        // Launch effect
+        this.combatSystem.showMuzzleFlash(furnace, closestEnemy.x, closestEnemy.y);
+        this.playUISound('shoot');
+        
+        // Create smoke trail effect
+        const createSmokeTrail = () => {
+            if (!missile.scene) return;
+            const smoke = this.add.graphics();
+            smoke.fillStyle(0x666666, 0.6);
+            smoke.fillCircle(missile.x, missile.y, 4);
+            smoke.setDepth(499);
+            this.tweens.add({
+                targets: smoke,
+                alpha: 0,
+                scale: 2,
+                duration: 400,
+                onComplete: () => smoke.destroy()
+            });
+        };
+        
+        // Update missile position each frame
+        const updateMissile = () => {
+            if (!missile.scene) return;
+            
+            // Check if target is still valid
+            let currentTarget = missile.target;
+            if (!currentTarget || !currentTarget.scene || currentTarget.health <= 0) {
+                // Retarget to nearest enemy
+                const newEnemies = [
+                    ...this.tanks.filter(t => t.isPlayerTank !== missile.isPlayerMissile && t.health > 0),
+                    ...this.buildings.filter(b => b.isPlayerBase !== missile.isPlayerMissile && b.health > 0)
+                ];
+                
+                if (newEnemies.length === 0) {
+                    // No targets, explode at current position
+                    this.explodeMissile(missile);
+                    return;
+                }
+                
+                let nearest = null;
+                let nearestDist = Infinity;
+                newEnemies.forEach(e => {
+                    const d = GameHelpers.distance(missile.x, missile.y, e.x, e.y);
+                    if (d < nearestDist) {
+                        nearestDist = d;
+                        nearest = e;
+                    }
+                });
+                missile.target = nearest;
+                currentTarget = nearest;
+            }
+            
+            if (!currentTarget) {
+                this.explodeMissile(missile);
+                return;
+            }
+            
+            // Calculate direction to target
+            const angle = GameHelpers.angle(missile.x, missile.y, currentTarget.x, currentTarget.y);
+            const distance = GameHelpers.distance(missile.x, missile.y, currentTarget.x, currentTarget.y);
+            
+            // Rotate missile to face target
+            missile.setRotation(angle + Math.PI / 2); // +90 degrees because missile points up
+            
+            // Move missile toward target
+            const deltaTime = 1 / 60; // Approximate frame time
+            const moveDistance = missile.speed * deltaTime;
+            
+            if (distance <= moveDistance + 10) {
+                // Hit target - explode!
+                missile.setPosition(currentTarget.x, currentTarget.y);
+                this.explodeMissile(missile);
+                return;
+            }
+            
+            // Move toward target
+            missile.x += Math.cos(angle) * moveDistance;
+            missile.y += Math.sin(angle) * moveDistance;
+            
+            // Create smoke trail
+            if (Math.random() < 0.3) {
+                createSmokeTrail();
+            }
+        };
+        
+        // Create update timer for missile tracking
+        const missileTimer = this.time.addEvent({
+            delay: 16, // ~60fps
+            loop: true,
+            callback: updateMissile
+        });
+        missile.updateTimer = missileTimer;
+    }
+
+    /**
+     * Explode a missile, dealing area damage
+     * @param {Object} missile - The missile to explode
+     */
+    explodeMissile(missile) {
+        if (!missile.scene) return;
+        
+        // Stop the update timer
+        if (missile.updateTimer) {
+            missile.updateTimer.remove();
+        }
+        
+        // Remove from projectiles array
+        const index = this.projectiles.indexOf(missile);
+        if (index > -1) {
+            this.projectiles.splice(index, 1);
+        }
+        
+        // Show explosion effect
+        this.combatSystem.showExplosionEffect(missile.x, missile.y, 1.5);
+        this.playUISound('explosion');
+        
+        // Apply area damage
+        const isPlayerMissile = missile.isPlayerMissile;
+        const damage = missile.damage;
+        const radius = missile.blastRadius;
+        
+        // Get all potential targets
+        const allTargets = [
+            ...this.tanks.filter(t => t.health > 0),
+            ...this.buildings.filter(b => b.health > 0)
+        ];
+        
+        allTargets.forEach(target => {
+            // Skip friendly units
+            const isEnemy = (target.isPlayerTank !== undefined) 
+                ? target.isPlayerTank !== isPlayerMissile
+                : target.isPlayerBase !== isPlayerMissile;
+            
+            if (!isEnemy) return;
+            
+            const distance = GameHelpers.distance(missile.x, missile.y, target.x, target.y);
+            if (distance <= radius) {
+                // Calculate damage falloff based on distance (full damage at center, less at edges)
+                const damageMultiplier = 1 - (distance / radius) * 0.5; // 50% to 100% damage
+                const finalDamage = Math.floor(damage * damageMultiplier);
+                
+                // Apply damage
+                target.health -= finalDamage;
+                
+                // Update health display
+                if (target.tankData) {
+                    this.updateTankHealth(target);
+                } else {
+                    this.updateBuildingHealth(target);
+                }
+                
+                // Show damage number
+                this.combatSystem.showDamageNumber(target.x, target.y, finalDamage);
+            }
+        });
+        
+        // Destroy the missile
+        missile.destroy();
     }
 
     createSpellEffectCircle(x, y, radius, color) {
