@@ -1957,8 +1957,8 @@ class BattleScene extends Phaser.Scene {
                 const damageMultiplier = 1 - (distance / radius) * 0.5; // 50% to 100% damage
                 const finalDamage = Math.floor(damage * damageMultiplier);
                 
-                // Apply damage
-                target.health -= finalDamage;
+                // Apply damage (clamp to 0)
+                target.health = Math.max(0, target.health - finalDamage);
                 
                 // Update health display
                 if (target.tankData) {
@@ -1969,6 +1969,18 @@ class BattleScene extends Phaser.Scene {
                 
                 // Show damage number
                 this.combatSystem.showDamageNumber(target.x, target.y, finalDamage);
+                
+                // Check for destruction
+                // Only handle destruction if target is still present in tanks/buildings
+                if (
+                    target.health <= 0 &&
+                    (
+                        (target.tankData && this.tanks.includes(target)) ||
+                        (!target.tankData && this.buildings.includes(target))
+                    )
+                ) {
+                    this.combatSystem.handleTargetDestruction(target, null);
+                }
             }
         });
         
