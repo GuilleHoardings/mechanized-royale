@@ -58,30 +58,28 @@ class MenuScene extends Phaser.Scene {
     createTitle() {
         // Glow effect
         const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'TANK TACTICS', {
-            fontSize: '52px',
+            fontSize: '48px',
             fill: '#60a5fa',
-            fontFamily: 'Arial',
-            fontWeight: 'bold'
+            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+            letterSpacing: 6
         }).setOrigin(0.5);
         titleGlow.setAlpha(0.4);
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
         
         // Main title with gradient-like effect using stroke
         const title = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'TANK TACTICS', {
-            fontSize: '52px',
+            fontSize: '48px',
             fill: '#f1f5f9',
-            fontFamily: 'Arial',
-            fontWeight: 'bold',
+            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+            letterSpacing: 6,
             stroke: '#3b82f6',
-            strokeThickness: 2
+            strokeThickness: 3
         }).setOrigin(0.5);
         
         // Subtle animation on glow
         this.tweens.add({
             targets: titleGlow,
             alpha: 0.6,
-            scaleX: 1.02,
-            scaleY: 1.02,
             duration: 2000,
             yoyo: true,
             repeat: -1,
@@ -90,25 +88,25 @@ class MenuScene extends Phaser.Scene {
 
         // Subtitle with modern styling
         this.add.text(GAME_CONFIG.WIDTH / 2, 155, 'Clash Royale meets World of Tanks', {
-            fontSize: '18px',
+            fontSize: '16px',
             fill: '#94a3b8',
-            fontFamily: 'Arial',
+            fontFamily: 'Georgia, serif',
             fontStyle: 'italic'
         }).setOrigin(0.5);
     }
 
     createMenuButtons() {
         const buttonY = 320;
-        const buttonSpacing = 85;
-        const buttonWidth = 180;
-        const buttonHeight = 50;
+        const buttonSpacing = 70;
+        const buttonWidth = 200;
+        const buttonHeight = 55;
 
         // Play button - primary action with glow
         const playButtonBg = this.add.graphics();
         this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 0x3b82f6, true);
         
         const playButton = this.add.rectangle(GAME_CONFIG.WIDTH / 2, buttonY, buttonWidth, buttonHeight)
-            .setInteractive()
+            .setInteractive({ useHandCursor: true })
             .setAlpha(0.01); // Invisible hitbox
 
         const playText = this.add.text(GAME_CONFIG.WIDTH / 2, buttonY, '▶  BATTLE', {
@@ -119,75 +117,58 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         playButton.on('pointerdown', () => {
-            // Click effect
-            this.tweens.add({
-                targets: [playButtonBg, playText],
-                scaleX: 0.95,
-                scaleY: 0.95,
-                duration: 100,
-                yoyo: true,
-                onComplete: () => {
-                    this.scene.start('BattleScene', { gameState: this.gameState });
-                }
+            // Brief flash effect then transition
+            playButtonBg.clear();
+            this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 0x93c5fd, true);
+            this.time.delayedCall(100, () => {
+                this.scene.start('BattleScene', { gameState: this.gameState });
             });
         });
 
         playButton.on('pointerover', () => {
             playButtonBg.clear();
             this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 0x60a5fa, true);
-            this.tweens.add({
-                targets: [playButtonBg, playText],
-                scaleX: 1.05,
-                scaleY: 1.05,
-                duration: 150,
-                ease: 'Power2'
-            });
         });
 
         playButton.on('pointerout', () => {
             playButtonBg.clear();
             this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY - buttonHeight/2, buttonWidth, buttonHeight, 0x3b82f6, true);
-            this.tweens.add({
-                targets: [playButtonBg, playText],
-                scaleX: 1,
-                scaleY: 1,
-                duration: 150,
-                ease: 'Power2'
-            });
         });
 
         // Research button (disabled)
         const researchButtonBg = this.add.graphics();
         this.drawModernButton(researchButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY + buttonSpacing - buttonHeight/2, buttonWidth, buttonHeight, 0x475569, false);
 
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing, '🔬  RESEARCH', {
-            fontSize: '18px',
+        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing - 8, '🔬  RESEARCH', {
+            fontSize: '16px',
             fill: '#64748b',
             fontFamily: 'Arial',
             fontWeight: '600'
         }).setOrigin(0.5);
         
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing + 22, 'Coming Soon', {
-            fontSize: '10px',
-            fill: '#475569',
-            fontFamily: 'Arial'
+        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing + 10, 'Coming Soon', {
+            fontSize: '11px',
+            fill: '#94a3b8',
+            fontFamily: 'Arial',
+            fontStyle: 'italic'
         }).setOrigin(0.5);
 
         // Settings button (disabled)
         const settingsButtonBg = this.add.graphics();
         this.drawModernButton(settingsButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth/2, buttonY + buttonSpacing * 2 - buttonHeight/2, buttonWidth, buttonHeight, 0x475569, false);
 
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2, '⚙  SETTINGS', {
-            fontSize: '18px',
+        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2 - 8, '⚙  SETTINGS', {
+            fontSize: '16px',
             fill: '#64748b',
             fontFamily: 'Arial',
             fontWeight: '600'
         }).setOrigin(0.5);
         
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2 + 22, 'Coming Soon', {
-            fontSize: '10px',
-            fill: '#475569',
-            fontFamily: 'Arial'
+        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2 + 10, 'Coming Soon', {
+            fontSize: '11px',
+            fill: '#94a3b8',
+            fontFamily: 'Arial',
+            fontStyle: 'italic'
         }).setOrigin(0.5);
     }
     
@@ -214,11 +195,11 @@ class MenuScene extends Phaser.Scene {
     }
 
     showPlayerInfo() {
-        // Player info panel
+        // Player info panel - positioned below title area
+        const panelWidth = 180;
+        const panelHeight = 90;
         const panelX = 15;
-        const panelY = 15;
-        const panelWidth = 200;
-        const panelHeight = 100;
+        const panelY = 190;
         
         // Panel background
         const infoPanelBg = this.add.graphics();
@@ -231,24 +212,24 @@ class MenuScene extends Phaser.Scene {
         const player = this.gameState.player;
         
         // Level with icon
-        this.add.text(panelX + 15, panelY + 18, `⭐ Level ${player.progress.level}`, {
-            fontSize: '16px',
+        this.add.text(panelX + 12, panelY + 15, `⭐ Level ${player.progress.level}`, {
+            fontSize: '15px',
             fill: '#f1f5f9',
             fontFamily: 'Arial',
             fontWeight: 'bold'
         });
 
         // Credits with icon
-        this.add.text(panelX + 15, panelY + 45, `💰 ${player.resources.credits}`, {
-            fontSize: '14px',
+        this.add.text(panelX + 12, panelY + 38, `💰 ${player.resources.credits}`, {
+            fontSize: '13px',
             fill: '#fbbf24',
             fontFamily: 'Arial',
             fontWeight: '600'
         });
 
         // Tanks unlocked with icon
-        this.add.text(panelX + 15, panelY + 70, `🛡️ ${player.tanks.length} Tanks`, {
-            fontSize: '14px',
+        this.add.text(panelX + 12, panelY + 60, `🛡️ ${player.tanks.length} Tanks`, {
+            fontSize: '13px',
             fill: '#4ade80',
             fontFamily: 'Arial',
             fontWeight: '600'
