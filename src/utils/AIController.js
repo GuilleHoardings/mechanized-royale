@@ -179,6 +179,8 @@ class AIController {
         
         // Deploy the tank
         this.scene.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
+        // Deduct energy now that the tank is deployed
+        this.scene.aiEnergy = Math.max(0, this.scene.aiEnergy - tankData.cost);
     }
 
     /**
