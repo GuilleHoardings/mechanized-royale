@@ -7,26 +7,26 @@ class GraphicsManager {
     constructor(scene) {
         this.scene = scene;
         
-        // Team colors
+        // Enhanced team colors with better contrast
         this.colors = {
-            player: 0x2d7dd2,      // Blue
-            enemy: 0xd22d2d,       // Red
-            playerAccent: 0x5599ff,
-            enemyAccent: 0xff5555,
-            playerDark: 0x1a5aa3,
-            enemyDark: 0xa31a1a,
-            metal: 0x888888,
-            gunmetal: 0x444444
+            player: 0x3b82f6,      // Vibrant Blue
+            enemy: 0xef4444,       // Vibrant Red
+            playerAccent: 0x60a5fa,
+            enemyAccent: 0xf87171,
+            playerDark: 0x1d4ed8,
+            enemyDark: 0xdc2626,
+            metal: 0x9ca3af,       // Lighter metal
+            gunmetal: 0x4b5563     // Softer gunmetal
         };
         
-        // Type accent colors for different tank types
+        // Type accent colors for different tank types - more vibrant
         this.typeAccentColors = {
-            [TANK_TYPES.LIGHT]: { player: 0x00ff88, enemy: 0x00cc66 },         // Green for light tanks (speed)
-            [TANK_TYPES.MEDIUM]: { player: 0xffaa00, enemy: 0xcc8800 },        // Orange for medium tanks (balanced)
-            [TANK_TYPES.HEAVY]: { player: 0xff0066, enemy: 0xcc0044 },         // Red for heavy tanks (armor)
-            [TANK_TYPES.TANK_DESTROYER]: { player: 0x9900ff, enemy: 0x7700cc }, // Purple for tank destroyers (precision)
-            [TANK_TYPES.ARTILLERY]: { player: 0xffff00, enemy: 0xcccc00 },     // Yellow for artillery (range)
-            [TANK_TYPES.FAST_ATTACK]: { player: 0x00ffff, enemy: 0x00cccc }    // Cyan for fast attack (modern)
+            [TANK_TYPES.LIGHT]: { player: 0x4ade80, enemy: 0x22c55e },         // Brighter Green
+            [TANK_TYPES.MEDIUM]: { player: 0xfbbf24, enemy: 0xf59e0b },        // Brighter Orange
+            [TANK_TYPES.HEAVY]: { player: 0xf472b6, enemy: 0xec4899 },         // Pink for heavy
+            [TANK_TYPES.TANK_DESTROYER]: { player: 0xa78bfa, enemy: 0x8b5cf6 }, // Purple
+            [TANK_TYPES.ARTILLERY]: { player: 0xfde047, enemy: 0xeab308 },     // Brighter Yellow
+            [TANK_TYPES.FAST_ATTACK]: { player: 0x22d3ee, enemy: 0x06b6d4 }    // Brighter Cyan
         };
     }
 

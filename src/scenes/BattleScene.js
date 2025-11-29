@@ -133,8 +133,8 @@ class BattleScene extends Phaser.Scene {
             window.refreshPauseButtonState();
         }
         
-        // Background
-        this.cameras.main.setBackgroundColor('#2c5234');
+        // Enhanced background with darker, more atmospheric color
+        this.cameras.main.setBackgroundColor('#1a2744');
 
         // Create battlefield
         this.createBattlefield();
@@ -362,23 +362,45 @@ class BattleScene extends Phaser.Scene {
         // Timer in top right corner
         this.createTimer();
 
-        // AI Strategy indicator
-        this.aiStrategyText = this.add.text(20, 50, 'AI: Analyzing...', {
-            fontSize: '14px',
-            fill: '#ffaa00',
+        // AI Strategy indicator with modern panel
+        const aiStatusBg = this.add.graphics();
+        aiStatusBg.fillStyle(0x1e293b, 0.85);
+        aiStatusBg.fillRoundedRect(15, 45, 220, 28, 6);
+        aiStatusBg.lineStyle(1, 0x3d5a80, 0.4);
+        aiStatusBg.strokeRoundedRect(15, 45, 220, 28, 6);
+        aiStatusBg.setScrollFactor(0);
+        
+        this.aiStrategyText = this.add.text(25, 59, '🤖 AI: Analyzing...', {
+            fontSize: '13px',
+            fill: '#fbbf24',
             fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 1
+            fontWeight: '600'
         });
         this.aiStrategyText.setScrollFactor(0);
 
-        // Back button
-        const backButton = this.add.text(20, 20, '← MENU', {
-            fontSize: '18px',
-            fill: '#ffffff',
-            fontFamily: 'Arial'
-        }).setInteractive();
+        // Back button with modern styling
+        const backButtonBg = this.add.graphics();
+        backButtonBg.fillStyle(0x1e293b, 0.9);
+        backButtonBg.fillRoundedRect(15, 10, 80, 30, 6);
+        backButtonBg.lineStyle(1, 0x3d5a80, 0.5);
+        backButtonBg.strokeRoundedRect(15, 10, 80, 30, 6);
+        backButtonBg.setScrollFactor(0);
+        
+        const backButton = this.add.text(55, 25, '← Menu', {
+            fontSize: '14px',
+            fill: '#e2e8f0',
+            fontFamily: 'Arial',
+            fontWeight: '600'
+        }).setOrigin(0.5).setInteractive();
         backButton.setScrollFactor(0);
+
+        backButton.on('pointerover', () => {
+            backButton.setFill('#60a5fa');
+        });
+        
+        backButton.on('pointerout', () => {
+            backButton.setFill('#e2e8f0');
+        });
 
         backButton.on('pointerdown', () => {
             this.scene.start('MenuScene');
@@ -550,14 +572,21 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTimer() {
-        // Timer in top right corner
-        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 20, 20, this.formatTime(this.battleTime), {
-            fontSize: '18px',
-            fill: '#ffffff',
+        // Timer background panel
+        const timerBg = this.add.graphics();
+        timerBg.fillStyle(0x1e293b, 0.9);
+        timerBg.fillRoundedRect(GAME_CONFIG.WIDTH - 85, 12, 75, 32, 8);
+        timerBg.lineStyle(1, 0x3d5a80, 0.5);
+        timerBg.strokeRoundedRect(GAME_CONFIG.WIDTH - 85, 12, 75, 32, 8);
+        timerBg.setScrollFactor(0);
+        
+        // Timer text with icon
+        this.timerText = this.add.text(GAME_CONFIG.WIDTH - 48, 28, `⏱ ${this.formatTime(this.battleTime)}`, {
+            fontSize: '16px',
+            fill: '#f1f5f9',
             fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(1, 0);
+            fontWeight: 'bold'
+        }).setOrigin(0.5);
         this.timerText.setScrollFactor(0);
 
         // Tower status display
@@ -565,23 +594,37 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTowerStatusDisplay() {
-        // Player tower status (bottom left)
-        this.playerTowerStatus = this.add.text(20, GAME_CONFIG.HEIGHT - 150, '', {
-            fontSize: '12px',
-            fill: '#4a90e2',
+        // Player tower status panel (bottom left)
+        const playerPanelBg = this.add.graphics();
+        playerPanelBg.fillStyle(0x1e293b, 0.85);
+        playerPanelBg.fillRoundedRect(15, GAME_CONFIG.HEIGHT - 160, 130, 95, 8);
+        playerPanelBg.lineStyle(1, 0x60a5fa, 0.4);
+        playerPanelBg.strokeRoundedRect(15, GAME_CONFIG.HEIGHT - 160, 130, 95, 8);
+        playerPanelBg.setScrollFactor(0);
+        
+        this.playerTowerStatus = this.add.text(25, GAME_CONFIG.HEIGHT - 150, '', {
+            fontSize: '11px',
+            fill: '#60a5fa',
             fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 1
+            fontWeight: '600',
+            lineSpacing: 3
         });
         this.playerTowerStatus.setScrollFactor(0);
 
-        // Enemy tower status (top left, below AI status)
-        this.enemyTowerStatus = this.add.text(20, 80, '', {
-            fontSize: '12px',
-            fill: '#d22d2d',
+        // Enemy tower status panel (top left, below AI status)
+        const enemyPanelBg = this.add.graphics();
+        enemyPanelBg.fillStyle(0x1e293b, 0.85);
+        enemyPanelBg.fillRoundedRect(15, 78, 130, 95, 8);
+        enemyPanelBg.lineStyle(1, 0xf87171, 0.4);
+        enemyPanelBg.strokeRoundedRect(15, 78, 130, 95, 8);
+        enemyPanelBg.setScrollFactor(0);
+        
+        this.enemyTowerStatus = this.add.text(25, 88, '', {
+            fontSize: '11px',
+            fill: '#f87171',
             fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 1
+            fontWeight: '600',
+            lineSpacing: 3
         });
         this.enemyTowerStatus.setScrollFactor(0);
 
@@ -592,25 +635,19 @@ class BattleScene extends Phaser.Scene {
         const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
         const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
 
-        // Player towers
-        let playerStatus = 'PLAYER TOWERS:\n';
-        playerStatus += `Destroyed: ${this.towerStats.enemy.towersDestroyed}/3\n`;
-        if (playerTowers.find(t => t.towerType === 'left')) playerStatus += '● Left Tower\n';
-        else playerStatus += '✗ Left Tower\n';
-        if (playerTowers.find(t => t.towerType === 'right')) playerStatus += '● Right Tower\n';
-        else playerStatus += '✗ Right Tower\n';
-        if (playerTowers.find(t => t.isMainTower)) playerStatus += '👑 Main Tower';
-        else playerStatus += '✗ Main Tower';
+        // Player towers with icons
+        let playerStatus = '⚔️ YOUR TOWERS\n';
+        playerStatus += `💀 ${this.towerStats.enemy.towersDestroyed}/3 Destroyed\n`;
+        playerStatus += playerTowers.find(t => t.towerType === 'left') ? '🟢 Left\n' : '🔴 Left\n';
+        playerStatus += playerTowers.find(t => t.towerType === 'right') ? '🟢 Right\n' : '🔴 Right\n';
+        playerStatus += playerTowers.find(t => t.isMainTower) ? '👑 Main' : '💀 Main';
 
-        // Enemy towers  
-        let enemyStatus = 'ENEMY TOWERS:\n';
-        enemyStatus += `Destroyed: ${this.towerStats.player.towersDestroyed}/3\n`;
-        if (enemyTowers.find(t => t.towerType === 'left')) enemyStatus += '● Left Tower\n';
-        else enemyStatus += '✗ Left Tower\n';
-        if (enemyTowers.find(t => t.towerType === 'right')) enemyStatus += '● Right Tower\n';
-        else enemyStatus += '✗ Right Tower\n';
-        if (enemyTowers.find(t => t.isMainTower)) enemyStatus += '👑 Main Tower';
-        else enemyStatus += '✗ Main Tower';
+        // Enemy towers with icons
+        let enemyStatus = '🤖 ENEMY TOWERS\n';
+        enemyStatus += `💀 ${this.towerStats.player.towersDestroyed}/3 Destroyed\n`;
+        enemyStatus += enemyTowers.find(t => t.towerType === 'left') ? '🟢 Left\n' : '🔴 Left\n';
+        enemyStatus += enemyTowers.find(t => t.towerType === 'right') ? '🟢 Right\n' : '🔴 Right\n';
+        enemyStatus += enemyTowers.find(t => t.isMainTower) ? '👑 Main' : '💀 Main';
 
         this.playerTowerStatus.setText(playerStatus);
         this.enemyTowerStatus.setText(enemyStatus);
@@ -632,7 +669,7 @@ class BattleScene extends Phaser.Scene {
     updateCardSelection() {
         this.tankCards.forEach((card, index) => {
             if (index === this.selectedCard) {
-                card.setTint(0xffff00);
+                card.setTint(0xfbbf24); // Golden selection color
                 card.selectionBorder.setVisible(true);
             } else {
                 card.clearTint();
@@ -1135,13 +1172,11 @@ class BattleScene extends Phaser.Scene {
     showEnergyGainEffect() {
         // Create a small energy gain indicator positioned above the energy bar
         const config = this.energyBarConfig;
-        const energyGainText = this.add.text(GAME_CONFIG.WIDTH / 2, config.y - 15, '+1', {
+        const energyGainText = this.add.text(GAME_CONFIG.WIDTH / 2, config.y - 18, '+1 ⚡', {
             fontSize: '16px',
-            fill: '#00ff88',
+            fill: '#4ade80',
             fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#003322',
-            strokeThickness: 2
+            fontStyle: 'bold'
         }).setOrigin(0.5);
         energyGainText.setScrollFactor(0);
         
@@ -1154,26 +1189,26 @@ class BattleScene extends Phaser.Scene {
             // Create a temporary glow effect on the newest square
             const glowCircle = this.add.graphics();
             glowCircle.setScrollFactor(0);
-            glowCircle.fillStyle(0x00ff88, 0.6);
+            glowCircle.fillStyle(0x4ade80, 0.5);
             glowCircle.fillCircle(squareX, squareY, config.squareSize);
             
             this.tweens.add({
                 targets: glowCircle,
-                scaleX: 1.5,
-                scaleY: 1.5,
+                scaleX: 1.8,
+                scaleY: 1.8,
                 alpha: 0,
-                duration: 600,
-                ease: 'Power2',
+                duration: 500,
+                ease: 'Cubic.easeOut',
                 onComplete: () => glowCircle.destroy()
             });
         }
         
         this.tweens.add({
             targets: energyGainText,
-            y: energyGainText.y - 25,
+            y: energyGainText.y - 30,
             alpha: 0,
-            duration: 800,
-            ease: 'Power2',
+            duration: 700,
+            ease: 'Cubic.easeOut',
             onComplete: () => energyGainText.destroy()
         });
     }
@@ -1185,45 +1220,54 @@ class BattleScene extends Phaser.Scene {
         this.energyBarBg.clear();
         this.energyBarFill.clear();
         
-        // Draw individual energy squares
+        // Draw individual energy squares with modern styling
         for (let i = 0; i < this.maxEnergy; i++) {
             const squareX = config.x + (i * (config.squareSize + config.spacing));
             const squareY = config.y;
             
-            // Background square (empty state)
-            this.energyBarBg.fillStyle(0x333333, 0.8);
-            this.energyBarBg.lineStyle(1, 0x555555, 0.8);
-            this.energyBarBg.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
-            this.energyBarBg.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+            // Background square (empty state) with modern dark styling
+            this.energyBarBg.fillStyle(0x1e3a5f, 0.9);
+            this.energyBarBg.lineStyle(1, 0x3d5a80, 0.6);
+            this.energyBarBg.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+            this.energyBarBg.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
             
             // Filled square if we have energy for this slot
             if (i < this.energy) {
-                // Gradient effect: brighter blue for current energy, slightly dimmer for reserve
-                let fillColor = 0x4a90e2; // Base blue
+                // Gradient effect: brighter blue for current energy
+                let fillColor = 0x3b82f6; // Base blue
+                let glowColor = 0x60a5fa; // Glow color
                 let alpha = 1.0;
                 
-                // Make the most recent energy points brighter
+                // Make the most recent energy points brighter with glow
                 if (i >= this.energy - 2 && i < this.energy) {
-                    fillColor = 0x5aa3ff; // Brighter blue for recent energy
-                    alpha = 1.0;
-                } else {
-                    alpha = 0.9; // Slightly dimmer for older energy
+                    fillColor = 0x60a5fa; // Brighter blue for recent energy
+                    
+                    // Add subtle glow effect
+                    this.energyBarFill.fillStyle(glowColor, 0.3);
+                    this.energyBarFill.fillRoundedRect(squareX - 2, squareY - 2, config.squareSize + 4, config.squareSize + 4, 4);
                 }
                 
+                // Main fill
                 this.energyBarFill.fillStyle(fillColor, alpha);
-                this.energyBarFill.lineStyle(1, 0x6bb6ff, 0.9);
-                this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
-                this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 2);
+                this.energyBarFill.lineStyle(1, 0x93c5fd, 0.8);
+                this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+                this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
                 
-                // Add a small highlight for filled squares
-                this.energyBarFill.fillStyle(0xffffff, 0.3);
-                this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 8, 3, 1);
+                // Add inner highlight for filled squares
+                this.energyBarFill.fillStyle(0xffffff, 0.25);
+                this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 6, 4, 2);
             }
         }
         
-        // Update energy text
+        // Update energy text with modern styling
         if (this.energyText) {
-            this.energyText.setText(`${this.energy}/${this.maxEnergy}`);
+            this.energyText.setText(`⚡ ${this.energy}/${this.maxEnergy}`);
+            this.energyText.setStyle({
+                fontSize: '15px',
+                fill: '#e2e8f0',
+                fontFamily: 'Arial',
+                fontWeight: 'bold'
+            });
         }
         
         // Update deployment preview if active (energy might have changed during preview)
@@ -1263,41 +1307,41 @@ class BattleScene extends Phaser.Scene {
 
     updateTimerDisplay() {
         let timeText;
-        let timeColor = '#ffffff';
+        let timeColor = '#f1f5f9';
         
         if (this.overtimeActive) {
             // Overtime display
             const overtimeSeconds = Math.abs(this.battleTime);
-            timeText = `+${this.formatTime(overtimeSeconds)}`;
-            timeColor = '#ff4444';
+            timeText = `⚡ +${this.formatTime(overtimeSeconds)}`;
+            timeColor = '#f87171';
             
             // Pulse effect during overtime
             this.tweens.add({
                 targets: this.timerText,
-                scaleX: 1.2,
-                scaleY: 1.2,
+                scaleX: 1.15,
+                scaleY: 1.15,
                 duration: 200,
                 yoyo: true,
                 ease: 'Power2'
             });
         } else {
-            timeText = this.formatTime(this.battleTime);
+            timeText = `⏱ ${this.formatTime(this.battleTime)}`;
             
             // Change timer color when time is running low
             if (this.battleTime <= 10) {
-                timeColor = '#ff0000'; // Red - Critical
+                timeColor = '#f87171'; // Red - Critical
                 // Flash effect for last 10 seconds
                 this.tweens.add({
                     targets: this.timerText,
-                    alpha: 0.3,
-                    duration: 500,
+                    alpha: 0.4,
+                    duration: 400,
                     yoyo: true,
                     ease: 'Power2'
                 });
             } else if (this.battleTime <= 30) {
-                timeColor = '#ff0000'; // Red
+                timeColor = '#f87171'; // Red
             } else if (this.battleTime <= 60) {
-                timeColor = '#ffff00'; // Yellow
+                timeColor = '#fbbf24'; // Yellow
             }
         }
         
@@ -2423,21 +2467,21 @@ class BattleScene extends Phaser.Scene {
         if (!this.aiStrategyText) return;
         
         const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-        const energyStatus = this.aiEnergy >= 6 ? 'HIGH' : this.aiEnergy >= 3 ? 'MED' : 'LOW';
+        const energyStatus = this.aiEnergy >= 6 ? '🔋' : this.aiEnergy >= 3 ? '⚡' : '🪫';
         
-        let strategyText = `AI: ${this.aiStrategy.mode.toUpperCase()}`;
+        let strategyText = `🤖 ${this.aiStrategy.mode.toUpperCase()}`;
         
         if (this.aiStrategy.rushMode) {
-            strategyText += ' - RUSHING!';
-            this.aiStrategyText.setFill('#ff4444');
+            strategyText += ' ⚔️ RUSHING';
+            this.aiStrategyText.setFill('#f87171');
         } else if (this.aiStrategy.defensiveMode) {
-            strategyText += ' - DEFENDING';
-            this.aiStrategyText.setFill('#4444ff');
+            strategyText += ' 🛡️ DEFENDING';
+            this.aiStrategyText.setFill('#60a5fa');
         } else {
-            this.aiStrategyText.setFill('#ffaa00');
+            this.aiStrategyText.setFill('#fbbf24');
         }
         
-        strategyText += ` | Energy: ${energyStatus} | Tanks: ${aiTanks.length}`;
+        strategyText += ` | ${energyStatus} | 🛡️${aiTanks.length}`;
         this.aiStrategyText.setText(strategyText);
     }
 
@@ -3554,25 +3598,25 @@ class BattleScene extends Phaser.Scene {
         const card = this.tankCards[cardIndex];
         if (!card) return;
         
-        // Create selection pulse effect
+        // Create selection pulse effect with modern styling
         const selectionPulse = this.add.graphics();
         selectionPulse.setScrollFactor(0);
         selectionPulse.setDepth(50);
         
-        // Draw pulse circle around card (adjusted for new card size)
+        // Draw pulse circle around card
         const cardCenterX = card.x + UI_CONFIG.CARDS.WIDTH / 2;
         const cardCenterY = card.y + UI_CONFIG.CARDS.HEIGHT / 2;
-        selectionPulse.lineStyle(4, 0x00ff00, 0.8);
-        selectionPulse.strokeCircle(cardCenterX, cardCenterY, 60);
+        selectionPulse.lineStyle(3, 0x60a5fa, 0.8);
+        selectionPulse.strokeCircle(cardCenterX, cardCenterY, 55);
         
         // Animate pulse
         this.tweens.add({
             targets: selectionPulse,
-            scaleX: 1.3,
-            scaleY: 1.3,
+            scaleX: 1.4,
+            scaleY: 1.4,
             alpha: 0,
-            duration: 400,
-            ease: 'Power2',
+            duration: 500,
+            ease: 'Cubic.easeOut',
             onComplete: () => selectionPulse.destroy()
         });
         
@@ -3582,38 +3626,53 @@ class BattleScene extends Phaser.Scene {
         const costVal = isTroop ? card.tankData?.cost : card.cardDef?.cost;
         const canAfford = typeof costVal === 'number' ? (this.energy >= costVal) : true;
         let infoText;
+        let actionIcon;
         if (isTroop) {
+            actionIcon = '🎯';
             infoText = canAfford ?
-                `${displayName} selected - Click to deploy` :
-                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+                `${displayName} - Click to deploy` :
+                `${displayName} - Need ${costVal - this.energy} more ⚡`;
         } else if (card.cardType === CARD_TYPES.SPELL) {
+            actionIcon = '✨';
             infoText = canAfford ?
-                `${displayName} selected - Click to cast` :
-                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+                `${displayName} - Click to cast` :
+                `${displayName} - Need ${costVal - this.energy} more ⚡`;
         } else {
+            actionIcon = '🏗️';
             infoText = canAfford ?
-                `${displayName} selected - Click to place` :
-                `${displayName} selected - Need ${costVal - this.energy} more energy`;
+                `${displayName} - Click to place` :
+                `${displayName} - Need ${costVal - this.energy} more ⚡`;
         }
         
-        const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, infoText, {
-            fontSize: '14px',
-            fill: canAfford ? '#00ff00' : '#ff6666',
+        // Feedback background panel
+        const feedbackBg = this.add.graphics();
+        feedbackBg.fillStyle(0x1e293b, 0.9);
+        feedbackBg.fillRoundedRect(GAME_CONFIG.WIDTH / 2 - 130, GAME_CONFIG.HEIGHT - 195, 260, 30, 8);
+        feedbackBg.lineStyle(1, canAfford ? 0x4ade80 : 0xf87171, 0.5);
+        feedbackBg.strokeRoundedRect(GAME_CONFIG.WIDTH / 2 - 130, GAME_CONFIG.HEIGHT - 195, 260, 30, 8);
+        feedbackBg.setScrollFactor(0);
+        feedbackBg.setDepth(49);
+        
+        const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, `${actionIcon} ${infoText}`, {
+            fontSize: '13px',
+            fill: canAfford ? '#4ade80' : '#f87171',
             fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 2
+            fontWeight: '600'
         }).setOrigin(0.5);
         feedbackText.setScrollFactor(0);
         feedbackText.setDepth(50);
         
-        // Fade out feedback text after 2 seconds
+        // Fade out feedback after 2 seconds
         this.tweens.add({
-            targets: feedbackText,
+            targets: [feedbackBg, feedbackText],
             alpha: 0,
-            duration: 1000,
+            duration: 800,
             delay: 1500,
             ease: 'Power2',
-            onComplete: () => feedbackText.destroy()
+            onComplete: () => {
+                feedbackBg.destroy();
+                feedbackText.destroy();
+            }
         });
         
         // Play selection sound
