@@ -3793,45 +3793,35 @@ class BattleScene extends Phaser.Scene {
     showPauseOverlay() {
         if (this.pauseOverlay) return;
         
-        // Create semi-transparent overlay
+        // Create semi-transparent overlay (low opacity to keep battle visible)
         this.pauseOverlay = this.add.graphics();
-        this.pauseOverlay.fillStyle(0x000000, 0.5);
+        this.pauseOverlay.fillStyle(0x000000, 0.3);
         this.pauseOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         this.pauseOverlay.setScrollFactor(0);
         this.pauseOverlay.setDepth(90);
         
-        // Create pause text
-        this.pauseText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 30, '⏸ PAUSED', {
-            fontSize: '48px',
+        // Create compact pause indicator at top of screen
+        this.pauseText = this.add.text(GAME_CONFIG.WIDTH / 2, 60, '⏸ PAUSED', {
+            fontSize: '24px',
             fill: '#ffffff',
             fontFamily: 'Arial',
             fontStyle: 'bold',
             stroke: '#000000',
-            strokeThickness: 4
+            strokeThickness: 3
         }).setOrigin(0.5);
         this.pauseText.setScrollFactor(0);
         this.pauseText.setDepth(91);
         
-        // Create subtitle
-        this.pauseSubtext = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 20, 'Click Resume or press the Pause button to continue', {
-            fontSize: '16px',
+        // Create compact subtitle
+        this.pauseSubtext = this.add.text(GAME_CONFIG.WIDTH / 2, 82, 'Click Resume to continue', {
+            fontSize: '12px',
             fill: '#cccccc',
             fontFamily: 'Arial',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 1
         }).setOrigin(0.5);
         this.pauseSubtext.setScrollFactor(0);
         this.pauseSubtext.setDepth(91);
-        
-        // Create analysis hint
-        this.pauseHint = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 50, 'Use this time to analyze tank positions and strategies', {
-            fontSize: '12px',
-            fill: '#888888',
-            fontFamily: 'Arial',
-            fontStyle: 'italic'
-        }).setOrigin(0.5);
-        this.pauseHint.setScrollFactor(0);
-        this.pauseHint.setDepth(91);
     }
 
     hidePauseOverlay() {
@@ -3846,10 +3836,6 @@ class BattleScene extends Phaser.Scene {
         if (this.pauseSubtext) {
             this.pauseSubtext.destroy();
             this.pauseSubtext = null;
-        }
-        if (this.pauseHint) {
-            this.pauseHint.destroy();
-            this.pauseHint = null;
         }
     }
 
