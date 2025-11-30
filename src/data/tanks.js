@@ -230,7 +230,7 @@ const TANK_DATA = {
             hp: 360,
             damage: 160,       // Very high single-target
             speed: 55,
-            range: 130,
+            range: 40,
             armor: { front: 40, side: 25, rear: 20 },
             penetration: 140
         },
