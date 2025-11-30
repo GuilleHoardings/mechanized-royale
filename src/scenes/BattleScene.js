@@ -650,15 +650,18 @@ class BattleScene extends Phaser.Scene {
         const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
 
         // Compact player towers display without emojis
+        // Main tower shows 'z' if dormant (not activated), '+' if active
         const pL = playerTowers.find(t => t.towerType === 'left') ? '+' : 'x';
         const pR = playerTowers.find(t => t.towerType === 'right') ? '+' : 'x';
-        const pM = playerTowers.find(t => t.isMainTower) ? '+' : 'x';
+        const playerMainTower = playerTowers.find(t => t.isMainTower);
+        const pM = playerMainTower ? (playerMainTower.activated ? '+' : 'z') : 'x';
         let playerStatus = `YOU\nL:${pL} R:${pR}\nMain:${pM}`;
 
         // Compact enemy towers display without emojis
         const eL = enemyTowers.find(t => t.towerType === 'left') ? '+' : 'x';
         const eR = enemyTowers.find(t => t.towerType === 'right') ? '+' : 'x';
-        const eM = enemyTowers.find(t => t.isMainTower) ? '+' : 'x';
+        const enemyMainTower = enemyTowers.find(t => t.isMainTower);
+        const eM = enemyMainTower ? (enemyMainTower.activated ? '+' : 'z') : 'x';
         let enemyStatus = `ENEMY\nL:${eL} R:${eR}\nMain:${eM}`;
 
         this.playerTowerStatus.setText(playerStatus);
@@ -961,6 +964,9 @@ class BattleScene extends Phaser.Scene {
         tower.lastShotTime = 0;
         tower.target = null;
         tower.lastTargetUpdate = 0;
+        
+        // Main towers start deactivated and only activate when hit
+        tower.activated = isMainTower ? false : true;
         
         // Adjust position for main towers
         if (isMainTower) {
@@ -1694,6 +1700,11 @@ class BattleScene extends Phaser.Scene {
                 // Only affect enemies
                 const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
                 if (!isEnemy) return;
+                // Activate main towers when hit
+                if (target.isMainTower && !target.activated) {
+                    target.activated = true;
+                    console.log(`Main tower activated by zap! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
                 this.combatSystem.updateHealthDisplay(target);
@@ -1707,6 +1718,11 @@ class BattleScene extends Phaser.Scene {
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
                 if (!isEnemy) return;
+                // Activate main towers when hit
+                if (target.isMainTower && !target.activated) {
+                    target.activated = true;
+                    console.log(`Main tower activated by fireball! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 this.combatSystem.updateHealthDisplay(target);
                 if (target.health <= 0) {
@@ -1983,6 +1999,12 @@ class BattleScene extends Phaser.Scene {
                 // Calculate damage falloff based on distance (full damage at center, less at edges)
                 const damageMultiplier = 1 - (distance / radius) * 0.5; // 50% to 100% damage
                 const finalDamage = Math.floor(damage * damageMultiplier);
+                
+                // Activate main towers when hit
+                if (target.isMainTower && !target.activated) {
+                    target.activated = true;
+                    console.log(`Main tower activated by missile! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                }
                 
                 // Apply damage (clamp to 0)
                 target.health = Math.max(0, target.health - finalDamage);
@@ -3274,6 +3296,12 @@ class BattleScene extends Phaser.Scene {
     updateBaseDefense(base) {
         const currentTime = this.time.now;
         const baseRange = 200; // Base defense range
+        
+        // Main towers don't target until they've been activated (hit at least once)
+        if (base.isMainTower && !base.activated) {
+            base.target = null;
+            return;
+        }
         
         // Update base target every 2 seconds or if target is destroyed
         if (currentTime - base.lastTargetUpdate > 2000 || !base.target || base.target.health <= 0) {

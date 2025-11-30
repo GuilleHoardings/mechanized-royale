@@ -290,6 +290,12 @@ class CombatSystem {
         // Store previous health for destruction check
         const previousHealth = target.health;
         
+        // Activate main towers when they are hit for the first time
+        if (target.isMainTower && !target.activated) {
+            target.activated = true;
+            console.log(`Main tower activated! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+        }
+        
         // Apply damage
         target.health = Math.max(0, target.health - damage.finalDamage);
         
