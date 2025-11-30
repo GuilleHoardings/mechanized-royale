@@ -173,6 +173,22 @@ class BattleScene extends Phaser.Scene {
             tileX: 0,
             tileY: 0
         };
+        
+        /**
+         * State object for spell/building preview.
+         * @typedef {Object} SpellPreview
+         * @property {boolean} active - Whether the spell preview is currently active.
+         * @property {?Phaser.GameObjects.Graphics} radiusCircle - Graphics object for displaying the spell's area of effect.
+         * @property {?string} cardType - The type of card being previewed (e.g., spell or building).
+         * @property {number} radius - The radius of the spell's area of effect in pixels.
+         */
+        // Spell/building preview state
+        this.spellPreview = {
+            active: false,
+            radiusCircle: null,
+            cardType: null,
+            radius: 0
+        };
     }
 
     createBattlefield() {
@@ -1535,9 +1551,16 @@ class BattleScene extends Phaser.Scene {
         const worldY = pointer.worldY;
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
-        // Check if click started in valid deployment area
+        const selectedCard = this.tankCards[this.selectedCard];
+        
+        // Handle spell/building preview
+        if (selectedCard.cardType === CARD_TYPES.SPELL || selectedCard.cardType === CARD_TYPES.BUILDING) {
+            this.startSpellPreview(worldX, worldY, selectedCard);
+            return;
+        }
+        
+        // Check if click started in valid deployment area for troops
         if (GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
-            const selectedCard = this.tankCards[this.selectedCard];
             // Only show preview for troop cards
             if (selectedCard.cardType === CARD_TYPES.TROOP) {
                 this.startDeploymentPreview(tileCoords.tileX, tileCoords.tileY, selectedCard);
@@ -1546,11 +1569,21 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerMove(pointer) {
-        if (!this.deploymentPreview.active || this.gamePaused) { return; }
+        if (this.gamePaused) { return; }
         
         // Convert screen coordinates to world coordinates
         const worldX = pointer.worldX;
         const worldY = pointer.worldY;
+        
+        // Handle spell preview movement
+        if (this.spellPreview.active) {
+            this.updateSpellPreview(worldX, worldY);
+            return;
+        }
+        
+        // Handle troop deployment preview movement
+        if (!this.deploymentPreview.active) { return; }
+        
         const tileCoords = GameHelpers.worldToTile(worldX, worldY);
         
         // Update preview position
@@ -1561,14 +1594,16 @@ class BattleScene extends Phaser.Scene {
         // Prevent deployment if game is paused
         if (this.gamePaused) {
             this.endDeploymentPreview();
+            this.endSpellPreview();
             return;
         }
         
         const selectedCard = this.tankCards[this.selectedCard];
         if (selectedCard.cardType !== CARD_TYPES.TROOP) {
-            // Handle spells/buildings immediately on pointer up
+            // Handle spells/buildings on pointer up, then end preview
             const worldX = pointer.worldX;
             const worldY = pointer.worldY;
+            this.endSpellPreview();
             this.useNonTroopCardAt(selectedCard, worldX, worldY);
             return;
         }
@@ -2190,7 +2225,124 @@ class BattleScene extends Phaser.Scene {
         
         this.deploymentPreview.active = false;
         this.deploymentPreview.validPosition = false;
-        this.deploymentPreview.startedInBattlefield = false;
+     */
+    /**
+     * Starts the visual preview for spell or building placement, showing the area of effect radius.
+     * @param {number} worldX - The X coordinate in world space where the preview should be centered.
+     * @param {number} worldY - The Y coordinate in world space where the preview should be centered.
+     * @param {Object} selectedCardData - The data object for the selected card, containing card definition and payload.
+     */
+    }
+
+    /**
+     * Start showing spell/building radius preview
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldY - World Y coordinate
+     * @param {Object} selectedCardData - The selected card data
+     */
+    startSpellPreview(worldX, worldY, selectedCardData) {
+        const card = selectedCardData.cardDef;
+        if (!card) return;
+        
+        // Get the radius from the card payload
+        let radius = 0;
+        if (card.type === CARD_TYPES.SPELL) {
+            radius = card.payload?.radius || 0;
+        } else if (card.type === CARD_TYPES.BUILDING) {
+            // Buildings might have a blast radius for missiles
+            radius = card.payload?.blastRadius || 50; // Default building placement radius
+        }
+        
+        this.spellPreview.active = true;
+        this.spellPreview.cardType = card.type;
+        this.spellPreview.radius = radius;
+        
+        // Create the radius preview circle
+        this.spellPreview.radiusCircle = this.add.graphics();
+        this.spellPreview.radiusCircle.setDepth(25);
+        
+        this.updateSpellPreview(worldX, worldY);
+    }
+
+    /**
+     * Update spell/building radius preview position
+     * @param {number} worldX - World X coordinate
+     * @param {number} worldY - World Y coordinate
+     */
+    updateSpellPreview(worldX, worldY) {
+        if (!this.spellPreview.active || !this.spellPreview.radiusCircle) return;
+        
+        const radius = this.spellPreview.radius;
+        const selectedCardData = this.tankCards[this.selectedCard];
+        const card = selectedCardData.cardDef;
+        const hasEnoughEnergy = this.energy >= card.cost;
+        
+        // Check if position is valid
+        const isWithinBattlefield = GameHelpers.isWithinBattlefieldWorld(worldX, worldY);
+        let isValidPosition = isWithinBattlefield;
+        
+        // Buildings have stricter placement rules
+        if (this.spellPreview.cardType === CARD_TYPES.BUILDING) {
+            const { tileX, tileY } = GameHelpers.worldToTile(worldX, worldY);
+            isValidPosition = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
+        }
+        
+        // Determine colors based on validity and energy
+        let circleColor, fillAlpha, strokeAlpha;
+        
+        if (isValidPosition && hasEnoughEnergy) {
+            // Valid position and enough energy
+            if (this.spellPreview.cardType === CARD_TYPES.SPELL) {
+                circleColor = 0x66ccff; // Blue for spells
+            } else {
+                circleColor = 0x00ff00; // Green for buildings
+            }
+            fillAlpha = 0.25;
+            strokeAlpha = 0.9;
+        } else if (isValidPosition && !hasEnoughEnergy) {
+            // Valid position but not enough energy - gray
+            circleColor = 0x888888;
+            fillAlpha = 0.15;
+            strokeAlpha = 0.6;
+        } else {
+            // Invalid position - red
+            circleColor = 0xff4444;
+            fillAlpha = 0.2;
+            strokeAlpha = 0.7;
+        }
+        
+        // Clear and redraw
+        this.spellPreview.radiusCircle.clear();
+        
+        if (radius > 0) {
+            // Draw filled circle
+            this.spellPreview.radiusCircle.fillStyle(circleColor, fillAlpha);
+            this.spellPreview.radiusCircle.fillCircle(worldX, worldY, radius);
+            
+            // Draw stroke
+            this.spellPreview.radiusCircle.lineStyle(3, circleColor, strokeAlpha);
+            this.spellPreview.radiusCircle.strokeCircle(worldX, worldY, radius);
+            
+            // Add crosshair at center for precision
+            this.spellPreview.radiusCircle.lineStyle(2, circleColor, strokeAlpha);
+            const crossSize = Math.min(15, radius * 0.3);
+            this.spellPreview.radiusCircle.lineBetween(worldX - crossSize, worldY, worldX + crossSize, worldY);
+            this.spellPreview.radiusCircle.lineBetween(worldX, worldY - crossSize, worldX, worldY + crossSize);
+        }
+    }
+
+    /**
+     * End spell/building radius preview
+     */
+    endSpellPreview() {
+        if (this.spellPreview.radiusCircle) {
+            this.spellPreview.radiusCircle.destroy();
+            this.spellPreview.radiusCircle = null;
+        }
+        
+        this.spellPreview.active = false;
+        this.spellPreview.cardType = null;
+        this.spellPreview.radius = 0;
     }
 
     onBattlefieldClick(pointer) {
