@@ -1350,12 +1350,10 @@ class BattleScene extends Phaser.Scene {
                         // Already in overtime - check if max overtime reached
                         const overtimeSeconds = Math.abs(this.battleTime);
                         if (overtimeSeconds >= this.maxOvertimeSeconds) {
-                            // Max overtime reached - end battle
-                            this.endBattle('time');
-                        } else {
-                            // Continue checking for overtime victory conditions
+                            // Max overtime reached - compare health to determine winner
                             this.checkOvertimeVictoryConditions();
                         }
+                        // Otherwise continue overtime - tower destruction will end it
                     }
                 }
             },
@@ -1502,35 +1500,33 @@ class BattleScene extends Phaser.Scene {
     }
 
     checkOvertimeVictoryConditions() {
+        // This is called when overtime timer expires
+        // Find the tower with the lowest absolute health - that player loses
         const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
         const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
         
-        // Check for tower destruction advantage
-        const playerTowersDestroyed = 3 - playerTowers.length;
-        const enemyTowersDestroyed = 3 - enemyTowers.length;
-        
-        if (playerTowersDestroyed > enemyTowersDestroyed) {
-            this.endBattle('victory'); // Player has destroyed more towers
-        } else if (enemyTowersDestroyed > playerTowersDestroyed) {
-            this.endBattle('defeat'); // Enemy has destroyed more towers
-        } else {
-            // Same number of towers destroyed, check health advantage
-            const playerBase = this.buildings.find(b => b.isPlayerBase && b.isMainTower);
-            const enemyBase = this.buildings.find(b => !b.isPlayerBase && b.isMainTower);
-            
-            if (playerBase && enemyBase) {
-                const playerHealthPercent = playerBase.health / playerBase.maxHealth;
-                const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
-                const healthDiff = playerHealthPercent - enemyHealthPercent;
-                
-                // Need at least 5% health advantage to win during overtime
-                if (healthDiff >= 0.05) {
-                    this.endBattle('victory'); // Player has health advantage
-                } else if (healthDiff <= -0.05) {
-                    this.endBattle('defeat'); // Enemy has health advantage
-                }
-                // If health difference is too small (< 5%), continue overtime
+        // Find lowest absolute health for each side
+        let playerLowestHealth = Infinity;
+        for (const tower of playerTowers) {
+            if (tower.health < playerLowestHealth) {
+                playerLowestHealth = tower.health;
             }
+        }
+        
+        let enemyLowestHealth = Infinity;
+        for (const tower of enemyTowers) {
+            if (tower.health < enemyLowestHealth) {
+                enemyLowestHealth = tower.health;
+            }
+        }
+        
+        // The side with the lower health tower loses
+        if (enemyLowestHealth < playerLowestHealth) {
+            this.endBattle('victory'); // Enemy has the weakest tower
+        } else if (playerLowestHealth < enemyLowestHealth) {
+            this.endBattle('defeat'); // Player has the weakest tower
+        } else {
+            this.endBattle('draw'); // Equal lowest health
         }
     }
 
@@ -4287,7 +4283,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     checkTowerVictoryConditions() {
-        // Main tower destroyed = immediate victory
+        // Main tower destroyed = immediate victory/defeat
         if (this.towerStats.player.mainTowerDestroyed) {
             this.endBattle('victory'); // Player destroyed enemy main tower
             return;
@@ -4295,6 +4291,20 @@ class BattleScene extends Phaser.Scene {
         if (this.towerStats.enemy.mainTowerDestroyed) {
             this.endBattle('defeat'); // Enemy destroyed player main tower
             return;
+        }
+
+        // During overtime, any tower destruction ends the game immediately
+        if (this.overtimeActive) {
+            const playerTowersDestroyed = this.towerStats.player.towersDestroyed;
+            const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
+            
+            if (playerTowersDestroyed > enemyTowersDestroyed) {
+                this.endBattle('victory');
+                return;
+            } else if (enemyTowersDestroyed > playerTowersDestroyed) {
+                this.endBattle('defeat');
+                return;
+            }
         }
 
         // No immediate victory - game continues

@@ -81,7 +81,8 @@ class UIManager {
     }
 
     /**
-     * Determines the final battle result based on building health
+     * Determines the final battle result by delegating to GameHelpers.determineBattleResult().
+     * This method acts as a wrapper, handling result types and using the shared helper for logic.
      */
     _determineFinalResult(result, buildings) {
         if (result === 'victory' || result === 'defeat') {
@@ -89,28 +90,9 @@ class UIManager {
         }
         
         if (result === 'time') {
-            const playerBase = buildings.find(b => b.isPlayerBase);
-            const enemyBase = buildings.find(b => !b.isPlayerBase);
-            
-            if (!playerBase && !enemyBase) {
-                return 'draw';
-            } else if (!playerBase) {
-                return 'defeat';
-            } else if (!enemyBase) {
-                return 'victory';
-            } else {
-                // Compare base health percentages
-                const playerHealthPercent = playerBase.health / playerBase.maxHealth;
-                const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
-                
-                if (playerHealthPercent > enemyHealthPercent) {
-                    return 'victory';
-                } else if (enemyHealthPercent > playerHealthPercent) {
-                    return 'defeat';
-                } else {
-                    return 'draw';
-                }
-            }
+            // Use shared helper with no threshold (exact comparison for time-based ending)
+            const battleResult = GameHelpers.determineBattleResult(buildings);
+            return battleResult || 'draw';
         }
         
         return result;
