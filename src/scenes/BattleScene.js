@@ -79,6 +79,9 @@ class BattleScene extends Phaser.Scene {
         // Battle control flag
         this.battleEnded = false;
         
+        // Energy regeneration progress tracking (0-1 for gradual fill)
+        this.energyRegenProgress = 0;
+        
         // Pause state for analysis
         this.gamePaused = false;
         
@@ -1157,14 +1160,19 @@ class BattleScene extends Phaser.Scene {
             callback: () => {
                 if (this.energy < this.maxEnergy) {
                     this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
-                    this.updateEnergyBar();
                     
                     // Visual feedback for energy gain
                     this.showEnergyGainEffect();
                 }
                 
+                // Reset progress for next cycle
+                this.energyRegenProgress = 0;
+                
                 // Update the delay for next tick based on current battle time
                 this.energyTimer.delay = this.getEnergyRegenDelay();
+                
+                // Update energy bar after resetting progress
+                this.updateEnergyBar();
             },
             loop: true
         });
@@ -1265,6 +1273,25 @@ class BattleScene extends Phaser.Scene {
                 // Add inner highlight for filled squares
                 this.energyBarFill.fillStyle(0xffffff, 0.25);
                 this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 6, 4, 2);
+            }
+            // Gradual fill for the next energy cell (showing regeneration progress)
+            else if (i === this.energy && this.energy < this.maxEnergy) {
+                // Calculate fill width based on progress (fills from left to right)
+                const fillWidth = Math.floor(config.squareSize * this.energyRegenProgress);
+                
+                if (fillWidth > 0) {
+                    // Darker blue for in-progress fill
+                    const progressColor = 0x2563eb;
+                    
+                    // Draw partial fill from left
+                    this.energyBarFill.fillStyle(progressColor, 0.7);
+                    this.energyBarFill.fillRoundedRect(squareX, squareY, fillWidth, config.squareSize, 
+                        fillWidth >= config.squareSize - 3 ? 3 : 0); // Only round corners when nearly full
+                    
+                    // Add subtle border on the progress
+                    this.energyBarFill.lineStyle(1, 0x60a5fa, 0.5);
+                    this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+                }
             }
         }
         
@@ -2738,6 +2765,15 @@ class BattleScene extends Phaser.Scene {
         // Stop all game updates if battle has ended or game is paused
         if (this.battleEnded || this.gamePaused) {
             return;
+        }
+        
+        // Update energy regeneration progress for gradual fill display
+        if (this.energy < this.maxEnergy && this.energyTimer) {
+            // Use the timer's built-in elapsed tracking for accurate progress
+            const elapsed = this.energyTimer.getElapsed();
+            const totalDelay = this.energyTimer.delay;
+            this.energyRegenProgress = Math.min(elapsed / totalDelay, 1);
+            this.updateEnergyBar();
         }
         
         // Update AI
