@@ -1,7 +1,7 @@
 /**
  * AIController - Handles AI strategy, decision-making, and tank behavior for Tank Tactics
  * Extracted from BattleScene to improve code organization
- * Enhanced with advanced strategic decision-making
+ * Enhanced with advanced strategic decision-making and full card system support
  */
 
 class AIController {
@@ -17,7 +17,7 @@ class AIController {
             playerBaseHealthPercent: 1.0,
             rushMode: false,
             defensiveMode: false,
-            preferredTankTypes: ['tank_medium_1', 'tank_light_1'],
+            preferredCards: [], // Will be populated based on AI's actual deck
             energyThreshold: 3, // Minimum energy to consider deployment
             
             // Lane control tracking (left, center, right)
@@ -55,7 +55,12 @@ class AIController {
             // Combo/counter tracking
             lastPlayerDeploy: null,
             counterUnitReady: false,
-            pendingCounterDeploy: null
+            pendingCounterDeploy: null,
+            
+            // Building/spell tracking
+            aiFurnaceActive: false,
+            lastSpellTime: 0,
+            lastBuildingTime: 0
         };
         
         this.aiLastStrategyUpdate = 0;
@@ -93,11 +98,14 @@ class AIController {
         // Track estimated player energy
         this.updateEnergyTracking();
         
-        // Check if AI should deploy a tank (strategic timing)
+        // Check for reactive spell opportunities (high priority)
+        this.checkSpellOpportunities();
+        
+        // Check if AI should deploy a card (strategic timing)
         if (currentTime >= this.aiNextDeployment && this.scene.aiEnergy >= 1) {
             const shouldDeploy = this.shouldAIDeploy();
             if (shouldDeploy) {
-                this.aiDeployTankStrategically();
+                this.aiDeployCardStrategically();
                 // Dynamic deployment timing based on strategy and difficulty
                 const baseDelay = this.getDeploymentDelay();
                 const randomDelay = GameHelpers.randomInt(-500, 1000);
@@ -107,6 +115,107 @@ class AIController {
         
         // Check for reactive counter-deployment opportunities
         this.checkCounterDeployOpportunity();
+    }
+    
+    /**
+     * Check for spell casting opportunities (reactive gameplay)
+     */
+    checkSpellOpportunities() {
+        const currentTime = this.scene.time.now;
+        
+        // Don't spam spells - minimum 3 seconds between spell casts
+        if (currentTime - this.aiStrategy.lastSpellTime < 3000) {
+            return;
+        }
+        
+        const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        if (playerTanks.length === 0) return;
+        
+        // Check for Zap opportunity - multiple weak/grouped units
+        const zapCard = CARDS['zap'];
+        if (zapCard && this.scene.aiEnergy >= zapCard.cost) {
+            // Find clusters of player units (2+ in radius)
+            const cluster = this.findBestSpellTarget(playerTanks, zapCard.payload.radius, 2);
+            if (cluster) {
+                // Prioritize zapping skeleton armies or low HP swarms
+                const swarmUnits = cluster.targets.filter(t => t.tankData && t.tankData.stats.hp <= 100);
+                if (swarmUnits.length >= 3 || cluster.targets.length >= 3) {
+                    this.scene.aiCastSpell(zapCard, cluster.x, cluster.y);
+                    this.scene.aiEnergy -= zapCard.cost;
+                    this.aiStrategy.lastSpellTime = currentTime;
+                    return;
+                }
+            }
+        }
+        
+        // Check for Fireball opportunity - high value grouped targets
+        const fireballCard = CARDS['fireball'];
+        if (fireballCard && this.scene.aiEnergy >= fireballCard.cost) {
+            // Need 2+ medium/high value targets or 1 clump near tower
+            const cluster = this.findBestSpellTarget(playerTanks, fireballCard.payload.radius, 2);
+            if (cluster) {
+                // Calculate total HP value in cluster
+                const totalValue = cluster.targets.reduce((sum, t) => {
+                    const hp = t.tankData ? t.tankData.stats.hp : 500;
+                    return sum + hp;
+                }, 0);
+                
+                // Fireball if high value (800+ HP worth of units) or 3+ units
+                if (totalValue >= 800 || cluster.targets.length >= 3) {
+                    this.scene.aiCastSpell(fireballCard, cluster.x, cluster.y);
+                    this.scene.aiEnergy -= fireballCard.cost;
+                    this.aiStrategy.lastSpellTime = currentTime;
+                    return;
+                }
+            }
+            
+            // Also consider fireballing player units attacking our tower
+            const aiTowers = this.scene.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+            for (const tower of aiTowers) {
+                const nearbyEnemies = playerTanks.filter(t => 
+                    GameHelpers.distance(t.x, t.y, tower.x, tower.y) < 100
+                );
+                if (nearbyEnemies.length >= 2) {
+                    const centerX = nearbyEnemies.reduce((s, t) => s + t.x, 0) / nearbyEnemies.length;
+                    const centerY = nearbyEnemies.reduce((s, t) => s + t.y, 0) / nearbyEnemies.length;
+                    this.scene.aiCastSpell(fireballCard, centerX, centerY);
+                    this.scene.aiEnergy -= fireballCard.cost;
+                    this.aiStrategy.lastSpellTime = currentTime;
+                    return;
+                }
+            }
+        }
+    }
+    
+    /**
+     * Find the best position to cast a spell for maximum targets
+     * @param {Array} targets - Array of potential targets
+     * @param {number} radius - Spell radius
+     * @param {number} minTargets - Minimum targets required
+     * @returns {Object|null} Best target cluster {x, y, targets} or null
+     */
+    findBestSpellTarget(targets, radius, minTargets) {
+        if (targets.length < minTargets) return null;
+        
+        let bestCluster = null;
+        let maxTargets = 0;
+        
+        // Check each target as potential center
+        targets.forEach(centerTarget => {
+            const inRadius = targets.filter(t => 
+                GameHelpers.distance(centerTarget.x, centerTarget.y, t.x, t.y) <= radius
+            );
+            
+            if (inRadius.length > maxTargets) {
+                maxTargets = inRadius.length;
+                // Calculate centroid for better accuracy
+                const centerX = inRadius.reduce((s, t) => s + t.x, 0) / inRadius.length;
+                const centerY = inRadius.reduce((s, t) => s + t.y, 0) / inRadius.length;
+                bestCluster = { x: centerX, y: centerY, targets: inRadius };
+            }
+        });
+        
+        return maxTargets >= minTargets ? bestCluster : null;
     }
     
     /**
@@ -263,15 +372,73 @@ class AIController {
         
         const counter = this.aiStrategy.pendingCounterDeploy;
         if (this.scene.time.now >= counter.deployTime) {
-            // Deploy the counter unit
-            const tankData = TANK_DATA[counter.tankId];
-            if (tankData && this.scene.aiEnergy >= tankData.cost) {
-                this.scene.deployAITank(counter.tankId, counter.x, counter.y);
-                this.scene.aiEnergy -= tankData.cost;
-                console.log('🤖 AI: Counter-deployed', counter.tankId);
+            const cardId = counter.cardId;
+            const card = cardId ? CARDS[cardId] : null;
+            
+            if (card && this.scene.aiEnergy >= card.cost) {
+                let deployed = false;
+                
+                if (counter.isSpell) {
+                    deployed = this.deployCounterSpell(card, cardId);
+                } else if (card.payload && card.payload.swarm) {
+                    deployed = this.deployCounterSwarm(card, cardId, counter.x, counter.y);
+                } else if (card.payload && card.payload.tankId) {
+                    deployed = this.deployCounterTroop(card, cardId, counter.x, counter.y);
+                }
+                
+                if (deployed) {
+                    this.scene.aiEnergy -= card.cost;
+                    this.aiStrategy.pendingCounterDeploy = null;
+                } else {
+                    // Deployment failed - clear pending to avoid infinite retries
+                    this.aiStrategy.pendingCounterDeploy = null;
+                }
+            } else {
+                // Can't afford or invalid card - clear pending
+                this.aiStrategy.pendingCounterDeploy = null;
             }
-            this.aiStrategy.pendingCounterDeploy = null;
         }
+    }
+    
+    /**
+     * Deploy a counter spell at the best target location
+     * @returns {boolean} Whether the spell was successfully cast
+     */
+    deployCounterSpell(card, cardId) {
+        const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        const cluster = this.findBestSpellTarget(playerTanks, card.payload.radius, 1);
+        if (cluster) {
+            this.scene.aiCastSpell(card, cluster.x, cluster.y);
+            console.log('🤖 AI: Counter-spell', cardId);
+            return true;
+        }
+        return false;
+    }
+    
+    /**
+     * Deploy a counter swarm at the specified position
+     * @returns {boolean} Whether the swarm was successfully deployed
+     */
+    deployCounterSwarm(card, cardId, x, y) {
+        this.scene.aiDeploySwarm(card, x, y);
+        console.log('🤖 AI: Counter-deployed swarm', cardId);
+        return true;
+    }
+    
+    /**
+     * Deploy a counter troop at the specified position
+     * @returns {boolean} Whether the troop was successfully deployed
+     */
+    deployCounterTroop(card, cardId, x, y) {
+        const tankId = card.payload.tankId;
+        const tankData = TANK_DATA[tankId];
+        if (tankData) {
+            this.scene.deployAITank(tankId, x, y);
+            console.log('🤖 AI: Counter-deployed', cardId);
+            return true;
+        }
+        console.log('🤖 AI: Invalid tank data for counter', cardId);
+        return false;
     }
 
     /**
@@ -320,6 +487,16 @@ class AIController {
             aiRightTower: buildings.some(b => !b.isPlayerBase && b.towerType === 'right' && b.health > 0),
             aiMainTower: buildings.some(b => !b.isPlayerBase && b.isMainTower && b.health > 0)
         };
+        
+        // Track if AI has an active furnace (spawner building)
+        // Furnaces don't have towerType and are not main towers
+        const aiFurnaces = buildings.filter(b => 
+            !b.isPlayerBase && 
+            !b.towerType && 
+            !b.isMainTower && 
+            b.health > 0
+        );
+        this.aiStrategy.aiFurnaceActive = aiFurnaces.length > 0;
     }
     
     /**
@@ -343,7 +520,7 @@ class AIController {
                 aggressionScore += 0.2;
             }
             // Fast/light tanks indicate aggressive play
-            if (tank.tankData.type === TANK_TYPES.LIGHT || 
+            if (tank.tankData.type === TANK_TYPES.LIGHT ||
                 tank.tankData.type === TANK_TYPES.FAST_ATTACK) {
                 aggressionScore += 0.1;
             }
@@ -370,7 +547,9 @@ class AIController {
                 strategy.mode = 'defensive';
                 strategy.defensiveMode = true;
             }
-            strategy.preferredTankTypes = ['tank_heavy_1', 'tank_medium_1', 'tank_medium_2'];
+            // Only include preferred cards that are actually in the AI's deck
+            const criticalPreferred = ['mini_pekka', 'musketeer', 'mega_minion'];
+            strategy.preferredCards = criticalPreferred.filter(card => this.scene.aiDeck.includes(card));
             return;
         }
         
@@ -439,7 +618,7 @@ class AIController {
     }
     
     /**
-     * Update preferred tanks based on strategy and counters
+     * Update preferred cards based on strategy and counters
      */
     updatePreferredTanks(playerTanks) {
         const playerTypes = this.aiStrategy.playerPatterns.preferredTankTypes;
@@ -456,36 +635,39 @@ class AIController {
             }
         });
         
-        // Counter-pick logic
+        // Counter-pick logic using CARD IDs
         const counters = [];
         
-        // Counter heavy tanks with tank destroyers or high-pen units
+        // Counter heavy tanks with mini pekka (tank killer)
         if (heavyCount >= 2) {
-            counters.push('tank_destroyer_1', 'tank_minipakka');
+            counters.push('mini_pekka');
         }
         
-        // Counter swarm of light tanks with splash or medium tanks
+        // Counter swarm of light tanks with spells or splash
         if (lightCount >= 3) {
-            counters.push('tank_artillery_1', 'tank_medium_1', 'tank_medium_2');
+            counters.push('zap', 'fireball');
         }
         
-        // Counter tank destroyers with fast flankers
+        // Counter tank destroyers with swarm to surround them
         if (tdCount >= 1) {
-            counters.push('tank_light_2', 'tank_light_3', 'tank_light_1');
+            counters.push('skeleton_army', 'mega_minion');
         }
         
-        // Mode-specific preferences
+        // Mode-specific preferences using CARD IDs
         const modePreferences = {
-            'aggressive': ['tank_light_1', 'tank_light_2', 'tank_medium_1', 'tank_giant'],
-            'defensive': ['tank_heavy_1', 'tank_medium_2', 'tank_musketeer', 'tank_destroyer_1'],
-            'counter-push': ['tank_medium_1', 'tank_megaminion', 'tank_light_2'],
-            'split-push': ['tank_light_1', 'tank_light_3', 'tank_skeleton'],
-            'balanced': ['tank_medium_1', 'tank_light_1', 'tank_heavy_1']
+            'aggressive': ['giant', 'mega_minion', 'skeleton_army', 'mini_pekka'],
+            'defensive': ['musketeer', 'mini_pekka', 'furnace', 'fireball'],
+            'counter-push': ['mega_minion', 'mini_pekka', 'musketeer'],
+            'split-push': ['skeleton_army', 'mega_minion'],
+            'balanced': ['giant', 'mega_minion', 'musketeer', 'mini_pekka']
         };
         
-        // Combine counters with mode preferences
+        // Combine counters with mode preferences, filtering by cards actually in AI's deck
         const modePrefs = modePreferences[this.aiStrategy.mode] || modePreferences['balanced'];
-        this.aiStrategy.preferredTankTypes = [...new Set([...counters, ...modePrefs])];
+        const allPreferred = [...new Set([...counters, ...modePrefs])];
+        // Only include cards that are actually in the AI's deck
+        const aiDeck = this.scene.aiDeck || [];
+        this.aiStrategy.preferredCards = allPreferred.filter(cardId => aiDeck.includes(cardId));
     }
 
     /**
@@ -567,25 +749,89 @@ class AIController {
     }
 
     /**
-     * Chooses and deploys an AI tank strategically
+     * Chooses and deploys an AI card strategically (troops, spells, or buildings)
      */
-    aiDeployTankStrategically() {
-        // Choose which tank to deploy
-        const tankId = this.chooseAITank();
-        if (!tankId) {
-            console.log('🤖 AI: No suitable tank available');
+    aiDeployCardStrategically() {
+        // Get AI's current hand (4 cards from 8-card deck)
+        const energy = this.scene.aiEnergy;
+        const hand = this.scene.aiHand.map(cardId => {
+            const card = CARDS[cardId];
+            return {
+                id: cardId,
+                name: card ? card.name : cardId,
+                cost: card ? card.cost : '?',
+                affordable: card && card.cost <= energy
+            };
+        });
+        
+        // Choose which card to deploy
+        const choice = this.chooseAICard();
+        if (!choice) {
+            console.log('🤖 AI: No suitable card available');
             return;
         }
         
-        const tankData = TANK_DATA[tankId];
-        if (!tankData) {
-            console.log('🤖 AI: Invalid tank data for', tankId);
+        const cardId = choice.cardId;
+        const reason = choice.reason;
+        const handIndex = choice.handIndex;
+        
+        const card = CARDS[cardId];
+        if (!card) {
+            console.log('🤖 AI: Invalid card data for', cardId);
             return;
         }
         
         // Check if AI has enough energy
-        if (this.scene.aiEnergy < tankData.cost) {
-            console.log('🤖 AI: Not enough energy for', tankId, 'Cost:', tankData.cost, 'Have:', this.scene.aiEnergy);
+        if (this.scene.aiEnergy < card.cost) {
+            console.log('🤖 AI: Not enough energy for', cardId, 'Cost:', card.cost, 'Have:', this.scene.aiEnergy);
+            return;
+        }
+        
+        // Log the deployment decision with full context
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🤖 AI CARD DEPLOYMENT');
+        console.log('───────────────────────────────────────────────────────');
+        console.log('📋 Hand:', hand.map(c => `${c.name}(${c.cost})${c.affordable ? '✓' : '✗'}`).join(', '));
+        console.log('⚡ Energy:', energy);
+        console.log('🎯 Deployed:', card.name, `(Cost: ${card.cost})`);
+        console.log('💭 Reason:', reason);
+        console.log('📊 Strategy:', this.aiStrategy.mode, '| Lane:', this.aiStrategy.activeLane);
+        console.log('═══════════════════════════════════════════════════════');
+        
+        // Handle different card types
+        if (card.type === CARD_TYPES.SPELL) {
+            // Find best spell target
+            const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
+            const cluster = this.findBestSpellTarget(playerTanks, card.payload.radius, 1);
+            if (cluster) {
+                this.scene.aiCastSpell(card, cluster.x, cluster.y);
+                this.scene.aiEnergy -= card.cost;
+                this.aiStrategy.lastSpellTime = this.scene.time.now;
+                // Cycle the used card
+                this.scene.cycleAICard(handIndex);
+            }
+            return;
+        }
+        
+        if (card.type === CARD_TYPES.BUILDING) {
+            // Choose building placement position
+            const buildingPos = this.chooseAIBuildingPosition();
+            if (buildingPos) {
+                this.scene.aiPlaceBuilding(card, buildingPos.x, buildingPos.y);
+                this.scene.aiEnergy -= card.cost;
+                this.aiStrategy.aiFurnaceActive = true;
+                this.aiStrategy.lastBuildingTime = this.scene.time.now;
+                // Cycle the used card
+                this.scene.cycleAICard(handIndex);
+            }
+            return;
+        }
+        
+        // TROOP card - get tank data from payload
+        const tankId = card.payload.tankId;
+        const tankData = TANK_DATA[tankId];
+        if (!tankData) {
+            console.log('🤖 AI: Invalid tank data for card', cardId);
             return;
         }
         
@@ -596,157 +842,248 @@ class AIController {
             return;
         }
         
-        // Deploy the tank
-        this.scene.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
-        // Deduct energy now that the tank is deployed
-        this.scene.aiEnergy = Math.max(0, this.scene.aiEnergy - tankData.cost);
+        // Check if this is a swarm card
+        if (card.payload.swarm) {
+            this.scene.aiDeploySwarm(card, deploymentPos.x, deploymentPos.y);
+        } else {
+            // Deploy single unit
+            this.scene.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
+        }
         
-        // Consider deploying a combo unit if we have energy
-        this.considerComboDeployment(tankId, tankData, deploymentPos);
+        // Deduct energy
+        this.scene.aiEnergy = Math.max(0, this.scene.aiEnergy - card.cost);
+        
+        // Cycle the used card
+        this.scene.cycleAICard(handIndex);
+        
+        // Consider deploying a combo card if we have energy
+        this.considerComboCardDeployment(cardId, tankData, deploymentPos);
     }
     
     /**
-     * Consider deploying a combo unit to support the just-deployed tank
+     * Choose strategic building placement position (for Furnace etc)
+     * @returns {Object|null} Position {x, y} or null
      */
-    considerComboDeployment(primaryTankId, primaryTankData, deployPos) {
+    chooseAIBuildingPosition() {
+        const deploymentZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        
+        // Buildings should be placed in the back, protected by towers
+        // Prefer center-ish position behind the main battle line
+        for (let attempts = 0; attempts < 20; attempts++) {
+            // Place in rows 3-8 (back half of enemy zone)
+            const tileY = GameHelpers.randomInt(deploymentZone.tileY + 3, deploymentZone.tileY + 8);
+            // Center-ish X position (tiles 5-12)
+            const tileX = GameHelpers.randomInt(5, 12);
+            
+            if (GameHelpers.isValidDeploymentTile(tileX, tileY, false, this.scene.expandedDeploymentZones)) {
+                const worldPos = GameHelpers.tileToWorld(tileX, tileY);
+                
+                // Make sure not too close to other buildings
+                const nearbyBuildings = this.scene.buildings.filter(b => 
+                    GameHelpers.distance(worldPos.worldX, worldPos.worldY, b.x, b.y) < 60
+                );
+                
+                if (nearbyBuildings.length === 0) {
+                    return { x: worldPos.worldX, y: worldPos.worldY };
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    /**
+     * Consider deploying a combo card to support the just-deployed card
+     */
+    considerComboCardDeployment(primaryCardId, primaryTankData, deployPos) {
         // Only combo if we have enough energy
         if (this.scene.aiEnergy < 2) return;
         if (this.aiStrategy.mode === 'defensive') return; // Don't over-commit when defensive
         
-        // Combo patterns
+        // Combo patterns using CARD IDs
         const combos = {
-            'tank_giant': ['tank_megaminion', 'tank_musketeer'], // Giant + support
-            'tank_heavy_1': ['tank_medium_1', 'tank_light_1'],   // Heavy + backup
-            'tank_medium_1': ['tank_light_1'],                    // Medium + scout
+            'giant': ['mega_minion', 'musketeer'],      // Giant + ranged support
+            'mini_pekka': ['mega_minion'],               // Mini Pekka + air support
+            'musketeer': ['skeleton_army'],              // Musketeer + distraction
         };
         
-        const comboOptions = combos[primaryTankId];
+        const comboOptions = combos[primaryCardId];
         if (!comboOptions) return;
         
-        // Find affordable combo unit
-        for (const comboTankId of comboOptions) {
-            const comboData = TANK_DATA[comboTankId];
-            if (comboData && this.scene.aiEnergy >= comboData.cost) {
+        // Find affordable combo card
+        for (const comboCardId of comboOptions) {
+            const comboCard = CARDS[comboCardId];
+            if (comboCard && this.scene.aiEnergy >= comboCard.cost) {
+                const comboTankId = comboCard.payload.tankId;
+                const comboData = TANK_DATA[comboTankId];
+                if (!comboData) continue;
+                
                 // Position combo unit near but not on top of primary
-                // Offset randomly to the sides or behind
                 const sideOffset = GameHelpers.randomInt(-60, 60);
-                const behindOffset = GameHelpers.randomInt(-30, -60); // Negative Y = further from river (behind)
+                const behindOffset = GameHelpers.randomInt(-30, -60);
                 
                 this.aiStrategy.pendingCounterDeploy = {
+                    cardId: comboCardId,
                     tankId: comboTankId,
                     x: deployPos.x + sideOffset,
                     y: deployPos.y + behindOffset,
                     deployTime: this.scene.time.now + GameHelpers.randomInt(300, 600)
                 };
-                console.log('🤖 AI: Queued combo deploy', comboTankId);
+                console.log('🤖 AI: Queued combo deploy', comboCardId);
                 break;
             }
         }
     }
 
     /**
-     * Chooses which tank type the AI should deploy
-     * @returns {string|null} Tank ID to deploy or null if none available
+     * Chooses which card the AI should deploy (troop, spell, or building)
+     * @returns {Object|null} Object with cardId, reason, and handIndex, or null if none available
      */
-    chooseAITank() {
+    chooseAICard() {
         const energy = this.scene.aiEnergy;
+        const currentTime = this.scene.time.now;
         
-        // Filter available tanks by energy cost
-        const availableTanks = this.scene.aiDeck.filter(tankId => {
-            const tankData = TANK_DATA[tankId];
-            return tankData && tankData.cost <= energy;
+        // Filter available cards from AI's 4-card hand by energy cost
+        const availableCards = [];
+        this.scene.aiHand.forEach((cardId, index) => {
+            const card = CARDS[cardId];
+            if (card && card.cost <= energy) {
+                availableCards.push({ cardId, index });
+            }
         });
         
-        if (availableTanks.length === 0) {
+        if (availableCards.length === 0) {
             return null;
         }
         
-        // Get preferred tanks that are available
-        const preferredAvailable = availableTanks.filter(tankId => 
-            this.aiStrategy.preferredTankTypes.includes(tankId)
-        );
+        // Helper to find card in hand
+        const findCardInHand = (targetCardId) => {
+            return availableCards.find(c => c.cardId === targetCardId);
+        };
         
-        // Weighted selection based on situation
-        let chosenTank;
-        
-        // High priority: Counter picks
+        // Analyze current battlefield situation
         const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
+        const aiTanks = this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0);
         const heavyPlayerTanks = playerTanks.filter(t => t.tankData.type === TANK_TYPES.HEAVY).length;
         const lightPlayerTanks = playerTanks.filter(t => 
             t.tankData.type === TANK_TYPES.LIGHT || t.tankData.type === TANK_TYPES.FAST_ATTACK
         ).length;
         
-        // Counter logic with higher probability
-        if (heavyPlayerTanks >= 2) {
-            const antiHeavy = availableTanks.filter(id => 
-                ['tank_destroyer_1', 'tank_minipakka'].includes(id)
-            );
-            if (antiHeavy.length > 0 && Math.random() < 0.6) {
-                chosenTank = antiHeavy[Math.floor(Math.random() * antiHeavy.length)];
-                console.log('🤖 AI: Counter-picking heavy with', chosenTank);
-                return chosenTank;
+        // PRIORITY 1: Consider placing Furnace if no active one and enough energy
+        const furnaceInHand = findCardInHand('furnace');
+        if (furnaceInHand && 
+            !this.aiStrategy.aiFurnaceActive && 
+            currentTime - this.aiStrategy.lastBuildingTime > 20000 && 
+            energy >= 5) {
+            if (Math.random() < 0.4) {
+                return { cardId: 'furnace', reason: 'Spawner pressure - no active furnace', handIndex: furnaceInHand.index };
             }
         }
         
-        if (lightPlayerTanks >= 3) {
-            const antiSwarm = availableTanks.filter(id => 
-                ['tank_artillery_1', 'tank_medium_1', 'tank_medium_2'].includes(id)
-            );
-            if (antiSwarm.length > 0 && Math.random() < 0.5) {
-                chosenTank = antiSwarm[Math.floor(Math.random() * antiSwarm.length)];
-                console.log('🤖 AI: Counter-picking swarm with', chosenTank);
-                return chosenTank;
+        // PRIORITY 2: Counter swarms with Zap
+        const zapInHand = findCardInHand('zap');
+        if (zapInHand && lightPlayerTanks >= 3) {
+            if (Math.random() < 0.5) {
+                return { cardId: 'zap', reason: `Counter swarm - ${lightPlayerTanks} light units detected`, handIndex: zapInHand.index };
             }
         }
         
-        // Mode-specific selection
+        // PRIORITY 3: Counter heavy pushes with Mini Pekka
+        const miniPekkaInHand = findCardInHand('mini_pekka');
+        if (miniPekkaInHand && heavyPlayerTanks >= 1) {
+            if (Math.random() < 0.6) {
+                return { cardId: 'mini_pekka', reason: `Counter heavy - ${heavyPlayerTanks} heavy tank(s) detected`, handIndex: miniPekkaInHand.index };
+            }
+        }
+        
+        // PRIORITY 4: Deploy Giant as win condition when we have support
+        const giantInHand = findCardInHand('giant');
+        if (giantInHand && energy >= 7 && aiTanks.length >= 1) {
+            if (Math.random() < 0.5) {
+                return { cardId: 'giant', reason: `Win condition - ${aiTanks.length} support units ready, ${energy} energy`, handIndex: giantInHand.index };
+            }
+        }
+        
+        // PRIORITY 5: Deploy Skeleton Army as distraction or counter
+        const skeletonArmyInHand = findCardInHand('skeleton_army');
+        if (skeletonArmyInHand) {
+            if (playerTanks.some(t => t.tankData.stats.damage >= 100) && Math.random() < 0.4) {
+                return { cardId: 'skeleton_army', reason: 'Distraction - high damage enemy detected', handIndex: skeletonArmyInHand.index };
+            }
+        }
+        
+        // Get preferred troop cards that are in hand
+        const preferredAvailable = availableCards.filter(item => {
+            const card = CARDS[item.cardId];
+            return card.type === CARD_TYPES.TROOP && this.aiStrategy.preferredCards.includes(item.cardId);
+        });
+        
+        // Mode-specific selection for troop cards
+        const troopCards = availableCards.filter(item => CARDS[item.cardId].type === CARD_TYPES.TROOP);
+        
+        let chosenItem = null;
+        let reason = '';
+        
         switch (this.aiStrategy.mode) {
             case 'aggressive':
             case 'counter-push':
-                // Prefer DPS and fast units
-                const aggressivePicks = availableTanks.filter(id => {
-                    const data = TANK_DATA[id];
-                    return data && (data.stats.speed >= 50 || data.stats.damage >= 80);
+                // Prefer high DPS or win conditions
+                const aggressivePicks = troopCards.filter(item => {
+                    const card = CARDS[item.cardId];
+                    if (!card.payload.tankId) return false;
+                    const data = TANK_DATA[card.payload.tankId];
+                    return data && (data.stats.damage >= 80 || item.cardId === 'giant');
                 });
                 if (aggressivePicks.length > 0) {
-                    chosenTank = aggressivePicks[Math.floor(Math.random() * aggressivePicks.length)];
+                    chosenItem = aggressivePicks[Math.floor(Math.random() * aggressivePicks.length)];
+                    reason = `Mode ${this.aiStrategy.mode} - high DPS pick`;
                 }
                 break;
                 
             case 'defensive':
-                // Prefer high HP and range
-                const defensivePicks = availableTanks.filter(id => {
-                    const data = TANK_DATA[id];
-                    return data && (data.stats.hp >= 400 || data.stats.range >= 200);
+                // Prefer ranged or high HP units
+                const defensivePicks = troopCards.filter(item => {
+                    const card = CARDS[item.cardId];
+                    if (!card.payload.tankId) return false;
+                    const data = TANK_DATA[card.payload.tankId];
+                    return data && (data.stats.range >= 200 || data.stats.hp >= 400);
                 });
                 if (defensivePicks.length > 0) {
-                    chosenTank = defensivePicks[Math.floor(Math.random() * defensivePicks.length)];
+                    chosenItem = defensivePicks[Math.floor(Math.random() * defensivePicks.length)];
+                    reason = 'Mode defensive - ranged/tanky pick';
                 }
                 break;
                 
             case 'split-push':
-                // Prefer cheap, fast units
-                const splitPicks = availableTanks.filter(id => {
-                    const data = TANK_DATA[id];
-                    return data && data.cost <= 3;
+                // Prefer cheap units for split pressure
+                const splitPicks = troopCards.filter(item => {
+                    const card = CARDS[item.cardId];
+                    return card.cost <= 3;
                 });
                 if (splitPicks.length > 0) {
-                    chosenTank = splitPicks[Math.floor(Math.random() * splitPicks.length)];
+                    chosenItem = splitPicks[Math.floor(Math.random() * splitPicks.length)];
+                    reason = 'Mode split-push - cheap unit for pressure';
                 }
                 break;
         }
         
-        // Fallback to preferred or random
-        if (!chosenTank) {
+        // Fallback to preferred or random troop card
+        if (!chosenItem) {
             if (preferredAvailable.length > 0 && Math.random() < 0.75) {
-                chosenTank = preferredAvailable[Math.floor(Math.random() * preferredAvailable.length)];
+                chosenItem = preferredAvailable[Math.floor(Math.random() * preferredAvailable.length)];
+                reason = 'Preferred card from strategy list';
+            } else if (troopCards.length > 0) {
+                chosenItem = troopCards[Math.floor(Math.random() * troopCards.length)];
+                reason = 'Random troop card selection';
             } else {
-                chosenTank = availableTanks[Math.floor(Math.random() * availableTanks.length)];
+                // If no troop cards, pick any available card
+                chosenItem = availableCards[Math.floor(Math.random() * availableCards.length)];
+                reason = 'Fallback - random available card';
             }
         }
         
-        console.log('🤖 AI choosing tank:', chosenTank, 'Strategy:', this.aiStrategy.mode, 'Lane:', this.aiStrategy.activeLane);
-        return chosenTank;
+        return { cardId: chosenItem.cardId, reason: reason, handIndex: chosenItem.index };
     }
 
     /**
@@ -1036,25 +1373,42 @@ class AIController {
             return;
         }
         
-        // Counter-pick table
+        // Counter-pick table using CARD IDs
         const counters = {
-            [TANK_TYPES.HEAVY]: ['tank_destroyer_1', 'tank_minipakka', 'tank_medium_2'],
-            [TANK_TYPES.LIGHT]: ['tank_medium_1', 'tank_artillery_1'],
-            [TANK_TYPES.FAST_ATTACK]: ['tank_medium_1', 'tank_light_2'],
-            [TANK_TYPES.TANK_DESTROYER]: ['tank_light_2', 'tank_light_3', 'tank_light_1'],
-            [TANK_TYPES.ARTILLERY]: ['tank_light_1', 'tank_light_2', 'tank_light_3'],
-            [TANK_TYPES.MEDIUM]: ['tank_heavy_1', 'tank_medium_2']
+            [TANK_TYPES.HEAVY]: ['mini_pekka', 'skeleton_army'],     // Mini Pekka shreds tanks, skeletons distract
+            [TANK_TYPES.LIGHT]: ['zap', 'mega_minion'],               // Zap for swarms, Mega Minion for damage
+            [TANK_TYPES.FAST_ATTACK]: ['zap', 'mega_minion'],
+            [TANK_TYPES.TANK_DESTROYER]: ['skeleton_army', 'giant'], // Swarm to overwhelm, Giant to tank
+            [TANK_TYPES.ARTILLERY]: ['mega_minion', 'mini_pekka'],   // Fast units to reach artillery
+            [TANK_TYPES.MEDIUM]: ['mini_pekka', 'musketeer']
         };
         
-        const counterOptions = counters[playerTankData.type] || ['tank_medium_1'];
+        const counterOptions = counters[playerTankData.type] || ['mega_minion'];
         
-        // Find affordable counter
-        for (const counterId of counterOptions) {
-            const counterData = TANK_DATA[counterId];
-            if (counterData && this.scene.aiEnergy >= counterData.cost) {
-                // Find a good deployment position - spread across full width
+        // Find affordable counter from cards
+        for (const cardId of counterOptions) {
+            const card = CARDS[cardId];
+            if (card && this.scene.aiEnergy >= card.cost) {
+                // Handle spells differently - they don't need deployment position in the same way
+                if (card.type === CARD_TYPES.SPELL) {
+                    // Queue spell for next opportunity
+                    this.aiStrategy.pendingCounterDeploy = {
+                        cardId: cardId,
+                        tankId: null,
+                        isSpell: true,
+                        x: 0, y: 0, // Will be calculated when cast
+                        deployTime: this.scene.time.now + this.reactionTimeBase
+                    };
+                    console.log('🤖 AI: Preparing spell counter', cardId);
+                    return;
+                }
+                
+                // For troop cards
+                const tankId = card.payload.tankId;
+                if (!tankId) continue;
+                
+                // Find a good deployment position
                 const deployZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
-                // Use tiles 2-15 for X (avoiding edges) and rows 8-15 for Y (mid to front)
                 const tileX = GameHelpers.randomInt(2, GAME_CONFIG.TILES_X - 3);
                 const tileY = GameHelpers.randomInt(deployZone.tileY + 8, 
                                                      deployZone.tileY + deployZone.tilesHeight - 1);
@@ -1063,12 +1417,13 @@ class AIController {
                 // Schedule counter with reaction delay
                 const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(-200, 400);
                 this.aiStrategy.pendingCounterDeploy = {
-                    tankId: counterId,
+                    cardId: cardId,
+                    tankId: tankId,
                     x: worldPos.worldX,
                     y: worldPos.worldY,
                     deployTime: this.scene.time.now + reactionTime
                 };
-                console.log('🤖 AI: Preparing counter', counterId, 'in', reactionTime, 'ms');
+                console.log('🤖 AI: Preparing counter', cardId, 'in', reactionTime, 'ms');
                 break;
             }
         }

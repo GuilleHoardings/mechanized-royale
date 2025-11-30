@@ -2225,13 +2225,6 @@ class BattleScene extends Phaser.Scene {
         
         this.deploymentPreview.active = false;
         this.deploymentPreview.validPosition = false;
-     */
-    /**
-     * Starts the visual preview for spell or building placement, showing the area of effect radius.
-     * @param {number} worldX - The X coordinate in world space where the preview should be centered.
-     * @param {number} worldY - The Y coordinate in world space where the preview should be centered.
-     * @param {Object} selectedCardData - The data object for the selected card, containing card definition and payload.
-     */
     }
 
     /**
@@ -2622,17 +2615,23 @@ class BattleScene extends Phaser.Scene {
         this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
         this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
         
-        // Enhanced AI deck with more variety and strategic options
+        // Enhanced AI deck using CARD IDs - mirrors player's card system
+        // This allows AI to use spells, buildings, and special units
         this.aiDeck = [
-            'tank_light_1',      // Fast scout
-            'tank_light_2',      // Upgraded scout with smoke
-            'tank_medium_1',     // Balanced workhorse
-            'tank_medium_2',     // High-tier medium
-            'tank_heavy_1',      // Tanky frontline
-            'tank_destroyer_1',  // Anti-heavy specialist
-            'tank_megaminion',   // High DPS support
-            'tank_musketeer'     // Long-range support
+            'giant',            // Win condition - high HP building targeter
+            'mega_minion',      // High DPS support
+            'musketeer',        // Long-range support
+            'mini_pekka',       // Tank killer
+            'zap',              // Cheap spell for swarms/stun
+            'fireball',         // Medium spell for grouped enemies
+            'furnace',          // Spawner building
+            'skeleton_army'     // Swarm unit for distractions
         ];
+        
+        // AI hand system - 4 cards visible from 8-card deck (same as player)
+        this.aiHand = [];
+        this.aiNextCardIndex = 0;
+        this.initializeAIDeck();
         
         // AI strategy state (managed by AIController)
         this.aiStrategy = {
@@ -2655,6 +2654,69 @@ class BattleScene extends Phaser.Scene {
             },
             loop: true
         });
+    }
+    
+    /**
+     * Initialize AI deck with shuffled hand of 4 cards
+     */
+    initializeAIDeck() {
+        // Shuffle AI deck
+        this.shuffleAIDeck();
+        // Draw 4 cards into AI hand
+        this.aiHand = [];
+        for (let i = 0; i < 4; i++) {
+            this.aiHand.push(this.getNextAICard());
+        }
+    }
+    
+    /**
+     * Shuffle AI deck using Fisher-Yates algorithm
+     */
+    shuffleAIDeck() {
+        for (let i = this.aiDeck.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [this.aiDeck[i], this.aiDeck[j]] = [this.aiDeck[j], this.aiDeck[i]];
+        }
+        this.aiNextCardIndex = 0;
+    }
+    
+    /**
+     * Get next card from AI deck (not already in hand)
+     * @param {number} excludeSlotIndex - Slot being replaced (to allow that card)
+     * @returns {string} Card ID
+     */
+    getNextAICard(excludeSlotIndex = -1) {
+        const cardsInHand = this.aiHand.filter((_, idx) => idx !== excludeSlotIndex);
+        
+        let attempts = 0;
+        const maxAttempts = this.aiDeck.length * 2;
+        
+        while (attempts < maxAttempts) {
+            if (this.aiNextCardIndex >= this.aiDeck.length) {
+                this.shuffleAIDeck();
+            }
+            const id = this.aiDeck[this.aiNextCardIndex++];
+            
+            if (!cardsInHand.includes(id)) {
+                return id;
+            }
+            attempts++;
+        }
+        
+        // Fallback
+        if (this.aiNextCardIndex >= this.aiDeck.length) {
+            this.shuffleAIDeck();
+        }
+        return this.aiDeck[this.aiNextCardIndex++];
+    }
+    
+    /**
+     * Cycle a card in AI hand after deployment
+     * @param {number} handIndex - Index of card in AI hand (0-3)
+     */
+    cycleAICard(handIndex) {
+        if (handIndex < 0 || handIndex >= this.aiHand.length) return;
+        this.aiHand[handIndex] = this.getNextAICard(handIndex);
     }
 
     updateAIStrategy() {
@@ -2895,6 +2957,146 @@ class BattleScene extends Phaser.Scene {
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
             }
         }
+    }
+
+    /**
+     * AI casts a spell at the specified position
+     * @param {Object} card - Card definition from CARDS
+     * @param {number} x - World X position
+     * @param {number} y - World Y position
+     */
+    aiCastSpell(card, x, y) {
+        if (card.id === 'zap') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff6666); // Red tint for AI
+            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+                // Only affect player units
+                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerBase === true;
+                if (!isPlayerUnit) return;
+                // Activate main towers when hit
+                if (target.isMainTower && !target.activated) {
+                    target.activated = true;
+                    console.log(`Main tower activated by AI zap! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                }
+                target.health = Math.max(0, target.health - card.payload.damage);
+                target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
+                this.combatSystem.updateHealthDisplay(target);
+                if (target.health <= 0) {
+                    this.combatSystem.handleTargetDestruction(target, null);
+                }
+            });
+            this.playUISound('shoot');
+            console.log('🤖 AI: Cast Zap at', Math.round(x), Math.round(y));
+        } else if (card.id === 'fireball') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff4400); // Orange-red for AI fireball
+            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerBase === true;
+                if (!isPlayerUnit) return;
+                // Activate main towers when hit
+                if (target.isMainTower && !target.activated) {
+                    target.activated = true;
+                    console.log(`Main tower activated by AI fireball! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                }
+                target.health = Math.max(0, target.health - card.payload.damage);
+                this.combatSystem.updateHealthDisplay(target);
+                if (target.health <= 0) {
+                    this.combatSystem.handleTargetDestruction(target, null);
+                }
+            });
+            this.combatSystem.showExplosionEffect(x, y, 1.2);
+            this.playUISound('explosion');
+            console.log('🤖 AI: Cast Fireball at', Math.round(x), Math.round(y));
+        }
+    }
+
+    /**
+     * AI places a building at the specified position
+     * @param {Object} card - Card definition from CARDS
+     * @param {number} x - World X position
+     * @param {number} y - World Y position
+     */
+    aiPlaceBuilding(card, x, y) {
+        // Create furnace building for AI
+        const furnace = this.add.container(x, y);
+        const g = this.add.graphics();
+        g.fillStyle(0x882222); // Darker red tint for AI furnace
+        g.fillRect(-12, -8, 24, 16);
+        g.fillStyle(0xff3300); // Redder fire for AI
+        g.fillCircle(0, 0, 5);
+        furnace.add(g);
+        furnace.health = 400;
+        furnace.maxHealth = 400;
+        furnace.isPlayerBase = false; // AI building
+        furnace.lastShotTime = 0;
+        furnace.target = null;
+        furnace.lastTargetUpdate = 0;
+        furnace.canShoot = false;
+        this.buildings.push(furnace);
+        
+        // Create health bar
+        const config = UI_CONFIG.HEALTH_BARS.TOWER;
+        const healthBg = this.add.graphics();
+        healthBg.fillStyle(config.BACKGROUND_COLOR);
+        healthBg.fillRect(furnace.x - config.OFFSET_X, furnace.y - config.OFFSET_Y, config.WIDTH, config.HEIGHT);
+        furnace.healthBg = healthBg;
+        const healthFill = this.add.graphics();
+        furnace.healthFill = healthFill;
+        const healthText = this.add.text(
+            furnace.x, furnace.y - config.OFFSET_Y - 15,
+            `${furnace.health}/${furnace.maxHealth}`,
+            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
+        ).setOrigin(0.5);
+        furnace.healthText = healthText;
+        this.updateBuildingHealth(furnace);
+        
+        // Lifetime
+        this.time.delayedCall(card.payload.lifetimeMs, () => {
+            const idx = this.buildings.indexOf(furnace);
+            if (idx >= 0) this.buildings.splice(idx, 1);
+            if (furnace.healthBg) furnace.healthBg.destroy();
+            if (furnace.healthFill) furnace.healthFill.destroy();
+            if (furnace.healthText) furnace.healthText.destroy();
+            furnace.destroy();
+        });
+        
+        // Missile launch loop - targets player units
+        const timer = this.time.addEvent({
+            delay: card.payload.launchIntervalMs,
+            loop: true,
+            callback: () => {
+                if (!furnace.scene || furnace.health <= 0) { timer.remove(); return; }
+                for (let i = 0; i < (card.payload.missileCount || 1); i++) {
+                    this.launchFurnaceMissile(furnace, card.payload);
+                }
+            }
+        });
+        
+        console.log('🤖 AI: Placed Furnace at', Math.round(x), Math.round(y));
+    }
+
+    /**
+     * AI deploys a swarm of units
+     * @param {Object} card - Card definition from CARDS
+     * @param {number} x - World X position
+     * @param {number} y - World Y position
+     */
+    aiDeploySwarm(card, x, y) {
+        const tankData = TANK_DATA[card.payload.tankId];
+        const count = card.payload.count || 1;
+        
+        // Spread units in a formation
+        const spreadRadius = 25;
+        for (let i = 0; i < count; i++) {
+            const angle = (i / count) * Math.PI * 2;
+            const offsetX = Math.cos(angle) * spreadRadius * (0.5 + Math.random() * 0.5);
+            const offsetY = Math.sin(angle) * spreadRadius * (0.5 + Math.random() * 0.5);
+            
+            // Small delay between spawns for visual effect
+            this.time.delayedCall(i * 50, () => {
+                this.deployAITank(card.payload.tankId, x + offsetX, y + offsetY);
+            });
+        }
+        
+        console.log('🤖 AI: Deployed', count, tankData.name, 'at', Math.round(x), Math.round(y));
     }
 
     deployAITank(tankId, x, y) {
