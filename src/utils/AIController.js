@@ -59,6 +59,7 @@ class AIController {
         };
         
         this.aiLastStrategyUpdate = 0;
+        this.aiLastLaneAssessment = 0;
         this.aiNextDeployment = 0;
         
         // Difficulty scaling (can be adjusted)
@@ -84,8 +85,9 @@ class AIController {
         }
         
         // Update lane control assessment every second
-        if (currentTime % 1000 < 20) {
+        if (currentTime - this.aiLastLaneAssessment > 1000) {
             this.assessLaneControl();
+            this.aiLastLaneAssessment = currentTime;
         }
         
         // Track estimated player energy
