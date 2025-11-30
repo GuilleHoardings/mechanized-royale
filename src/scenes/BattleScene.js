@@ -2448,11 +2448,25 @@ class BattleScene extends Phaser.Scene {
         this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
         this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
         
-        // Strategic AI deck - more variety and tactical choices
+        // Enhanced AI deck with more variety and strategic options
         this.aiDeck = [
-            'tank_light_1', 'tank_light_2', 'tank_medium_1', 'tank_medium_2',
-            'tank_heavy_1', 'tank_light_1', 'tank_medium_1', 'tank_light_2'
+            'tank_light_1',      // Fast scout
+            'tank_light_2',      // Upgraded scout with smoke
+            'tank_medium_1',     // Balanced workhorse
+            'tank_medium_2',     // High-tier medium
+            'tank_heavy_1',      // Tanky frontline
+            'tank_destroyer_1',  // Anti-heavy specialist
+            'tank_megaminion',   // High DPS support
+            'tank_musketeer'     // Long-range support
         ];
+        
+        // AI strategy state (managed by AIController)
+        this.aiStrategy = {
+            mode: 'balanced',
+            rushMode: false,
+            defensiveMode: false,
+            preferredTankTypes: ['tank_medium_1', 'tank_light_1']
+        };
         
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
