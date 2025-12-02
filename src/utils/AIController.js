@@ -69,7 +69,8 @@ class AIController {
         
         // Difficulty scaling (can be adjusted)
         this.difficultyMultiplier = 1.0;
-        this.reactionTimeBase = 800; // Base reaction time in ms
+        this.reactionTimeBase = 800; // Base reaction time in ms (human-like)
+        this.reactionTimeVariance = 800; // Add variance to feel more natural
     }
 
     /**
@@ -107,9 +108,10 @@ class AIController {
             if (shouldDeploy) {
                 this.aiDeployCardStrategically();
                 // Dynamic deployment timing based on strategy and difficulty
+                // Human-like: need time to assess what just happened
                 const baseDelay = this.getDeploymentDelay();
-                const randomDelay = GameHelpers.randomInt(-500, 1000);
-                this.aiNextDeployment = currentTime + baseDelay + randomDelay;
+                const thinkingTime = GameHelpers.randomInt(300, 1500); // Humans need time to think
+                this.aiNextDeployment = currentTime + baseDelay + thinkingTime;
             }
         }
         
@@ -123,8 +125,10 @@ class AIController {
     checkSpellOpportunities() {
         const currentTime = this.scene.time.now;
         
-        // Don't spam spells - minimum 3 seconds between spell casts
-        if (currentTime - this.aiStrategy.lastSpellTime < 3000) {
+        // Human-like spell timing - need time to notice opportunity, aim, and cast
+        // Minimum 3-4 seconds between spell casts (humans can't track everything instantly)
+        const minSpellInterval = 3000 + GameHelpers.randomInt(0, 1000);
+        if (currentTime - this.aiStrategy.lastSpellTime < minSpellInterval) {
             return;
         }
         
@@ -222,27 +226,31 @@ class AIController {
      * Get deployment delay based on current strategy
      */
     getDeploymentDelay() {
+        // Human-like deployment delays - people take time to assess and decide
         const baseDelays = {
-            'aggressive': 1500,
-            'counter-push': 1800,
-            'split-push': 2200,
-            'balanced': 2800,
-            'defensive': 4000
+            'aggressive': 2500,
+            'counter-push': 3000,
+            'split-push': 3500,
+            'balanced': 4000,
+            'defensive': 5500
         };
         
-        let delay = baseDelays[this.aiStrategy.mode] || 2800;
+        let delay = baseDelays[this.aiStrategy.mode] || 4000;
         
-        // Faster during overtime or low time
+        // Add human-like variance (sometimes quick, sometimes hesitant)
+        delay += GameHelpers.randomInt(-500, 1200);
+        
+        // Faster during overtime or low time (but still human)
         if (this.scene.battleTime <= 60) {
-            delay *= 0.6;
+            delay *= 0.7;
         } else if (this.scene.battleTime <= 30) {
-            delay *= 0.4;
+            delay *= 0.5;
         }
         
         // Scale with difficulty
         delay /= this.difficultyMultiplier;
         
-        return Math.max(delay, 800); // Minimum 800ms between deploys
+        return Math.max(delay, 1500); // Minimum 1.5s between deploys (human can't click faster while thinking)
     }
     
     /**
@@ -1345,9 +1353,10 @@ class AIController {
                 
                 // If player destroyed our tank, we might need to counter
                 if (this.aiStrategy.aiTankCount < this.aiStrategy.playerTankCount) {
-                    // Schedule faster deployment
+                    // Schedule deployment with human-like reaction (notice loss -> assess -> respond)
+                    const responseTime = this.reactionTimeBase + GameHelpers.randomInt(0, this.reactionTimeVariance);
                     this.aiNextDeployment = Math.min(this.aiNextDeployment, 
-                        currentTime + 1500);
+                        currentTime + responseTime);
                 }
                 break;
                 
@@ -1355,9 +1364,10 @@ class AIController {
                 // Player damaged our tower - defensive reaction
                 if (data.isAITower && data.damage > 100) {
                     this.aiStrategy.mode = 'defensive';
-                    // Deploy ASAP if we have energy
+                    // Deploy with human-like reaction time (notice damage -> panic -> decide -> act)
                     if (this.scene.aiEnergy >= 3) {
-                        this.aiNextDeployment = currentTime + 500;
+                        const panicReaction = this.reactionTimeBase + GameHelpers.randomInt(-300, 500);
+                        this.aiNextDeployment = currentTime + panicReaction;
                     }
                 }
                 break;
@@ -1391,15 +1401,16 @@ class AIController {
             if (card && this.scene.aiEnergy >= card.cost) {
                 // Handle spells differently - they don't need deployment position in the same way
                 if (card.type === CARD_TYPES.SPELL) {
-                    // Queue spell for next opportunity
+                    // Queue spell for next opportunity with human-like delay
+                    const spellReactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
                     this.aiStrategy.pendingCounterDeploy = {
                         cardId: cardId,
                         tankId: null,
                         isSpell: true,
                         x: 0, y: 0, // Will be calculated when cast
-                        deployTime: this.scene.time.now + this.reactionTimeBase
+                        deployTime: this.scene.time.now + spellReactionTime
                     };
-                    console.log('🤖 AI: Preparing spell counter', cardId);
+                    console.log('🤖 AI: Preparing spell counter', cardId, 'in', spellReactionTime, 'ms');
                     return;
                 }
                 
@@ -1414,8 +1425,9 @@ class AIController {
                                                      deployZone.tileY + deployZone.tilesHeight - 1);
                 const worldPos = GameHelpers.tileToWorld(tileX, tileY);
                 
-                // Schedule counter with reaction delay
-                const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(-200, 400);
+                // Schedule counter with human-like reaction delay
+                // Humans need time to: notice deployment -> identify unit -> decide counter -> execute
+                const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(0, this.reactionTimeVariance);
                 this.aiStrategy.pendingCounterDeploy = {
                     cardId: cardId,
                     tankId: tankId,
