@@ -4260,7 +4260,7 @@ class BattleScene extends Phaser.Scene {
         const isPlayerTower = tower.isPlayerBase;
         const towerName = tower.isMainTower ? 'MAIN TOWER' : 
                          tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
-        const message = `${isPlayerTower ? 'ENEMY' : 'PLAYER'} ${towerName} DESTROYED!`;
+        const message = `${isPlayerTower ? 'PLAYER' : 'ENEMY'} ${towerName} DESTROYED!`;
         const color = isPlayerTower ? '#ff4444' : '#44ff44';
 
         const notificationText = this.add.text(GAME_CONFIG.WIDTH / 2, 200, message, {
