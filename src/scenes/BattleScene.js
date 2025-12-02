@@ -202,15 +202,29 @@ class BattleScene extends Phaser.Scene {
             // Graphics mode - use procedural graphics for detailed grid and features
             this.createDebugBattlefield(offsetX);
         } else {
-            // Texture mode - use battlefield texture
-            this.battlefieldImage = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
-            this.battlefieldImage.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-            this.battlefieldImage.setOrigin(0.5, 0.5);
-            this.battlefieldImage.setDepth(-10); // Ensure battlefield is behind other elements
+            // Texture mode - use battlefield texture scaled so image tiles match game tiles
+            // Image is 1536x2816, but only the central 514px width contains the 18 tiles
+            // Scale factor: WORLD_WIDTH / 514 to make image tiles match game tiles
+            this.addArenaTexture(); // Ensure battlefield is behind other elements
         }
         
         // Deployment zones with tile-based boundaries - will be drawn dynamically
         this.createDeploymentZoneGraphics();
+    }
+
+    addArenaTexture() {
+        const imageTileAreaWidth = 875;
+        const scaleFactor = GAME_CONFIG.WORLD_WIDTH / imageTileAreaWidth;
+        const scaledWidth = 1536 * scaleFactor;
+        const scaledHeight = 2816 * scaleFactor;
+
+        // Position so the image's tile area aligns with the game's tile grid
+        // Game grid is at (offsetX, 0) to (offsetX + WORLD_WIDTH, WORLD_HEIGHT)
+        const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
+        this.battlefieldImage = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
+        this.battlefieldImage.setDisplaySize(scaledWidth, scaledHeight);
+        this.battlefieldImage.setOrigin(0.5, 0.47);
+        this.battlefieldImage.setDepth(-10);
     }
 
     createDebugBattlefield(offsetX) {
@@ -4630,13 +4644,7 @@ class BattleScene extends Phaser.Scene {
             // Graphics mode - use procedural graphics for detailed grid and features
             this.createDebugBattlefield(offsetX);
         } else {
-            // Texture mode - use battlefield texture
-            this.battlefieldImage = this.add.image(offsetX + GAME_CONFIG.WORLD_WIDTH / 2, GAME_CONFIG.WORLD_HEIGHT / 2, 'battlefield');
-            this.battlefieldImage.setDisplaySize(GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-            this.battlefieldImage.setOrigin(0.5, 0.5);
-            
-            // Make sure battlefield is behind other elements
-            this.battlefieldImage.setDepth(-10);
+            this.addArenaTexture();
         }
         
         // Redraw deployment zones to ensure they appear on top
