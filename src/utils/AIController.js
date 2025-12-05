@@ -126,9 +126,14 @@ class AIController {
         const currentTime = this.scene.time.now;
         
         // Human-like spell timing - need time to notice opportunity, aim, and cast
-        // Minimum 3-4 seconds between spell casts (humans can't track everything instantly)
-        const minSpellInterval = 3000 + GameHelpers.randomInt(0, 1000);
+        // Minimum 2-3 seconds between spell casts (humans can't track everything instantly)
+        const minSpellInterval = 2000 + GameHelpers.randomInt(0, 1000);
         if (currentTime - this.aiStrategy.lastSpellTime < minSpellInterval) {
+            return;
+        }
+        
+        // If there's already a pending counter deploy and it's a spell, don't queue another spell
+        if (this.aiStrategy.pendingCounterDeploy && this.aiStrategy.pendingCounterDeploy.isSpell) {
             return;
         }
         
@@ -144,9 +149,16 @@ class AIController {
                 // Prioritize zapping skeleton armies or low HP swarms
                 const swarmUnits = cluster.targets.filter(t => t.tankData && t.tankData.stats.hp <= 100);
                 if (swarmUnits.length >= 3 || cluster.targets.length >= 3) {
-                    this.scene.aiCastSpell(zapCard, cluster.x, cluster.y);
-                    this.scene.aiEnergy -= zapCard.cost;
+                    // Queue spell with human-like reaction delay
+                    const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
+                    this.aiStrategy.pendingCounterDeploy = {
+                        cardId: 'zap',
+                        isSpell: true,
+                        deployTime: currentTime + reactionTime
+                    };
+                    // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
+                    console.log('🤖 AI: Spotted swarm, preparing Zap in', reactionTime, 'ms');
                     return;
                 }
             }
@@ -166,9 +178,16 @@ class AIController {
                 
                 // Fireball if high value (800+ HP worth of units) or 3+ units
                 if (totalValue >= 800 || cluster.targets.length >= 3) {
-                    this.scene.aiCastSpell(fireballCard, cluster.x, cluster.y);
-                    this.scene.aiEnergy -= fireballCard.cost;
+                    // Queue spell with human-like reaction delay
+                    const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
+                    this.aiStrategy.pendingCounterDeploy = {
+                        cardId: 'fireball',
+                        isSpell: true,
+                        deployTime: currentTime + reactionTime
+                    };
+                    // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
+                    console.log('🤖 AI: Spotted high-value cluster, preparing Fireball in', reactionTime, 'ms');
                     return;
                 }
             }
@@ -180,11 +199,16 @@ class AIController {
                     GameHelpers.distance(t.x, t.y, tower.x, tower.y) < 100
                 );
                 if (nearbyEnemies.length >= 2) {
-                    const centerX = nearbyEnemies.reduce((s, t) => s + t.x, 0) / nearbyEnemies.length;
-                    const centerY = nearbyEnemies.reduce((s, t) => s + t.y, 0) / nearbyEnemies.length;
-                    this.scene.aiCastSpell(fireballCard, centerX, centerY);
-                    this.scene.aiEnergy -= fireballCard.cost;
+                    // Queue spell with human-like reaction delay
+                    const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
+                    this.aiStrategy.pendingCounterDeploy = {
+                        cardId: 'fireball',
+                        isSpell: true,
+                        deployTime: currentTime + reactionTime
+                    };
+                    // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
+                    console.log('🤖 AI: Tower under attack, preparing Fireball in', reactionTime, 'ms');
                     return;
                 }
             }
@@ -417,7 +441,8 @@ class AIController {
         const cluster = this.findBestSpellTarget(playerTanks, card.payload.radius, 1);
         if (cluster) {
             this.scene.aiCastSpell(card, cluster.x, cluster.y);
-            console.log('🤖 AI: Counter-spell', cardId);
+            this.aiStrategy.lastSpellTime = this.scene.time.now;
+            console.log('🤖 AI: Cast', cardId);
             return true;
         }
         return false;
@@ -1311,7 +1336,9 @@ class AIController {
         
         switch (action) {
             case 'deploy':
-                console.log('🤖 AI: Player deployed', data.name);
+                // Log which card was played (once per card, even for swarms)
+                const countInfo = data.isSwarm ? ` x${data.count}` : '';
+                console.log(`🎴 Player played: ${data.cardName}${countInfo} (${data.type}, cost: ${data.cost})`);
                 
                 // Track player deployment patterns
                 const timeSinceLastDeploy = currentTime - patterns.lastDeployTime;
@@ -1328,7 +1355,7 @@ class AIController {
                 
                 // Store last player deploy for potential counter
                 this.aiStrategy.lastPlayerDeploy = {
-                    tankId: data.id,
+                    tankId: data.tankId,
                     type: data.type,
                     cost: data.cost,
                     time: currentTime

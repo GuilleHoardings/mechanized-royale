@@ -1641,6 +1641,19 @@ class BattleScene extends Phaser.Scene {
                 } else {
                     this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
                 }
+                
+                // Notify AI of player card deployment (once per card, not per unit)
+                this.aiController.notifyAIOfPlayerAction('deploy', {
+                    cardId: selectedCardData.cardDef.id,
+                    cardName: selectedCardData.cardDef.name,
+                    tankId: selectedCardData.tankId,
+                    name: selectedCardData.tankData.name,
+                    type: selectedCardData.tankData.type,
+                    cost: selectedCardData.cardDef.cost,
+                    isSwarm: !!(selectedCardData.cardDef.payload && selectedCardData.cardDef.payload.swarm),
+                    count: selectedCardData.cardDef.payload?.count || 1
+                });
+                
                 // Deduct card cost
                 this.energy -= selectedCardData.cardDef.cost;
                 this.updateEnergyBar();
@@ -1733,6 +1746,17 @@ class BattleScene extends Phaser.Scene {
         } else if (card.type === CARD_TYPES.BUILDING) {
             this.placeBuilding(card, worldX, worldY);
         }
+        
+        // Notify AI of player card deployment (spells and buildings)
+        this.aiController.notifyAIOfPlayerAction('deploy', {
+            cardId: card.id,
+            cardName: card.name,
+            type: card.type,
+            cost: card.cost,
+            isSwarm: false,
+            count: 1
+        });
+        
         this.energy -= card.cost;
         this.updateEnergyBar();
         this.cycleCard(this.selectedCard);
@@ -2408,9 +2432,6 @@ class BattleScene extends Phaser.Scene {
         if (playerTanksAlive > this.battleStats.player.maxTanksAlive) {
             this.battleStats.player.maxTanksAlive = playerTanksAlive;
         }
-        
-        // Notify AI of player deployment for reactive strategy
-        this.aiController.notifyAIOfPlayerAction('deploy', tankData);
     }
 
     createTankHealthBar(tank) {
