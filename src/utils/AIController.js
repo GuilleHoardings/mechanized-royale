@@ -193,7 +193,7 @@ class AIController {
             }
             
             // Also consider fireballing player units attacking our tower
-            const aiTowers = this.scene.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+            const aiTowers = this.scene.buildings.filter(b => !b.isPlayerOwned && b.health > 0);
             for (const tower of aiTowers) {
                 const nearbyEnemies = playerTanks.filter(t => 
                     GameHelpers.distance(t.x, t.y, tower.x, tower.y) < 100
@@ -485,8 +485,8 @@ class AIController {
         // Update tower status
         this.updateTowerStatus();
         
-        const playerBase = this.scene.buildings.find(b => b.isPlayerBase && b.isMainTower);
-        const aiBase = this.scene.buildings.find(b => !b.isPlayerBase && b.isMainTower);
+        const playerBase = this.scene.buildings.find(b => b.isPlayerOwned && b.isMainTower);
+        const aiBase = this.scene.buildings.find(b => !b.isPlayerOwned && b.isMainTower);
         
         this.aiStrategy.playerTankCount = playerTanks.length;
         this.aiStrategy.aiTankCount = aiTanks.length;
@@ -513,18 +513,18 @@ class AIController {
         const buildings = this.scene.buildings;
         
         this.aiStrategy.towerStatus = {
-            playerLeftTower: buildings.some(b => b.isPlayerBase && b.towerType === 'left' && b.health > 0),
-            playerRightTower: buildings.some(b => b.isPlayerBase && b.towerType === 'right' && b.health > 0),
-            playerMainTower: buildings.some(b => b.isPlayerBase && b.isMainTower && b.health > 0),
-            aiLeftTower: buildings.some(b => !b.isPlayerBase && b.towerType === 'left' && b.health > 0),
-            aiRightTower: buildings.some(b => !b.isPlayerBase && b.towerType === 'right' && b.health > 0),
-            aiMainTower: buildings.some(b => !b.isPlayerBase && b.isMainTower && b.health > 0)
+            playerLeftTower: buildings.some(b => b.isPlayerOwned && b.towerType === 'left' && b.health > 0),
+            playerRightTower: buildings.some(b => b.isPlayerOwned && b.towerType === 'right' && b.health > 0),
+            playerMainTower: buildings.some(b => b.isPlayerOwned && b.isMainTower && b.health > 0),
+            aiLeftTower: buildings.some(b => !b.isPlayerOwned && b.towerType === 'left' && b.health > 0),
+            aiRightTower: buildings.some(b => !b.isPlayerOwned && b.towerType === 'right' && b.health > 0),
+            aiMainTower: buildings.some(b => !b.isPlayerOwned && b.isMainTower && b.health > 0)
         };
         
         // Track if AI has an active furnace (spawner building)
         // Furnaces don't have towerType and are not main towers
         const aiFurnaces = buildings.filter(b => 
-            !b.isPlayerBase && 
+            !b.isPlayerOwned && 
             !b.towerType && 
             !b.isMainTower && 
             b.health > 0
@@ -1241,7 +1241,7 @@ class AIController {
         
         // Only consider tower proximity if a tower is actually damaged
         // This prevents always favoring left side due to tower distance calculations
-        const playerTowers = this.scene.buildings.filter(b => b.isPlayerBase && b.health > 0);
+        const playerTowers = this.scene.buildings.filter(b => b.isPlayerOwned && b.health > 0);
         let weakestTower = null;
         let lowestHealthRatio = 1;
         playerTowers.forEach(tower => {
@@ -1262,7 +1262,7 @@ class AIController {
         }
         
         // Distance to friendly base (defensive positioning)
-        const aiBase = this.scene.buildings.find(b => !b.isPlayerBase && b.isMainTower);
+        const aiBase = this.scene.buildings.find(b => !b.isPlayerOwned && b.isMainTower);
         if (aiBase && this.aiStrategy.mode === 'defensive') {
             const distanceToAIBase = GameHelpers.distance(posX, posY, aiBase.x, aiBase.y);
             strategicValue += (400 - distanceToAIBase) / 10; // Reduced impact
@@ -1512,12 +1512,12 @@ class AIController {
             if (canAttackTanks) {
                 enemies.push(...this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0));
             }
-            enemies.push(...this.scene.buildings.filter(b => !b.isPlayerBase && b.health > 0));
+            enemies.push(...this.scene.buildings.filter(b => !b.isPlayerOwned && b.health > 0));
         } else {
             if (canAttackTanks) {
                 enemies.push(...this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0));
             }
-            enemies.push(...this.scene.buildings.filter(b => b.isPlayerBase && b.health > 0));
+            enemies.push(...this.scene.buildings.filter(b => b.isPlayerOwned && b.health > 0));
         }
         
         enemies.forEach(enemy => {
@@ -1528,7 +1528,7 @@ class AIController {
             priority += (1000 - distance) / 10;
             
             // Priority modifiers based on target type
-            const isBuilding = enemy.isPlayerBase !== undefined || enemy.isMainTower !== undefined;
+            const isBuilding = enemy.isPlayerOwned !== undefined || enemy.isMainTower !== undefined;
             const isTank = enemy.tankData !== undefined;
             
             if (isBuilding) {
@@ -1579,7 +1579,7 @@ class AIController {
                 }
                 
                 // Tanks targeting our buildings are high priority
-                if (enemy.target && (enemy.target.isPlayerBase !== undefined)) {
+                if (enemy.target && (enemy.target.isPlayerOwned !== undefined)) {
                     priority += 25;
                 }
             }

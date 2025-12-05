@@ -143,7 +143,7 @@ class CombatSystem {
     createBaseProjectile(base, target) {
         // Base projectiles are more powerful
         const bulletSpeed = 300; // Faster than tank bullets
-        const bulletColor = base.isPlayerBase ? 0x0088ff : 0xff0088; // Blue for player, magenta for enemy
+        const bulletColor = base.isPlayerOwned ? 0x0088ff : 0xff0088; // Blue for player, magenta for enemy
         
         // Create bullet sprite
         const bullet = this.scene.add.image(base.x, base.y, 'shell');
@@ -293,7 +293,7 @@ class CombatSystem {
         // Activate main towers when they are hit for the first time
         if (target.isMainTower && !target.activated) {
             target.activated = true;
-            console.log(`Main tower activated! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+            console.log(`Main tower activated! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
         }
         
         // Apply damage
@@ -376,9 +376,13 @@ class CombatSystem {
      * @param {Object} attacker - Entity that destroyed the target
      */
     handleTargetDestruction(target, attacker) {
-        if (target.isPlayerBase !== undefined) {
+        // Check if it's an actual tower, not a Furnace or other building
+        if (GameHelpers.isActualTower(target)) {
             // Tower destroyed - handle tower system
             this.scene.destroyTower(target);
+        } else if (target.isPlayerOwned !== undefined) {
+            // Non-tower building destroyed (e.g., Furnace) - just destroy it visually
+            this.scene.destroyBuilding(target);
         } else {
             // Tank destroyed - create destruction effect
             this.showExplosionEffect(target.x, target.y, 1.5);

@@ -35,6 +35,16 @@ const GameHelpers = {
         return Math.random() * (max - min) + min;
     },
 
+    /**
+     * Checks if a building is an actual tower (not a Furnace or other deployable building).
+     * Towers have either a towerType ('left', 'right') or isMainTower property.
+     * @param {Object} building - Building object to check
+     * @returns {boolean} True if the building is an actual tower
+     */
+    isActualTower(building) {
+        return !!(building && (building.towerType || building.isMainTower));
+    },
+
     // Tile-based coordinate conversion functions
     
     // Get the horizontal offset for centering the battlefield
@@ -229,28 +239,42 @@ const GameHelpers = {
 
     /**
      * Determines battle result based on tower destruction count and main tower health.
-     * @param {Array} buildings - Array of building objects with isPlayerBase, isMainTower, health, maxHealth
+     * @param {Array} buildings - Array of building objects with isPlayerOwned (team ownership), isMainTower, health, maxHealth
      * @returns {'victory'|'defeat'|'draw'|null} - Result or null if no clear winner yet
      */
     determineBattleResult(buildings) {
+        // Filter for actual towers only, exclude Furnaces and other buildings
+        const actualTowers = buildings.filter(b => this.isActualTower(b));
+        
         // Count towers for each side (each side starts with 3 towers)
-        const playerTowersAlive = buildings.filter(b => b.isPlayerBase && b.health > 0).length;
-        const enemyTowersAlive = buildings.filter(b => !b.isPlayerBase && b.health > 0).length;
+        const playerTowersAlive = actualTowers.filter(b => b.isPlayerOwned && b.health > 0).length;
+        const enemyTowersAlive = actualTowers.filter(b => !b.isPlayerOwned && b.health > 0).length;
         
         // Calculate destroyed towers
         const playerTowersDestroyed = 3 - playerTowersAlive;
         const enemyTowersDestroyed = 3 - enemyTowersAlive;
         
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('🏆 BATTLE RESULT DETERMINATION');
+        console.log('───────────────────────────────────────────────────────');
+        console.log(`📊 Total buildings: ${buildings.length}, Actual towers: ${actualTowers.length}`);
+        console.log(`🔵 Player: ${playerTowersAlive} towers alive, ${playerTowersDestroyed} destroyed`);
+        console.log(`🔴 Enemy: ${enemyTowersAlive} towers alive, ${enemyTowersDestroyed} destroyed`);
+        
         // First priority: Compare tower destruction count
         if (enemyTowersDestroyed > playerTowersDestroyed) {
+            console.log(`✅ Result: VICTORY (Player destroyed more towers: ${enemyTowersDestroyed} vs ${playerTowersDestroyed})`);
+            console.log('═══════════════════════════════════════════════════════');
             return 'victory'; // Player destroyed more enemy towers
         } else if (playerTowersDestroyed > enemyTowersDestroyed) {
+            console.log(`❌ Result: DEFEAT (Enemy destroyed more towers: ${playerTowersDestroyed} vs ${enemyTowersDestroyed})`);
+            console.log('═══════════════════════════════════════════════════════');
             return 'defeat'; // Enemy destroyed more player towers
         }
         
         // Same number of towers destroyed - compare lowest tower health (absolute values)
-        const playerTowers = buildings.filter(b => b.isPlayerBase && b.health > 0);
-        const enemyTowers = buildings.filter(b => !b.isPlayerBase && b.health > 0);
+        const playerTowers = actualTowers.filter(b => b.isPlayerOwned && b.health > 0);
+        const enemyTowers = actualTowers.filter(b => !b.isPlayerOwned && b.health > 0);
         
         // Find lowest absolute health for each side
         let playerLowestHealth = Infinity;
@@ -267,12 +291,22 @@ const GameHelpers = {
             }
         }
         
+        console.log(`⚖️ Tower destruction tied - comparing lowest health`);
+        console.log(`🔵 Player lowest tower HP: ${playerLowestHealth}`);
+        console.log(`🔴 Enemy lowest tower HP: ${enemyLowestHealth}`);
+        
         // The side with the lower health tower loses
         if (enemyLowestHealth < playerLowestHealth) {
+            console.log(`✅ Result: VICTORY (Enemy has weaker tower: ${enemyLowestHealth} < ${playerLowestHealth})`);
+            console.log('═══════════════════════════════════════════════════════');
             return 'victory'; // Enemy has the weakest tower
         } else if (playerLowestHealth < enemyLowestHealth) {
+            console.log(`❌ Result: DEFEAT (Player has weaker tower: ${playerLowestHealth} < ${enemyLowestHealth})`);
+            console.log('═══════════════════════════════════════════════════════');
             return 'defeat'; // Player has the weakest tower
         } else {
+            console.log(`🤝 Result: DRAW (Equal lowest health: ${playerLowestHealth})`);
+            console.log('═══════════════════════════════════════════════════════');
             return 'draw'; // Equal lowest health
         }
     }

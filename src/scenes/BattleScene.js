@@ -676,8 +676,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateTowerStatusDisplay() {
-        const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
-        const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+        const playerTowers = this.buildings.filter(b => b.isPlayerOwned && b.health > 0);
+        const enemyTowers = this.buildings.filter(b => !b.isPlayerOwned && b.health > 0);
 
         // Compact player towers display without emojis
         // Main tower shows 'z' if dormant (not activated), '+' if active
@@ -988,7 +988,7 @@ class BattleScene extends Phaser.Scene {
         const health = isMainTower ? BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH : BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         tower.health = health;
         tower.maxHealth = health;
-        tower.isPlayerBase = isPlayerTeam;
+        tower.isPlayerOwned = isPlayerTeam;
         tower.isMainTower = isMainTower;
         tower.towerType = towerType;
         tower.lastShotTime = 0;
@@ -1420,8 +1420,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     checkOvertimeConditions() {
-        const playerBase = this.buildings.find(b => b.isPlayerBase);
-        const enemyBase = this.buildings.find(b => !b.isPlayerBase);
+        const playerBase = this.buildings.find(b => b.isPlayerOwned);
+        const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
         
         // If both bases alive and health is close, activate overtime
         if (playerBase && enemyBase) {
@@ -1516,8 +1516,8 @@ class BattleScene extends Phaser.Scene {
     checkOvertimeVictoryConditions() {
         // This is called when overtime timer expires
         // Find the tower with the lowest absolute health - that player loses
-        const playerTowers = this.buildings.filter(b => b.isPlayerBase && b.health > 0);
-        const enemyTowers = this.buildings.filter(b => !b.isPlayerBase && b.health > 0);
+        const playerTowers = this.buildings.filter(b => b.isPlayerOwned && b.health > 0);
+        const enemyTowers = this.buildings.filter(b => !b.isPlayerOwned && b.health > 0);
         
         // Find lowest absolute health for each side
         let playerLowestHealth = Infinity;
@@ -1688,7 +1688,7 @@ class BattleScene extends Phaser.Scene {
         this.deploymentPreview.previewTank.setDepth(15); // Above other tanks
         
         // Point the preview tank towards the enemy field
-        const enemyBase = this.buildings.find(b => !b.isPlayerBase && b.isMainTower);
+        const enemyBase = this.buildings.find(b => !b.isPlayerOwned && b.isMainTower);
         if (enemyBase) {
             const initialAngle = GameHelpers.angle(snappedPos.worldX, snappedPos.worldY, enemyBase.x, enemyBase.y);
             this.deploymentPreview.previewTank.setRotation(initialAngle);
@@ -1731,7 +1731,7 @@ class BattleScene extends Phaser.Scene {
             const radius = card.payload?.radius || 0;
             const anyEnemyInRadius = this.tanks.concat(this.buildings).some(o => {
                 if (!o || o.health <= 0) return false;
-                const isEnemy = (o.isPlayerTank === false) || (!o.isPlayerTank && o.isPlayerBase === false);
+                const isEnemy = (o.isPlayerTank === false) || (!o.isPlayerTank && o.isPlayerOwned === false);
                 const d = GameHelpers.distance(worldX, worldY, o.x, o.y);
                 return isEnemy && d <= radius;
             });
@@ -1767,12 +1767,12 @@ class BattleScene extends Phaser.Scene {
             this.createSpellEffectCircle(x, y, card.payload.radius, 0x66ccff);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 // Only affect enemies
-                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
+                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerOwned === false);
                 if (!isEnemy) return;
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by zap! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                    console.log(`Main tower activated by zap! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
@@ -1785,12 +1785,12 @@ class BattleScene extends Phaser.Scene {
         } else if (card.id === 'fireball') {
             this.createSpellEffectCircle(x, y, card.payload.radius, 0xff7733);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerBase === false);
+                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerOwned === false);
                 if (!isEnemy) return;
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by fireball! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                    console.log(`Main tower activated by fireball! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 this.combatSystem.updateHealthDisplay(target);
@@ -1814,7 +1814,7 @@ class BattleScene extends Phaser.Scene {
         furnace.add(g);
     furnace.health = 400;
         furnace.maxHealth = 400;
-        furnace.isPlayerBase = true; // So it can be targeted like a building
+        furnace.isPlayerOwned = true; // Belongs to player team
         furnace.lastShotTime = 0;
         furnace.target = null;
         furnace.lastTargetUpdate = 0;
@@ -1871,10 +1871,10 @@ class BattleScene extends Phaser.Scene {
      */
     launchFurnaceMissile(furnace, payload) {
         // Find closest enemy target
-        const isPlayerFurnace = furnace.isPlayerBase;
+        const isPlayerFurnace = furnace.isPlayerOwned;
         const enemies = [
             ...this.tanks.filter(t => t.isPlayerTank !== isPlayerFurnace && t.health > 0),
-            ...this.buildings.filter(b => b.isPlayerBase !== isPlayerFurnace && b.health > 0 && b !== furnace)
+            ...this.buildings.filter(b => b.isPlayerOwned !== isPlayerFurnace && b.health > 0 && b !== furnace)
         ];
         
         if (enemies.length === 0) return; // No targets available
@@ -1958,7 +1958,7 @@ class BattleScene extends Phaser.Scene {
                 // Retarget to nearest enemy
                 const newEnemies = [
                     ...this.tanks.filter(t => t.isPlayerTank !== missile.isPlayerMissile && t.health > 0),
-                    ...this.buildings.filter(b => b.isPlayerBase !== missile.isPlayerMissile && b.health > 0)
+                    ...this.buildings.filter(b => b.isPlayerOwned !== missile.isPlayerMissile && b.health > 0)
                 ];
                 
                 if (newEnemies.length === 0) {
@@ -2059,7 +2059,7 @@ class BattleScene extends Phaser.Scene {
             // Skip friendly units
             const isEnemy = (target.isPlayerTank !== undefined) 
                 ? target.isPlayerTank !== isPlayerMissile
-                : target.isPlayerBase !== isPlayerMissile;
+                : target.isPlayerOwned !== isPlayerMissile;
             
             if (!isEnemy) return;
             
@@ -2072,7 +2072,7 @@ class BattleScene extends Phaser.Scene {
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by missile! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                    console.log(`Main tower activated by missile! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 
                 // Apply damage (clamp to 0)
@@ -2399,7 +2399,7 @@ class BattleScene extends Phaser.Scene {
         tank.needsNewPath = true;
 
         // Face towards the enemy base initially
-        const enemyBase = this.buildings.find(b => !b.isPlayerBase);
+        const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
         if (enemyBase) {
             const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
             tank.setRotation(initialAngle);
@@ -2910,8 +2910,8 @@ class BattleScene extends Phaser.Scene {
 
     chooseAIDeploymentPosition(tankData) {
         const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords(false); // false = enemy zone
-        const playerBase = this.buildings.find(b => b.isPlayerBase);
-        const aiBase = this.buildings.find(b => !b.isPlayerBase);
+        const playerBase = this.buildings.find(b => b.isPlayerOwned);
+        const aiBase = this.buildings.find(b => !b.isPlayerOwned);
         
         // Use original zone as base
         const zone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
@@ -3001,12 +3001,12 @@ class BattleScene extends Phaser.Scene {
             this.createSpellEffectCircle(x, y, card.payload.radius, 0xff6666); // Red tint for AI
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 // Only affect player units
-                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerBase === true;
+                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerOwned === true;
                 if (!isPlayerUnit) return;
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by AI zap! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                    console.log(`Main tower activated by AI zap! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
@@ -3020,12 +3020,12 @@ class BattleScene extends Phaser.Scene {
         } else if (card.id === 'fireball') {
             this.createSpellEffectCircle(x, y, card.payload.radius, 0xff4400); // Orange-red for AI fireball
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerBase === true;
+                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerOwned === true;
                 if (!isPlayerUnit) return;
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by AI fireball! (${target.isPlayerBase ? 'Player' : 'Enemy'})`);
+                    console.log(`Main tower activated by AI fireball! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 this.combatSystem.updateHealthDisplay(target);
@@ -3056,7 +3056,7 @@ class BattleScene extends Phaser.Scene {
         furnace.add(g);
         furnace.health = 400;
         furnace.maxHealth = 400;
-        furnace.isPlayerBase = false; // AI building
+        furnace.isPlayerOwned = false; // Belongs to AI team
         furnace.lastShotTime = 0;
         furnace.target = null;
         furnace.lastTargetUpdate = 0;
@@ -3325,8 +3325,8 @@ class BattleScene extends Phaser.Scene {
             }
 
             // Tower Status
-            const playerTowersAlive = this.buildings ? this.buildings.filter(b => b.isPlayerBase && b.health > 0).length : 0;
-            const aiTowersAlive = this.buildings ? this.buildings.filter(b => !b.isPlayerBase && b.health > 0).length : 0;
+            const playerTowersAlive = this.buildings ? this.buildings.filter(b => b.isPlayerOwned && b.health > 0).length : 0;
+            const aiTowersAlive = this.buildings ? this.buildings.filter(b => !b.isPlayerOwned && b.health > 0).length : 0;
             window.debugPanel.updateValue('debug-player-towers', playerTowersAlive);
             window.debugPanel.updateValue('debug-ai-towers', aiTowersAlive);
 
@@ -3616,7 +3616,7 @@ class BattleScene extends Phaser.Scene {
             // Player tank: target AI tanks and enemy buildings
             const enemies = [
                 ...this.tanks.filter(t => !t.isPlayerTank && t.health > 0),
-                ...this.buildings.filter(b => !b.isPlayerBase && b.health > 0)
+                ...this.buildings.filter(b => !b.isPlayerOwned && b.health > 0)
             ];
             
             enemies.forEach(enemy => {
@@ -3640,7 +3640,7 @@ class BattleScene extends Phaser.Scene {
             // AI tank: target player tanks and player buildings
             const enemies = [
                 ...this.tanks.filter(t => t.isPlayerTank && t.health > 0),
-                ...this.buildings.filter(b => b.isPlayerBase && b.health > 0)
+                ...this.buildings.filter(b => b.isPlayerOwned && b.health > 0)
             ];
             
             enemies.forEach(enemy => {
@@ -3696,7 +3696,7 @@ class BattleScene extends Phaser.Scene {
             let closestEnemy = null;
             let closestDistance = Infinity;
             
-            if (base.isPlayerBase) {
+            if (base.isPlayerOwned) {
                 // Player base: target AI tanks
                 const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
                 enemyTanks.forEach(enemy => {
@@ -4136,7 +4136,7 @@ class BattleScene extends Phaser.Scene {
 
     destroyTower(tower) {
         // Update tower stats
-        if (tower.isPlayerBase) {
+        if (tower.isPlayerOwned) {
             this.towerStats.enemy.towersDestroyed++;
             if (tower.isMainTower) {
                 this.towerStats.enemy.mainTowerDestroyed = true;
@@ -4278,7 +4278,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     showTowerDestroyedNotification(tower) {
-        const isPlayerTower = tower.isPlayerBase;
+        const isPlayerTower = tower.isPlayerOwned;
         const towerName = tower.isMainTower ? 'MAIN TOWER' : 
                          tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
         const message = `${isPlayerTower ? 'PLAYER' : 'ENEMY'} ${towerName} DESTROYED!`;
@@ -4350,16 +4350,28 @@ class BattleScene extends Phaser.Scene {
         const playerTowersDestroyed = this.towerStats.player.towersDestroyed;
         const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
         
+        console.log('═══════════════════════════════════════════════════════');
+        console.log('⏰ CHECK OVERTIME CONDITIONS');
+        console.log('───────────────────────────────────────────────────────');
+        console.log(`🔵 Player destroyed ${playerTowersDestroyed} enemy towers`);
+        console.log(`🔴 Enemy destroyed ${enemyTowersDestroyed} player towers`);
+        
         // If towers destroyed are equal, activate overtime
         if (playerTowersDestroyed === enemyTowersDestroyed && !this.overtimeActive) {
+            console.log('⚖️ Towers tied - activating overtime');
+            console.log('═══════════════════════════════════════════════════════');
             this.activateOvertime();
             return;
         }
         
         // End battle based on tower count
         if (playerTowersDestroyed > enemyTowersDestroyed) {
+            console.log(`✅ Result: VICTORY (Player destroyed more: ${playerTowersDestroyed} > ${enemyTowersDestroyed})`);
+            console.log('═══════════════════════════════════════════════════════');
             this.endBattle('victory');
         } else {
+            console.log(`❌ Result: DEFEAT (Enemy destroyed more: ${enemyTowersDestroyed} > ${playerTowersDestroyed})`);
+            console.log('═══════════════════════════════════════════════════════');
             this.endBattle('defeat');
         }
     }
@@ -4417,6 +4429,13 @@ class BattleScene extends Phaser.Scene {
         // Prevent multiple calls to endBattle
         if (this.battleEnded) return;
         this.battleEnded = true;
+        
+        console.log('═══════════════════════════════════════════════════════');
+        console.log(`🏁 END BATTLE: ${result.toUpperCase()}`);
+        console.log('───────────────────────────────────────────────────────');
+        console.log(`📊 towerStats.player: destroyed=${this.towerStats.player.towersDestroyed}, mainDestroyed=${this.towerStats.player.mainTowerDestroyed}`);
+        console.log(`📊 towerStats.enemy: destroyed=${this.towerStats.enemy.towersDestroyed}, mainDestroyed=${this.towerStats.enemy.mainTowerDestroyed}`);
+        console.log('═══════════════════════════════════════════════════════');
         
         // Clean up any active deployment preview
         this.endDeploymentPreview();
