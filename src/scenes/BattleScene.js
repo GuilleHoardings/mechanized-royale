@@ -2708,37 +2708,38 @@ class BattleScene extends Phaser.Scene {
             const j = Math.floor(Math.random() * (i + 1));
             [this.aiDeck[i], this.aiDeck[j]] = [this.aiDeck[j], this.aiDeck[i]];
         }
-        this.aiNextCardIndex = 0;
+        // Initialize the AI draw queue with all cards not in hand
+        this.aiDrawQueue = [...this.aiDeck];
+        this.shuffleArray(this.aiDrawQueue);
     }
     
     /**
      * Get next card from AI deck (not already in hand)
+     * Uses a queue system to ensure cards don't repeat until all others have been drawn
      * @param {number} excludeSlotIndex - Slot being replaced (to allow that card)
      * @returns {string} Card ID
      */
     getNextAICard(excludeSlotIndex = -1) {
-        const cardsInHand = this.aiHand.filter((_, idx) => idx !== excludeSlotIndex);
+        // Get the card being replaced (it will go back to the draw queue)
+        const replacedCard = excludeSlotIndex >= 0 ? this.aiHand[excludeSlotIndex] : null;
         
-        let attempts = 0;
-        const maxAttempts = this.aiDeck.length * 2;
-        
-        while (attempts < maxAttempts) {
-            if (this.aiNextCardIndex >= this.aiDeck.length) {
-                this.shuffleAIDeck();
-            }
-            const id = this.aiDeck[this.aiNextCardIndex++];
-            
-            if (!cardsInHand.includes(id)) {
-                return id;
-            }
-            attempts++;
+        // Initialize draw queue if needed
+        if (!this.aiDrawQueue || this.aiDrawQueue.length === 0) {
+            // Build queue from cards not currently in hand
+            const cardsInHand = this.aiHand.filter((_, idx) => idx !== excludeSlotIndex);
+            this.aiDrawQueue = this.aiDeck.filter(id => !cardsInHand.includes(id));
+            this.shuffleArray(this.aiDrawQueue);
         }
         
-        // Fallback
-        if (this.aiNextCardIndex >= this.aiDeck.length) {
-            this.shuffleAIDeck();
+        // Draw the next card from the queue
+        const nextCard = this.aiDrawQueue.shift();
+        
+        // Add the replaced card back to the end of the queue (if there was one)
+        if (replacedCard && !this.aiDrawQueue.includes(replacedCard)) {
+            this.aiDrawQueue.push(replacedCard);
         }
-        return this.aiDeck[this.aiNextCardIndex++];
+        
+        return nextCard;
     }
     
     /**
@@ -3383,35 +3384,43 @@ class BattleScene extends Phaser.Scene {
             const j = Math.floor(Math.random() * (i + 1));
             [this.deck[i], this.deck[j]] = [this.deck[j], this.deck[i]];
         }
-        this.nextCardIndex = 0;
+        // Initialize the draw queue with all cards not in hand
+        this.drawQueue = [...this.deck];
+        this.shuffleArray(this.drawQueue);
+    }
+    
+    /**
+     * Shuffle an array in place using Fisher-Yates algorithm
+     * @param {Array} array - Array to shuffle
+     */
+    shuffleArray(array) {
+        for (let i = array.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [array[i], array[j]] = [array[j], array[i]];
+        }
     }
 
     getNextCard(excludeSlotIndex = -1) {
-        // Build list of cards currently in hand (excluding the slot being replaced)
-        const cardsInHand = this.hand.filter((_, idx) => idx !== excludeSlotIndex);
+        // Get the card being replaced (it will go back to the draw queue)
+        const replacedCard = excludeSlotIndex >= 0 ? this.hand[excludeSlotIndex] : null;
         
-        // Try to find a card not already in hand
-        let attempts = 0;
-        const maxAttempts = this.deck.length * 2; // Prevent infinite loop
-        
-        while (attempts < maxAttempts) {
-            if (this.nextCardIndex >= this.deck.length) {
-                this.shuffleDeck();
-            }
-            const id = this.deck[this.nextCardIndex++];
-            
-            // If this card is not already in hand, use it
-            if (!cardsInHand.includes(id)) {
-                return id;
-            }
-            attempts++;
+        // Initialize draw queue if needed
+        if (!this.drawQueue || this.drawQueue.length === 0) {
+            // Build queue from cards not currently in hand
+            const cardsInHand = this.hand.filter((_, idx) => idx !== excludeSlotIndex);
+            this.drawQueue = this.deck.filter(id => !cardsInHand.includes(id));
+            this.shuffleArray(this.drawQueue);
         }
         
-        // Fallback: if all cards are duplicates (shouldn't happen with proper deck), just return any
-        if (this.nextCardIndex >= this.deck.length) {
-            this.shuffleDeck();
+        // Draw the next card from the queue
+        const nextCard = this.drawQueue.shift();
+        
+        // Add the replaced card back to the end of the queue (if there was one)
+        if (replacedCard && !this.drawQueue.includes(replacedCard)) {
+            this.drawQueue.push(replacedCard);
         }
-        return this.deck[this.nextCardIndex++];
+        
+        return nextCard;
     }
 
     cycleCard(usedCardIndex) {
