@@ -1453,95 +1453,72 @@ class BattleScene extends Phaser.Scene {
     }
 
     showOvertimeNotification() {
-        const overtimeText = this.add.text(GAME_CONFIG.WIDTH / 2, 150, 'OVERTIME!', {
-            fontSize: '32px',
-            fill: '#ff4444',
+        this._showNotification('OVERTIME!', '#ff4444', 150, 'First to gain advantage wins!');
+    }
+
+    /**
+     * Generic notification display with dramatic animation
+     * @param {string} title - Main notification text
+     * @param {string} color - Text color in hex string format (e.g. '#ff4444')
+     * @param {number} yPosition - Y position on screen
+     * @param {string|null} subtitle - Optional subtitle text
+     * @param {number} displayTime - How long to show (ms), default 2000
+     * @returns {void}
+     */
+    _showNotification(title, color, yPosition, subtitle = null, displayTime = 2000) {
+        const titleText = this.add.text(GAME_CONFIG.WIDTH / 2, yPosition, title, {
+            fontSize: subtitle ? '32px' : '24px',
+            fill: color,
             fontFamily: 'Arial',
             fontStyle: 'bold',
             stroke: '#000000',
             strokeThickness: 3
         }).setOrigin(0.5);
-        overtimeText.setScrollFactor(0);
-        overtimeText.setDepth(50);
+        titleText.setScrollFactor(0);
+        titleText.setDepth(100);
         
-        const subtitleText = this.add.text(GAME_CONFIG.WIDTH / 2, 180, 'First to gain advantage wins!', {
-            fontSize: '16px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        subtitleText.setScrollFactor(0);
-        subtitleText.setDepth(50);
+        const targets = [titleText];
+        
+        if (subtitle) {
+            const subtitleText = this.add.text(GAME_CONFIG.WIDTH / 2, yPosition + 30, subtitle, {
+                fontSize: '16px',
+                fill: '#ffffff',
+                fontFamily: 'Arial',
+                stroke: '#000000',
+                strokeThickness: 2
+            }).setOrigin(0.5);
+            subtitleText.setScrollFactor(0);
+            subtitleText.setDepth(100);
+            targets.push(subtitleText);
+        }
         
         // Dramatic entrance animation
         this.tweens.add({
-            targets: [overtimeText, subtitleText],
+            targets: targets,
             scaleX: { from: 0, to: 1 },
             scaleY: { from: 0, to: 1 },
             alpha: { from: 0, to: 1 },
             duration: 500,
             ease: 'Back.out',
             onComplete: () => {
-                // Fade out after 3 seconds
-                this.time.delayedCall(3000, () => {
+                this.time.delayedCall(subtitle ? 3000 : displayTime, () => {
                     this.tweens.add({
-                        targets: [overtimeText, subtitleText],
+                        targets: targets,
                         alpha: 0,
                         duration: 1000,
-                        onComplete: () => {
-                            overtimeText.destroy();
-                            subtitleText.destroy();
-                        }
+                        onComplete: () => targets.forEach(t => t.destroy())
                     });
                 });
             }
         });
-        
-        // Screen flash effect
-        const flashOverlay = this.add.graphics();
-        flashOverlay.fillStyle(0xff4444, 0.3);
-        flashOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
-        flashOverlay.setScrollFactor(0);
-        flashOverlay.setDepth(45);
-        
-        this.tweens.add({
-            targets: flashOverlay,
-            alpha: 0,
-            duration: 800,
-            onComplete: () => flashOverlay.destroy()
-        });
     }
 
     checkOvertimeVictoryConditions() {
-        // This is called when overtime timer expires
-        // Find the tower with the lowest absolute health - that player loses
-        const playerTowers = this.buildings.filter(b => b.isPlayerOwned && b.health > 0);
-        const enemyTowers = this.buildings.filter(b => !b.isPlayerOwned && b.health > 0);
-        
-        // Find lowest absolute health for each side
-        let playerLowestHealth = Infinity;
-        for (const tower of playerTowers) {
-            if (tower.health < playerLowestHealth) {
-                playerLowestHealth = tower.health;
-            }
-        }
-        
-        let enemyLowestHealth = Infinity;
-        for (const tower of enemyTowers) {
-            if (tower.health < enemyLowestHealth) {
-                enemyLowestHealth = tower.health;
-            }
-        }
-        
-        // The side with the lower health tower loses
-        if (enemyLowestHealth < playerLowestHealth) {
-            this.endBattle('victory'); // Enemy has the weakest tower
-        } else if (playerLowestHealth < enemyLowestHealth) {
-            this.endBattle('defeat'); // Player has the weakest tower
-        } else {
-            this.endBattle('draw'); // Equal lowest health
-        }
+        // Delegation: All battle result logic is handled by GameHelpers.determineBattleResult.
+        // This helper is the single source of truth for victory conditions.
+        // Use the shared helper to determine battle result
+        const result = GameHelpers.determineBattleResult(this.buildings);
+        this.endBattle(result || 'draw');
     }
 
     formatTime(seconds) {
@@ -1763,16 +1740,44 @@ class BattleScene extends Phaser.Scene {
     }
 
     castSpell(card, x, y) {
+        this._castSpellInternal(card, x, y, true);
+    }
+
+    /**
+     * Internal method that handles spell casting logic for both player and AI.
+     *
+     * Applies the effects of a spell card (such as "zap" or "fireball") at the specified world coordinates.
+     * Determines which targets are affected based on the caster (player or AI), applies damage, stun, and triggers visual/sound effects.
+     *
+     * @param {Object} card - The card definition object containing spell properties (e.g., id, payload).
+     * @param {number} x - The world X coordinate where the spell is cast.
+     * @param {number} y - The world Y coordinate where the spell is cast.
+     * @param {boolean} isPlayerCast - True if the spell is cast by the player, false if cast by the AI.
+     *
+     * @returns {void}
+     */
+    _castSpellInternal(card, x, y, isPlayerCast) {
+
+        // Determine target filter and colors based on caster
+        const shouldAffect = (target) => {
+            if (isPlayerCast) {
+                return (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerOwned === false);
+            } else {
+                return target.isPlayerTank === true || target.isPlayerOwned === true;
+            }
+        };
+        
+        const colors = {
+            zap: isPlayerCast ? 0x66ccff : 0xff6666,
+            fireball: isPlayerCast ? 0xff7733 : 0xff4400
+        };
+        
         if (card.id === 'zap') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, 0x66ccff);
+            this.createSpellEffectCircle(x, y, card.payload.radius, colors.zap);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                // Only affect enemies
-                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerOwned === false);
-                if (!isEnemy) return;
-                // Activate main towers when hit
+                if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by zap! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
@@ -1782,15 +1787,13 @@ class BattleScene extends Phaser.Scene {
                 }
             });
             this.playUISound('shoot');
+            if (!isPlayerCast) console.log('🤖 AI: Cast Zap at', Math.round(x), Math.round(y));
         } else if (card.id === 'fireball') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff7733);
+            this.createSpellEffectCircle(x, y, card.payload.radius, colors.fireball);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                const isEnemy = (target.isPlayerTank === false) || (!target.isPlayerTank && target.isPlayerOwned === false);
-                if (!isEnemy) return;
-                // Activate main towers when hit
+                if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
-                    console.log(`Main tower activated by fireball! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
                 target.health = Math.max(0, target.health - card.payload.damage);
                 this.combatSystem.updateHealthDisplay(target);
@@ -1800,68 +1803,91 @@ class BattleScene extends Phaser.Scene {
             });
             this.combatSystem.showExplosionEffect(x, y, 1.2);
             this.playUISound('explosion');
+            if (!isPlayerCast) console.log('🤖 AI: Cast Fireball at', Math.round(x), Math.round(y));
         }
     }
 
     placeBuilding(card, x, y) {
-        // Simple furnace: periodically spawns fire spirits toward enemy side
+        this._placeBuildingInternal(card, x, y, true);
+    }
+
+    /**
+     * Places a building (e.g., Furnace) on the battlefield for either the player or AI.
+     * This internal method consolidates building placement logic, handling graphics, health,
+     * ownership, missile launch loop, and timed destruction. Used by both player and AI systems.
+     *
+     * @param {Object} card - The card definition containing building payload and properties.
+     * @param {number} x - The world X coordinate where the building is placed.
+     * @param {number} y - The world Y coordinate where the building is placed.
+     * @param {boolean} isPlayerOwned - Ownership flag; true for player buildings, false for AI.
+     *   Ownership affects team color, targeting, and battle stats.
+     */
+    _placeBuildingInternal(card, x, y, isPlayerOwned) {
         const furnace = this.add.container(x, y);
         const g = this.add.graphics();
-        g.fillStyle(0x444444);
+        // Colors based on ownership
+        const bgColor = isPlayerOwned ? 0x444444 : 0x882222;
+        const fireColor = isPlayerOwned ? 0xff5500 : 0xff3300;
+        g.fillStyle(bgColor);
         g.fillRect(-12, -8, 24, 16);
-        g.fillStyle(0xff5500);
+        g.fillStyle(fireColor);
         g.fillCircle(0, 0, 5);
         furnace.add(g);
-    furnace.health = 400;
+        furnace.health = 400;
         furnace.maxHealth = 400;
-        furnace.isPlayerOwned = true; // Belongs to player team
+        furnace.isPlayerOwned = isPlayerOwned;
         furnace.lastShotTime = 0;
         furnace.target = null;
         furnace.lastTargetUpdate = 0;
-    furnace.canShoot = false; // Decorative spawner, not a tower
+        furnace.canShoot = false;
         this.buildings.push(furnace);
-        // Create a health bar for the building
-        const config = UI_CONFIG.HEALTH_BARS.TOWER;
-        const healthBg = this.add.graphics();
-        healthBg.fillStyle(config.BACKGROUND_COLOR);
-        healthBg.fillRect(
-            furnace.x - config.OFFSET_X,
-            furnace.y - config.OFFSET_Y,
-            config.WIDTH,
-            config.HEIGHT
-        );
-        furnace.healthBg = healthBg;
-        const healthFill = this.add.graphics();
-        furnace.healthFill = healthFill;
-        const healthText = this.add.text(
-            furnace.x,
-            furnace.y - config.OFFSET_Y - 15,
-            `${furnace.health}/${furnace.maxHealth}`,
-            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
-        ).setOrigin(0.5);
-        furnace.healthText = healthText;
-        this.updateBuildingHealth(furnace);
+        
+        // Create health bar
+        this.createBuildingHealthBar(furnace);
+        
         // Lifetime
         this.time.delayedCall(card.payload.lifetimeMs, () => {
             const idx = this.buildings.indexOf(furnace);
             if (idx >= 0) this.buildings.splice(idx, 1);
-            // Clean up health UI
             if (furnace.healthBg) furnace.healthBg.destroy();
             if (furnace.healthFill) furnace.healthFill.destroy();
             if (furnace.healthText) furnace.healthText.destroy();
             furnace.destroy();
         });
+        
         // Missile launch loop
         const timer = this.time.addEvent({
             delay: card.payload.launchIntervalMs,
             loop: true,
             callback: () => {
-                if (!furnace.scene) { timer.remove(); return; }
+                if (!furnace.scene || furnace.health <= 0) { timer.remove(); return; }
                 for (let i = 0; i < (card.payload.missileCount || 1); i++) {
                     this.launchFurnaceMissile(furnace, card.payload);
                 }
             }
         });
+        
+        if (!isPlayerOwned) console.log('🤖 AI: Placed Furnace at', Math.round(x), Math.round(y));
+    }
+
+    /**
+     * Creates a health bar for a building (furnace, etc)
+     */
+    createBuildingHealthBar(building) {
+        const config = UI_CONFIG.HEALTH_BARS.TOWER;
+        const healthBg = this.add.graphics();
+        healthBg.fillStyle(config.BACKGROUND_COLOR);
+        healthBg.fillRect(building.x - config.OFFSET_X, building.y - config.OFFSET_Y, config.WIDTH, config.HEIGHT);
+        building.healthBg = healthBg;
+        const healthFill = this.add.graphics();
+        building.healthFill = healthFill;
+        const healthText = this.add.text(
+            building.x, building.y - config.OFFSET_Y - 15,
+            `${building.health}/${building.maxHealth}`,
+            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
+        ).setOrigin(0.5);
+        building.healthText = healthText;
+        this.updateBuildingHealth(building);
     }
 
     /**
@@ -2372,6 +2398,30 @@ class BattleScene extends Phaser.Scene {
         this.spellPreview.radius = 0;
     }
 
+    /**
+     * Deploys a tank onto the battlefield for either the player or AI.
+     * 
+     * This internal method consolidates all logic for tank deployment, including:
+     * - Creating tank graphics and setting team color
+     * - Initializing tank properties (health, type, AI state, etc.)
+     * - Setting initial facing direction based on team
+     * - Adding tank to battlefield arrays and updating statistics
+     * - Creating health bar and (optionally) attack range circle
+     * - Notifying AI controller for tank targeting logic
+     * 
+     * Used by both player and AI deployment systems.
+     * 
+     * @param {string} tankId - The unique tank identifier from TANK_DATA.
+     * @param {number} x - The world X coordinate (in pixels) for tank deployment.
+     * @param {number} y - The world Y coordinate (in pixels) for tank deployment.
+     * @param {boolean} isPlayerTank - True if deploying for player, false for AI.
+     * 
+     * @returns {void}
+     */
+    /**
+     * @deprecated Use the pointer down/move/up event system instead.
+     * This method is kept for backwards compatibility only.
+     */
     onBattlefieldClick(pointer) {
         // This method is now replaced by the pointer down/move/up system
         // Keeping it for backwards compatibility but it should not be called
@@ -2379,58 +2429,64 @@ class BattleScene extends Phaser.Scene {
     }
 
     deployTank(tankId, x, y) {
+        this._deployTankInternal(tankId, x, y, true);
+    }
+
+    _deployTankInternal(tankId, x, y, isPlayerTank) {
         const tankData = TANK_DATA[tankId];
-        
-        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.type, true, tankData.id); // true = player tank
+        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.type, isPlayerTank, tankData.id);
         
         // Tank properties
         tank.tankId = tankId;
         tank.tankData = tankData;
         tank.health = tankData.stats.hp;
         tank.maxHealth = tankData.stats.hp;
-        tank.isPlayerTank = true;
+        tank.isPlayerTank = isPlayerTank;
         tank.target = null;
         tank.lastShotTime = 0;
-        tank.lastTargetUpdate = 0; // For AI target selection
+        tank.lastTargetUpdate = 0;
         
         // Pathfinding properties
         tank.path = null;
         tank.pathIndex = 0;
         tank.needsNewPath = true;
 
-        // Face towards the enemy base initially
-        const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
-        if (enemyBase) {
-            const initialAngle = GameHelpers.angle(x, y, enemyBase.x, enemyBase.y);
-            tank.setRotation(initialAngle);
+        // Set initial facing direction
+        if (isPlayerTank) {
+            const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
+            if (enemyBase) {
+                tank.setRotation(GameHelpers.angle(x, y, enemyBase.x, enemyBase.y));
+            } else {
+                tank.setRotation(-Math.PI / 2); // Face upward
+            }
         } else {
-            // If no enemy base found, face upward (towards enemy side)
-            tank.setRotation(-Math.PI / 2); // -90 degrees = upward
+            const offsetX = GameHelpers.getBattlefieldOffset();
+            const playerSideX = offsetX + GAME_CONFIG.WORLD_WIDTH / 2;
+            const playerSideY = GAME_CONFIG.WORLD_HEIGHT * 3 / 4;
+            tank.setRotation(GameHelpers.angle(x, y, playerSideX, playerSideY));
         }
 
-        // AI behavior: find best target (closest enemy or enemy base)
         this.aiController.updateTankAI(tank);
-
         this.tanks.push(tank);
-        
-        // Create health bar for tank
         this.createTankHealthBar(tank);
         
-        // Create debug attack range circle if debug mode is enabled
         if (this.attackRangesVisible) {
             this.createAttackRangeCircle(tank);
         }
         
         // Update statistics
-        this.battleStats.player.tanksDeployed++;
-        const cost = tankData.cost;
-        this.battleStats.player.energySpent += cost;
-        this.playUISound('deploy');
+        const stats = isPlayerTank ? this.battleStats.player : this.battleStats.ai;
+        stats.tanksDeployed++;
+        stats.energySpent += tankData.cost;
+        
+        if (isPlayerTank) {
+            this.playUISound('deploy');
+        }
 
         // Track max tanks alive
-        const playerTanksAlive = this.tanks.filter(t => t.isPlayerTank && t.health > 0).length;
-        if (playerTanksAlive > this.battleStats.player.maxTanksAlive) {
-            this.battleStats.player.maxTanksAlive = playerTanksAlive;
+        const tanksAlive = this.tanks.filter(t => t.isPlayerTank === isPlayerTank && t.health > 0).length;
+        if (tanksAlive > stats.maxTanksAlive) {
+            stats.maxTanksAlive = tanksAlive;
         }
     }
 
@@ -2998,46 +3054,7 @@ class BattleScene extends Phaser.Scene {
      * @param {number} y - World Y position
      */
     aiCastSpell(card, x, y) {
-        if (card.id === 'zap') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff6666); // Red tint for AI
-            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                // Only affect player units
-                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerOwned === true;
-                if (!isPlayerUnit) return;
-                // Activate main towers when hit
-                if (target.isMainTower && !target.activated) {
-                    target.activated = true;
-                    console.log(`Main tower activated by AI zap! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
-                }
-                target.health = Math.max(0, target.health - card.payload.damage);
-                target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
-                this.combatSystem.updateHealthDisplay(target);
-                if (target.health <= 0) {
-                    this.combatSystem.handleTargetDestruction(target, null);
-                }
-            });
-            this.playUISound('shoot');
-            console.log('🤖 AI: Cast Zap at', Math.round(x), Math.round(y));
-        } else if (card.id === 'fireball') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, 0xff4400); // Orange-red for AI fireball
-            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
-                const isPlayerUnit = target.isPlayerTank === true || target.isPlayerOwned === true;
-                if (!isPlayerUnit) return;
-                // Activate main towers when hit
-                if (target.isMainTower && !target.activated) {
-                    target.activated = true;
-                    console.log(`Main tower activated by AI fireball! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
-                }
-                target.health = Math.max(0, target.health - card.payload.damage);
-                this.combatSystem.updateHealthDisplay(target);
-                if (target.health <= 0) {
-                    this.combatSystem.handleTargetDestruction(target, null);
-                }
-            });
-            this.combatSystem.showExplosionEffect(x, y, 1.2);
-            this.playUISound('explosion');
-            console.log('🤖 AI: Cast Fireball at', Math.round(x), Math.round(y));
-        }
+        this._castSpellInternal(card, x, y, false);
     }
 
     /**
@@ -3047,62 +3064,7 @@ class BattleScene extends Phaser.Scene {
      * @param {number} y - World Y position
      */
     aiPlaceBuilding(card, x, y) {
-        // Create furnace building for AI
-        const furnace = this.add.container(x, y);
-        const g = this.add.graphics();
-        g.fillStyle(0x882222); // Darker red tint for AI furnace
-        g.fillRect(-12, -8, 24, 16);
-        g.fillStyle(0xff3300); // Redder fire for AI
-        g.fillCircle(0, 0, 5);
-        furnace.add(g);
-        furnace.health = 400;
-        furnace.maxHealth = 400;
-        furnace.isPlayerOwned = false; // Belongs to AI team
-        furnace.lastShotTime = 0;
-        furnace.target = null;
-        furnace.lastTargetUpdate = 0;
-        furnace.canShoot = false;
-        this.buildings.push(furnace);
-        
-        // Create health bar
-        const config = UI_CONFIG.HEALTH_BARS.TOWER;
-        const healthBg = this.add.graphics();
-        healthBg.fillStyle(config.BACKGROUND_COLOR);
-        healthBg.fillRect(furnace.x - config.OFFSET_X, furnace.y - config.OFFSET_Y, config.WIDTH, config.HEIGHT);
-        furnace.healthBg = healthBg;
-        const healthFill = this.add.graphics();
-        furnace.healthFill = healthFill;
-        const healthText = this.add.text(
-            furnace.x, furnace.y - config.OFFSET_Y - 15,
-            `${furnace.health}/${furnace.maxHealth}`,
-            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
-        ).setOrigin(0.5);
-        furnace.healthText = healthText;
-        this.updateBuildingHealth(furnace);
-        
-        // Lifetime
-        this.time.delayedCall(card.payload.lifetimeMs, () => {
-            const idx = this.buildings.indexOf(furnace);
-            if (idx >= 0) this.buildings.splice(idx, 1);
-            if (furnace.healthBg) furnace.healthBg.destroy();
-            if (furnace.healthFill) furnace.healthFill.destroy();
-            if (furnace.healthText) furnace.healthText.destroy();
-            furnace.destroy();
-        });
-        
-        // Missile launch loop - targets player units
-        const timer = this.time.addEvent({
-            delay: card.payload.launchIntervalMs,
-            loop: true,
-            callback: () => {
-                if (!furnace.scene || furnace.health <= 0) { timer.remove(); return; }
-                for (let i = 0; i < (card.payload.missileCount || 1); i++) {
-                    this.launchFurnaceMissile(furnace, card.payload);
-                }
-            }
-        });
-        
-        console.log('🤖 AI: Placed Furnace at', Math.round(x), Math.round(y));
+        this._placeBuildingInternal(card, x, y, false);
     }
 
     /**
@@ -3132,55 +3094,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     deployAITank(tankId, x, y) {
-        const tankData = TANK_DATA[tankId];
-        
-        // Create tank with custom graphics
-        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.type, false, tankData.id); // false = AI tank
-        
-        // Tank properties
-        tank.tankId = tankId;
-        tank.tankData = tankData;
-        tank.health = tankData.stats.hp;
-        tank.maxHealth = tankData.stats.hp;
-        tank.isPlayerTank = false; // AI tank
-        tank.target = null;
-        tank.lastShotTime = 0;
-        tank.lastTargetUpdate = 0;
-        
-        // Pathfinding properties
-        tank.path = null;
-        tank.pathIndex = 0;
-        tank.needsNewPath = true;
-
-        // Face towards the player side initially (account for battlefield offset)
-        const offsetX = GameHelpers.getBattlefieldOffset();
-        const playerSideX = offsetX + GAME_CONFIG.WORLD_WIDTH / 2;
-        const playerSideY = GAME_CONFIG.WORLD_HEIGHT * 3 / 4;
-        const initialAngle = GameHelpers.angle(x, y, playerSideX, playerSideY);
-        tank.setRotation(initialAngle);
-
-        // AI behavior: target player base and tanks
-        this.aiController.updateTankAI(tank);
-
-        this.tanks.push(tank);
-        
-        // Create health bar for tank
-        this.createTankHealthBar(tank);
-        
-        // Create debug attack range circle if debug mode is enabled
-        if (this.attackRangesVisible) {
-            this.createAttackRangeCircle(tank);
-        }
-        
-        // Update AI statistics
-        this.battleStats.ai.tanksDeployed++;
-        this.battleStats.ai.energySpent += tankData.cost;
-        
-        // Track max tanks alive
-        const aiTanksAlive = this.tanks.filter(t => !t.isPlayerTank && t.health > 0).length;
-        if (aiTanksAlive > this.battleStats.ai.maxTanksAlive) {
-            this.battleStats.ai.maxTanksAlive = aiTanksAlive;
-        }
+        this._deployTankInternal(tankId, x, y, false);
     }
 
     update() {
@@ -3591,101 +3505,7 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    updateTankAI(tank) {
-        if (tank.manualControl) return; // Don't override manual control
-        
-        const currentTime = this.time.now;
-        const tankRange = tank.tankData.stats.range;
-        
-        // Target Retention: Check if current target is still valid
-        if (tank.target && tank.target.health > 0) {
-            const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
-            
-            // Keep current target if still in range
-            if (currentTargetDistance <= tankRange) {
-                return; // Target retained - continue attacking
-            } else {
-                // Target moved out of range - clear it and find new target
-                tank.target = null;
-                tank.needsNewPath = true;
-            }
-        } else if (tank.target && tank.target.health <= 0) {
-            // Target destroyed - clear it and find new target
-            tank.target = null;
-            tank.needsNewPath = true;
-        }
-        
-        // Target Acquisition: Find nearest enemy within attack range
-        let closestEnemyInRange = null;
-        let closestDistanceInRange = Infinity;
-        let fallbackTarget = null; // Nearest enemy overall for movement
-        let fallbackDistance = Infinity;
-        
-        if (tank.isPlayerTank) {
-            // Player tank: target AI tanks and enemy buildings
-            const enemies = [
-                ...this.tanks.filter(t => !t.isPlayerTank && t.health > 0),
-                ...this.buildings.filter(b => !b.isPlayerOwned && b.health > 0)
-            ];
-            
-            enemies.forEach(enemy => {
-                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                
-                // Check if enemy is within attack range
-                if (distance <= tankRange) {
-                    if (distance < closestDistanceInRange) {
-                        closestDistanceInRange = distance;
-                        closestEnemyInRange = enemy;
-                    }
-                }
-                
-                // Track closest overall for fallback movement
-                if (distance < fallbackDistance) {
-                    fallbackDistance = distance;
-                    fallbackTarget = enemy;
-                }
-            });
-        } else {
-            // AI tank: target player tanks and player buildings
-            const enemies = [
-                ...this.tanks.filter(t => t.isPlayerTank && t.health > 0),
-                ...this.buildings.filter(b => b.isPlayerOwned && b.health > 0)
-            ];
-            
-            enemies.forEach(enemy => {
-                const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-                
-                // Check if enemy is within attack range
-                if (distance <= tankRange) {
-                    if (distance < closestDistanceInRange) {
-                        closestDistanceInRange = distance;
-                        closestEnemyInRange = enemy;
-                    }
-                }
-                
-                // Track closest overall for fallback movement
-                if (distance < fallbackDistance) {
-                    fallbackDistance = distance;
-                    fallbackTarget = enemy;
-                }
-            });
-        }
-        
-        // Set target based on acquisition rules
-        if (closestEnemyInRange) {
-            // Found enemy in range - lock onto it
-            tank.target = closestEnemyInRange;
-            tank.needsNewPath = false; // Don't move, just attack
-        } else if (fallbackTarget) {
-            // No enemy in range - move toward nearest enemy
-            tank.target = fallbackTarget;
-            tank.needsNewPath = true; // Move toward target
-        } else {
-            // No enemies found - clear target
-            tank.target = null;
-            tank.needsNewPath = true;
-        }
-    }
+    // Tank AI is delegated to AIController.updateTankAI()
 
     updateBaseDefense(base) {
         const currentTime = this.time.now;
@@ -3875,188 +3695,7 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    // Enhanced Combat Feedback System
-    showDamageNumber(x, y, damage, isCritical = false) {
-        const color = isCritical ? '#ffff00' : '#ff4444';
-        const fontSize = isCritical ? '20px' : '16px';
-        const prefix = isCritical ? 'CRIT ' : '';
-        
-        const damageText = this.add.text(x, y, `${prefix}${Math.ceil(damage)}`, {
-            fontSize: fontSize,
-            fill: color,
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
-        }).setOrigin(0.5);
-        damageText.setDepth(1000);
-        
-        // Animate damage number
-        this.tweens.add({
-            targets: damageText,
-            y: y - 40,
-            alpha: 0,
-            scale: isCritical ? 1.5 : 1.2,
-            duration: 1200,
-            ease: 'Power2',
-            onComplete: () => damageText.destroy()
-        });
-    }
-
-    showHitEffect(x, y, isArmored = false) {
-        // Create hit spark effect
-        const particles = this.add.graphics();
-        particles.setDepth(999);
-        
-        const sparkColor = isArmored ? 0xffffff : 0xff8800;
-        const sparkCount = isArmored ? 8 : 5;
-        
-        for (let i = 0; i < sparkCount; i++) {
-            const angle = (i / sparkCount) * Math.PI * 2;
-            const speed = GameHelpers.randomInt(20, 40);
-            const sparkX = x + Math.cos(angle) * 5;
-            const sparkY = y + Math.sin(angle) * 5;
-            
-            particles.fillStyle(sparkColor);
-            particles.fillCircle(sparkX, sparkY, 2);
-            
-            // Animate sparks
-            this.tweens.add({
-                targets: { x: sparkX, y: sparkY },
-                x: sparkX + Math.cos(angle) * speed,
-                y: sparkY + Math.sin(angle) * speed,
-                duration: 300,
-                ease: 'Power2',
-                onUpdate: (tween) => {
-                    const progress = tween.progress;
-                    const alpha = 1 - progress;
-                    particles.alpha = alpha;
-                }
-            });
-        }
-        
-        // Remove particles after animation
-        this.time.delayedCall(300, () => particles.destroy());
-        
-        // Play hit sound
-        this.playUISound('hit');
-    }
-
-    showExplosionEffect(x, y, size = 1) {
-        // Create explosion graphics
-        const explosion = this.add.graphics();
-        explosion.setDepth(998);
-        
-        // Multiple explosion rings
-        const rings = [
-            { radius: 20 * size, color: 0xffff00, alpha: 1 },
-            { radius: 35 * size, color: 0xff8800, alpha: 0.8 },
-            { radius: 50 * size, color: 0xff4400, alpha: 0.6 },
-            { radius: 65 * size, color: 0x880000, alpha: 0.4 }
-        ];
-        
-        rings.forEach((ring, index) => {
-            explosion.fillStyle(ring.color, ring.alpha);
-            explosion.fillCircle(x, y, ring.radius);
-            
-            this.tweens.add({
-                targets: ring,
-                radius: ring.radius * 2,
-                alpha: 0,
-                duration: 600 + (index * 100),
-                ease: 'Power2',
-                onUpdate: () => {
-                    explosion.clear();
-                    rings.forEach(r => {
-                        explosion.fillStyle(r.color, r.alpha);
-                        explosion.fillCircle(x, y, r.radius);
-                    });
-                }
-            });
-        });
-        
-        // Debris particles
-        for (let i = 0; i < 12; i++) {
-            const debris = this.add.graphics();
-            debris.fillStyle(0x444444);
-            debris.fillRect(x - 2, y - 2, 4, 4);
-            debris.setDepth(997);
-            
-            const angle = (i / 12) * Math.PI * 2;
-            const speed = GameHelpers.randomInt(30, 60);
-            const gravity = 100;
-            
-            this.tweens.add({
-                targets: debris,
-                x: x + Math.cos(angle) * speed,
-                y: y + Math.sin(angle) * speed + gravity,
-                rotation: Math.PI * 2,
-                alpha: 0,
-                duration: 800,
-                ease: 'Power2',
-                onComplete: () => debris.destroy()
-            });
-        }
-        
-        // Remove explosion graphics after animation
-        this.time.delayedCall(1000, () => explosion.destroy());
-        
-        // Play explosion sound
-        this.playUISound('explosion');
-    }
-
-    showMuzzleFlash(tank, targetX, targetY) {
-        // Calculate barrel end position
-        const angle = tank.rotation;
-        const barrelLength = 25; // Approximate barrel length
-        const flashX = tank.x + Math.cos(angle) * barrelLength;
-        const flashY = tank.y + Math.sin(angle) * barrelLength;
-        
-        // Create muzzle flash
-        const flash = this.add.graphics();
-        flash.setDepth(996);
-        
-        // Draw muzzle flash cone
-        flash.fillStyle(0xffff99, 0.8);
-        flash.fillCircle(flashX, flashY, 8);
-        
-        flash.fillStyle(0xffaa00, 0.6);
-        flash.fillCircle(flashX, flashY, 12);
-        
-        // Quick flash animation
-        this.tweens.add({
-            targets: flash,
-            alpha: 0,
-            scale: 1.5,
-            duration: 100,
-            ease: 'Power2',
-            onComplete: () => flash.destroy()
-        });
-        
-        // Create projectile trail
-        this.createProjectileTrail(flashX, flashY, targetX, targetY);
-        
-        // Play shoot sound
-        this.playUISound('shoot');
-    }
-
-    createProjectileTrail(startX, startY, endX, endY) {
-        const trail = this.add.graphics();
-        trail.setDepth(995);
-        
-        // Draw projectile line
-        trail.lineStyle(2, 0xffff00, 0.8);
-        trail.lineBetween(startX, startY, endX, endY);
-        
-        // Fade out trail quickly
-        this.tweens.add({
-            targets: trail,
-            alpha: 0,
-            duration: 150,
-            ease: 'Power2',
-            onComplete: () => trail.destroy()
-        });
-    }
+    // Combat effects are delegated to CombatSystem
 
     showCardSelectionFeedback(cardIndex) {
         const card = this.tankCards[cardIndex];
@@ -4292,38 +3931,7 @@ class BattleScene extends Phaser.Scene {
                          tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
         const message = `${isPlayerTower ? 'PLAYER' : 'ENEMY'} ${towerName} DESTROYED!`;
         const color = isPlayerTower ? '#ff4444' : '#44ff44';
-
-        const notificationText = this.add.text(GAME_CONFIG.WIDTH / 2, 200, message, {
-            fontSize: '24px',
-            fill: color,
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-        notificationText.setScrollFactor(0);
-        notificationText.setDepth(100);
-
-        // Dramatic entrance animation
-        this.tweens.add({
-            targets: notificationText,
-            scaleX: { from: 0, to: 1 },
-            scaleY: { from: 0, to: 1 },
-            alpha: { from: 0, to: 1 },
-            duration: 500,
-            ease: 'Back.out',
-            onComplete: () => {
-                // Fade out after 2 seconds
-                this.time.delayedCall(2000, () => {
-                    this.tweens.add({
-                        targets: notificationText,
-                        alpha: 0,
-                        duration: 1000,
-                        onComplete: () => notificationText.destroy()
-                    });
-                });
-            }
-        });
+        this._showNotification(message, color, 200);
     }
 
     checkTowerVictoryConditions() {
