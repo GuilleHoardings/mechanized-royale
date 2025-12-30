@@ -119,20 +119,6 @@ Tank Tactics is a single-player real-time strategy game inspired by Clash Royale
 - **Mastery Badges**: Tank-specific skill demonstrations
 - **Clan Rewards**: Group activities and competitions
 
-## Monetization Strategy
-
-### Free-to-Play Elements
-- All core gameplay accessible
-- Earn premium currency through play
-- Regular free content updates
-- Optional cosmetic purchases
-
-### Premium Features
-- **Battle Pass**: Accelerated progression
-- **Premium Tanks**: Unique vehicles with special abilities
-- **Garage Slots**: Increased collection capacity
-- **Crew Training**: Faster skill development
-
 ## Technical Requirements
 
 ### Performance Targets
@@ -144,26 +130,6 @@ Tank Tactics is a single-player real-time strategy game inspired by Clash Royale
 - Primary: Web browsers (desktop/mobile)
 - Secondary: Mobile app (Cordova/PhoneGap)
 - Future: Desktop standalone client
-
-## Success Metrics
-
-### Engagement
-- Daily active users
-- Session length and frequency
-- Battle completion rate
-- Progression milestones reached
-
-### Retention
-- 1-day, 7-day, 30-day retention
-- Churn analysis by player level
-- Feature usage statistics
-- Community participation
-
-### Revenue
-- Conversion rate to paying users
-- Average revenue per user (ARPU)
-- Lifetime value (LTV)
-- Premium feature adoption
 
 ## Experimental Concepts
 
