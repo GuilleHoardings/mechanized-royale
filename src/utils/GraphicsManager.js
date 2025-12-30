@@ -59,6 +59,7 @@ class GraphicsManager {
         const darkColor = isPlayerTank ? this.colors.playerDark : this.colors.enemyDark;
         const typeAccentColor = this.getTypeAccentColor(tankType, isPlayerTank);
         const isPanther = tankId === 'tank_panther';
+        const isInfantry = tankId === 'tank_infantry';
         
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
@@ -66,8 +67,12 @@ class GraphicsManager {
         // Create graphics object for drawing
         const graphics = this.scene.add.graphics();
         
-        // Draw the tank based on type
-        switch (tankType) {
+        // Special case for infantry
+        if (isInfantry) {
+            this._drawInfantry(graphics, baseColor, accentColor);
+        } else {
+            // Draw the tank based on type
+            switch (tankType) {
             case TANK_TYPES.LIGHT:
                 this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
@@ -90,12 +95,13 @@ class GraphicsManager {
             case TANK_TYPES.FAST_ATTACK:
                 this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
                 break;
+            }
         }
         
-        // Add tracks (except for Panther which has skids)
-        if (!isPanther) {
+        // Add tracks (except for Panther which has skids, and infantry which has none)
+        if (!isPanther && !isInfantry) {
             this._drawTracks(graphics, tankType);
-        } else {
+        } else if (isPanther) {
             this._drawHelicopterSkids(graphics, typeAccentColor);
         }
         
@@ -118,12 +124,17 @@ class GraphicsManager {
         const darkColor = this.colors.playerDark;
         const typeAccentColor = this.getTypeAccentColor(tankType, true);
         const isPanther = tankId === 'tank_panther';
+        const isInfantry = tankId === 'tank_infantry';
         
         const tank = this.scene.add.container(x, y);
         const graphics = this.scene.add.graphics();
         
-        // Draw the mini tank based on type
-        switch (tankType) {
+        // Special case for infantry
+        if (isInfantry) {
+            this._drawMiniInfantry(graphics, baseColor, typeAccentColor);
+        } else {
+            // Draw the mini tank based on type
+            switch (tankType) {
             case TANK_TYPES.LIGHT:
                 this._drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
@@ -146,12 +157,13 @@ class GraphicsManager {
             case TANK_TYPES.FAST_ATTACK:
                 this._drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor);
                 break;
+            }
         }
         
-        // Add mini tracks (except for Panther)
-        if (!isPanther) {
+        // Add mini tracks (except for Panther and infantry)
+        if (!isPanther && !isInfantry) {
             this._drawMiniTracks(graphics, tankType);
-        } else {
+        } else if (isPanther) {
             this._drawMiniHelicopterSkids(graphics, typeAccentColor);
         }
         
@@ -461,6 +473,55 @@ class GraphicsManager {
         graphics.fillRect(4, -5, 3, 2);
     }
 
+    _drawInfantry(graphics, baseColor, accentColor) {
+        // Infantry squad - simple stick figures
+        graphics.lineStyle(2, baseColor);
+        
+        // First soldier
+        graphics.moveTo(-8, -5);
+        graphics.lineTo(-8, 5); // body
+        graphics.moveTo(-8, -2);
+        graphics.lineTo(-10, 0); // left arm
+        graphics.moveTo(-8, -2);
+        graphics.lineTo(-6, 0); // right arm
+        graphics.moveTo(-8, 5);
+        graphics.lineTo(-10, 7); // left leg
+        graphics.moveTo(-8, 5);
+        graphics.lineTo(-6, 7); // right leg
+        graphics.fillStyle(baseColor);
+        graphics.fillCircle(-8, -7, 2); // head
+        
+        // Second soldier
+        graphics.lineStyle(2, accentColor);
+        graphics.moveTo(-2, -5);
+        graphics.lineTo(-2, 5);
+        graphics.moveTo(-2, -2);
+        graphics.lineTo(-4, 0);
+        graphics.moveTo(-2, -2);
+        graphics.lineTo(0, 0);
+        graphics.moveTo(-2, 5);
+        graphics.lineTo(-4, 7);
+        graphics.moveTo(-2, 5);
+        graphics.lineTo(0, 7);
+        graphics.fillStyle(accentColor);
+        graphics.fillCircle(-2, -7, 2);
+        
+        // Third soldier
+        graphics.lineStyle(2, baseColor);
+        graphics.moveTo(4, -5);
+        graphics.lineTo(4, 5);
+        graphics.moveTo(4, -2);
+        graphics.lineTo(2, 0);
+        graphics.moveTo(4, -2);
+        graphics.lineTo(6, 0);
+        graphics.moveTo(4, 5);
+        graphics.lineTo(2, 7);
+        graphics.moveTo(4, 5);
+        graphics.lineTo(6, 7);
+        graphics.fillStyle(baseColor);
+        graphics.fillCircle(4, -7, 2);
+    }
+
     _drawTracks(graphics, tankType) {
         // Add tracks/treads for ground vehicles - enhanced with more detail
         graphics.fillStyle(0x333333);
@@ -731,6 +792,40 @@ class GraphicsManager {
         graphics.fillRect(-8, -4, 2, 1);
         graphics.fillRect(-2, -4, 2, 1);
         graphics.fillRect(4, -4, 2, 1);
+    }
+
+    _drawMiniInfantry(graphics, baseColor, accentColor) {
+        // Mini infantry squad - simple figures
+        graphics.lineStyle(1, baseColor);
+        
+        // First soldier
+        graphics.moveTo(-4, -3);
+        graphics.lineTo(-4, 2); // body
+        graphics.moveTo(-4, -1);
+        graphics.lineTo(-5, 0); // left arm
+        graphics.moveTo(-4, -1);
+        graphics.lineTo(-3, 0); // right arm
+        graphics.moveTo(-4, 2);
+        graphics.lineTo(-5, 3); // left leg
+        graphics.moveTo(-4, 2);
+        graphics.lineTo(-3, 3); // right leg
+        graphics.fillStyle(baseColor);
+        graphics.fillCircle(-4, -4, 1); // head
+        
+        // Second soldier
+        graphics.lineStyle(1, accentColor);
+        graphics.moveTo(0, -3);
+        graphics.lineTo(0, 2);
+        graphics.moveTo(0, -1);
+        graphics.lineTo(-1, 0);
+        graphics.moveTo(0, -1);
+        graphics.lineTo(1, 0);
+        graphics.moveTo(0, 2);
+        graphics.lineTo(-1, 3);
+        graphics.moveTo(0, 2);
+        graphics.lineTo(1, 3);
+        graphics.fillStyle(accentColor);
+        graphics.fillCircle(0, -4, 1);
     }
 
     _drawMiniTracks(graphics, tankType) {
