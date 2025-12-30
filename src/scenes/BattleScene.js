@@ -474,6 +474,10 @@ class BattleScene extends Phaser.Scene {
                 cardId
             );
             tankIcon.setScale(1.0); // Increased from 0.6 to 1.0 for bigger icons
+            // Rotate troop cards to face upward (enemy field direction)
+            if (cardDef.type === CARD_TYPES.TROOP) {
+                tankIcon.setRotation(-Math.PI / 2); // -90 degrees = upward
+            }
             card.tankIcon = tankIcon;
 
             // Cost - moved to top right corner with better styling
@@ -2003,6 +2007,8 @@ class BattleScene extends Phaser.Scene {
             );
             this.deploymentPreview.previewTank.setAlpha(0.5);
             this.deploymentPreview.previewTank.setDepth(15);
+            // Face upward (toward enemy field)
+            this.deploymentPreview.previewTank.setRotation(-Math.PI / 2);
             
             // Create range circle if tank has range
             const range = selectedCard.tankData.stats.range;
@@ -2305,17 +2311,11 @@ class BattleScene extends Phaser.Scene {
 
         // Set initial facing direction
         if (isPlayerTank) {
-            const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
-            if (enemyBase) {
-                tank.setRotation(GameHelpers.angle(x, y, enemyBase.x, enemyBase.y));
-            } else {
-                tank.setRotation(-Math.PI / 2); // Face upward
-            }
+            // Always face upward (toward enemy field) initially
+            tank.setRotation(-Math.PI / 2); // -90 degrees = upward
         } else {
-            const offsetX = GameHelpers.getBattlefieldOffset();
-            const playerSideX = offsetX + GAME_CONFIG.WORLD_WIDTH / 2;
-            const playerSideY = GAME_CONFIG.WORLD_HEIGHT * 3 / 4;
-            tank.setRotation(GameHelpers.angle(x, y, playerSideX, playerSideY));
+            // AI tanks face downward (toward player field)
+            tank.setRotation(Math.PI / 2); // +90 degrees = downward
         }
 
         this.aiController.updateTankAI(tank);
