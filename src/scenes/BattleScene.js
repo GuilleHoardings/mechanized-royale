@@ -2384,15 +2384,8 @@ class BattleScene extends Phaser.Scene {
         
         tank.healthFill.clear();
         
-        // Use configured color thresholds
-        let healthColor;
-        if (healthPercent > 0.5) {
-            healthColor = config.COLORS.HIGH;
-        } else if (healthPercent > 0.25) {
-            healthColor = config.COLORS.MEDIUM;
-        } else {
-            healthColor = config.COLORS.LOW;
-        }
+        // Use team colors: blue for player, red for enemy
+        const healthColor = tank.isPlayerTank ? 0x2d7dd2 : 0xd22d2d;
         
         tank.healthFill.fillStyle(healthColor);
         tank.healthFill.fillRect(
@@ -2410,15 +2403,8 @@ class BattleScene extends Phaser.Scene {
         
         building.healthFill.clear();
         
-        // Use consistent color thresholds for all buildings (3 levels)
-        let healthColor;
-        if (healthPercent > 0.5) {
-            healthColor = config.COLORS.HIGH;
-        } else if (healthPercent > 0.25) {
-            healthColor = config.COLORS.MEDIUM;
-        } else {
-            healthColor = config.COLORS.LOW;
-        }
+        // Use team colors: blue for player, red for enemy
+        const healthColor = building.isPlayerOwned ? 0x2d7dd2 : 0xd22d2d;
         
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
@@ -2431,7 +2417,7 @@ class BattleScene extends Phaser.Scene {
         // Update health text
         if (building.healthText) {
             building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
-            building.healthText.setFill(healthColor === config.COLORS.LOW ? '#ff0000' : '#ffffff');
+            building.healthText.setFill('#ffffff');
         }
     }
 
@@ -3423,6 +3409,13 @@ class BattleScene extends Phaser.Scene {
 
         const selectedCard = this.tankCards[this.selectedCard];
         if (!selectedCard) return;
+
+        // Don't deploy if clicking on the card UI area (bottom of screen)
+        // Cards are at GAME_CONFIG.HEIGHT - 110, so check if pointer is in that area
+        const cardsAreaY = GAME_CONFIG.HEIGHT - 120; // A bit above cards to be safe
+        if (pointer.y > cardsAreaY) {
+            return; // Click is on card UI, don't deploy
+        }
 
         // Check if we have enough energy
         const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
