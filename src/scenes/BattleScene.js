@@ -11,7 +11,7 @@ class BattleScene extends Phaser.Scene {
         this.tanks = [];
         this.buildings = [];
         this.projectiles = [];
-        
+
         // Tower tracking for victory conditions
         this.towerStats = {
             player: {
@@ -27,13 +27,13 @@ class BattleScene extends Phaser.Scene {
                 rightTowerDestroyed: false
             }
         };
-        
+
         // Expanded deployment zones when side towers are destroyed
         this.expandedDeploymentZones = {
             player: null, // Will be set when enemy side towers are destroyed
             enemy: null   // Will be set when player side towers are destroyed
         };
-        
+
         // Enhanced battle statistics
         this.battleStats = {
             player: {
@@ -75,32 +75,32 @@ class BattleScene extends Phaser.Scene {
         // Enhanced battle timer settings
         this.overtimeActive = false;
         this.maxOvertimeSeconds = 60;
-        
+
         // Battle control flag
         this.battleEnded = false;
-        
+
         // Energy regeneration progress tracking (0-1 for gradual fill)
         this.energyRegenProgress = 0;
-        
+
         // Pause state for analysis
         this.gamePaused = false;
-        
-    // Card deck system (8-card rotation)
-    this.deck = [...DEFAULT_PLAYER_DECK];
+
+        // Card deck system (8-card rotation)
+        this.deck = [...DEFAULT_PLAYER_DECK];
         this.hand = [];
         this.nextCardIndex = 0;
         this.initializeDeck();
-        
+
         // Row numbers display
         this.rowNumbersVisible = false;
         this.rowNumberLabels = [];
-        
+
         // Attack range debug display
         this.attackRangesVisible = false;
         this.attackRangeCircles = [];
-        
+
         // Textures mode - toggles between textures and graphics for all game elements
-        this.useGraphicsMode = false;
+        this.useGraphicsMode = true;
 
         // Simulation speed control (1x, then slower steps for analysis)
         this.simulationSpeedOptions = [1, 0.5, 0.25];
@@ -111,31 +111,31 @@ class BattleScene extends Phaser.Scene {
     create() {
         // Initialize battle start time for statistics
         this.battleStats.battle.startTime = this.time.now;
-        
+
         // Initialize UI Manager
         this.uiManager = new UIManager(this);
-        
+
         // Initialize Graphics Manager
         this.graphicsManager = new GraphicsManager(this);
-        
+
         // Initialize Combat System
         this.combatSystem = new CombatSystem(this);
-        
+
         // Initialize AI Controller
         this.aiController = new AIController(this);
-        
+
         // Make this scene accessible to HTML buttons
         window.currentScene = this;
-        
+
         // Initialize debug panel
         this.initializeDebugPanel();
         this.setSimulationSpeed(this.simulationSpeed);
-        
+
         // Refresh pause button state
         if (window.refreshPauseButtonState) {
             window.refreshPauseButtonState();
         }
-        
+
         // Enhanced background with darker, more atmospheric color
         this.cameras.main.setBackgroundColor('#1a2744');
 
@@ -188,10 +188,10 @@ class BattleScene extends Phaser.Scene {
     createBattlefield() {
         // Calculate offset to center the battlefield horizontally
         const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
-        
+
         // Set world bounds to match the actual battlefield size
         this.physics.world.setBounds(offsetX, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
-        
+
         if (this.useGraphicsMode) {
             // Graphics mode - use procedural graphics for detailed grid and features
             this.createDebugBattlefield(offsetX);
@@ -201,7 +201,7 @@ class BattleScene extends Phaser.Scene {
             // Scale factor: WORLD_WIDTH / 514 to make image tiles match game tiles
             this.addArenaTexture(); // Ensure battlefield is behind other elements
         }
-        
+
         // Deployment zones with tile-based boundaries - will be drawn dynamically
         this.createDeploymentZoneGraphics();
     }
@@ -225,26 +225,48 @@ class BattleScene extends Phaser.Scene {
         // Create procedural graphics battlefield for debugging and detailed visualization
         this.battlefieldGraphics = this.add.graphics();
         this.battlefieldGraphics.setDepth(-5); // Behind deployment zones but above background
-        
-        // Draw tile grid
-        this.battlefieldGraphics.lineStyle(1, 0x556b2f, 0.2);
-        
+
+        // Base Grass
+        this.battlefieldGraphics.fillStyle(0x1a472a); // Deep green
+        this.battlefieldGraphics.fillRect(offsetX, 0, GAME_CONFIG.WORLD_WIDTH, GAME_CONFIG.WORLD_HEIGHT);
+
+        // Grass Texture/Noise (Checkered for tile visibility but subtle)
+        this.battlefieldGraphics.fillStyle(0x2d5a3f, 0.3);
+        const tileSize = GAME_CONFIG.TILE_SIZE;
+        for (let y = 0; y < GAME_CONFIG.TILES_Y; y++) {
+            for (let x = 0; x < GAME_CONFIG.TILES_X; x++) {
+                if ((x + y) % 2 === 0) {
+                    this.battlefieldGraphics.fillRect(offsetX + x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        // Draw tile grid (Subtle)
+        this.battlefieldGraphics.lineStyle(1, 0x000000, 0.1);
+
         // Vertical tile lines
         for (let tileX = 0; tileX <= GAME_CONFIG.TILES_X; tileX++) {
             const x = offsetX + tileX * GAME_CONFIG.TILE_SIZE;
             this.battlefieldGraphics.lineBetween(x, 0, x, GAME_CONFIG.TILES_Y * GAME_CONFIG.TILE_SIZE);
         }
-        
+
         // Horizontal tile lines
         for (let tileY = 0; tileY <= GAME_CONFIG.TILES_Y; tileY++) {
             const y = tileY * GAME_CONFIG.TILE_SIZE;
             this.battlefieldGraphics.lineBetween(offsetX, y, offsetX + GAME_CONFIG.TILES_X * GAME_CONFIG.TILE_SIZE, y);
         }
 
-        // Center line to divide battlefield - at row 16.5 (between rows 16 and 17)
-        this.battlefieldGraphics.lineStyle(3, 0x888888, 0.8);
+        // Center line to divide battlefield
+        this.battlefieldGraphics.lineStyle(2, 0xffffff, 0.3);
         const centerY = 16.5 * GAME_CONFIG.TILE_SIZE;
-        this.battlefieldGraphics.lineBetween(offsetX, centerY, offsetX + GAME_CONFIG.WORLD_WIDTH, centerY);
+        // Dashed line
+        const dashLen = 20;
+        const gapLen = 10;
+        let currentX = offsetX;
+        while (currentX < offsetX + GAME_CONFIG.WORLD_WIDTH) {
+            this.battlefieldGraphics.lineBetween(currentX, centerY, Math.min(currentX + dashLen, offsetX + GAME_CONFIG.WORLD_WIDTH), centerY);
+            currentX += dashLen + gapLen;
+        }
 
         // Add river and bridges in debug mode
         this.createRiverAndBridges(this.battlefieldGraphics, offsetX);
@@ -257,53 +279,44 @@ class BattleScene extends Phaser.Scene {
         const riverHeight = riverBottomY - riverTopY + GAME_CONFIG.TILE_SIZE;
         const riverWidth = GAME_CONFIG.WORLD_WIDTH;
 
-        // Draw river
-        graphics.fillStyle(0x4169e1, 0.6); // Royal blue for water
+        // Water
+        graphics.fillStyle(0x3b82f6); // Base Blue
         graphics.fillRect(offsetX, riverTopY, riverWidth, riverHeight);
-        
-        // River borders
-        graphics.lineStyle(2, 0x1e3a8a, 0.8); // Darker blue borders
-        graphics.lineBetween(offsetX, riverTopY, offsetX + riverWidth, riverTopY);
-        graphics.lineBetween(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, offsetX + riverWidth, riverBottomY + GAME_CONFIG.TILE_SIZE);
 
-        // Two bridges aligned with side towers
-        // Left bridge (aligned with left towers)
+        // Water ripples/depth
+        graphics.fillStyle(0x2563eb, 0.5);
+        graphics.fillRect(offsetX, riverTopY + 10, riverWidth, riverHeight - 20);
+
+        // River banks
+        graphics.fillStyle(0x8b4513); // Mud/Bank
+        graphics.fillRect(offsetX, riverTopY - 5, riverWidth, 5);
+        graphics.fillRect(offsetX, riverBottomY + GAME_CONFIG.TILE_SIZE, riverWidth, 5);
+
+        // Bridges
         const leftBridgeStartX = offsetX + BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.LEFT.tileX * GAME_CONFIG.TILE_SIZE;
         const leftBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
-        
-        // Right bridge (aligned with right towers)
         const rightBridgeStartX = offsetX + (BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER.RIGHT.tileX - 1) * GAME_CONFIG.TILE_SIZE;
         const rightBridgeWidth = 3 * GAME_CONFIG.TILE_SIZE;
-        
-        // Draw left bridge
-        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
-        
-        // Left bridge borders
-        graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(leftBridgeStartX, riverTopY, leftBridgeWidth, riverHeight);
-        
-        // Left bridge supports
-        graphics.fillStyle(0x654321);
-        for (let i = 0; i < 2; i++) {
-            const supportX = leftBridgeStartX + (i + 1) * leftBridgeWidth / 3;
-            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
-        }
-        
-        // Draw right bridge
-        graphics.fillStyle(0x8b4513, 1.0); // Brown bridge
-        graphics.fillRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
-        
-        // Right bridge borders
-        graphics.lineStyle(2, 0x654321);
-        graphics.strokeRect(rightBridgeStartX, riverTopY, rightBridgeWidth, riverHeight);
-        
-        // Right bridge supports
-        graphics.fillStyle(0x654321);
-        for (let i = 0; i < 2; i++) {
-            const supportX = rightBridgeStartX + (i + 1) * rightBridgeWidth / 3;
-            graphics.fillRect(supportX - 2, riverTopY, 4, riverHeight);
-        }
+
+        const drawBridge = (x, width) => {
+            // Planks
+            graphics.fillStyle(0x8b4513);
+            graphics.fillRect(x, riverTopY - 2, width, riverHeight + 4);
+
+            // Plank details
+            graphics.lineStyle(1, 0x5d4037, 0.5);
+            for (let i = 0; i < (riverHeight + 4) / 8; i++) {
+                graphics.lineBetween(x, riverTopY - 2 + i * 8, x + width, riverTopY - 2 + i * 8);
+            }
+
+            // Railings
+            graphics.fillStyle(0x5d4037);
+            graphics.fillRect(x - 4, riverTopY - 5, 4, riverHeight + 10);
+            graphics.fillRect(x + width, riverTopY - 5, 4, riverHeight + 10);
+        };
+
+        drawBridge(leftBridgeStartX, leftBridgeWidth);
+        drawBridge(rightBridgeStartX, rightBridgeWidth);
     }
 
     createDeploymentZoneGraphics() {
@@ -315,32 +328,32 @@ class BattleScene extends Phaser.Scene {
 
     drawDeploymentZones() {
         if (!this.deploymentZoneGraphics) return;
-        
+
         // Clear existing deployment zone graphics and labels
         this.deploymentZoneGraphics.clear();
         if (this.deploymentZoneLabels) {
             this.deploymentZoneLabels.forEach(label => label.destroy());
             this.deploymentZoneLabels = [];
         }
-        
+
         const offsetX = GameHelpers.getBattlefieldOffset();
-        
+
         // Draw original deployment zones
         const playerZone = GameHelpers.getDeploymentZoneWorldCoords(true);
         const enemyZone = GameHelpers.getDeploymentZoneWorldCoords(false);
-        
+
         // Player zone (bottom) - coordinates already include offset
         this.deploymentZoneGraphics.lineStyle(3, 0x4a90e2, 0.6);
         this.deploymentZoneGraphics.fillStyle(0x4a90e2, 0.1);
         this.deploymentZoneGraphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         this.deploymentZoneGraphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
-        
+
         // Enemy zone (top) - coordinates already include offset
         this.deploymentZoneGraphics.lineStyle(3, 0xd22d2d, 0.6);
         this.deploymentZoneGraphics.fillStyle(0xd22d2d, 0.1);
         this.deploymentZoneGraphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
         this.deploymentZoneGraphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
-        
+
         // Draw expanded zones if they exist
         this.drawExpandedZones(offsetX);
     }
@@ -353,7 +366,7 @@ class BattleScene extends Phaser.Scene {
                 const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
                 const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
                 const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
-                
+
                 // Player expanded zones - brighter blue with dashed border
                 this.deploymentZoneGraphics.lineStyle(3, 0x6db4ff, 0.8);
                 this.deploymentZoneGraphics.fillStyle(0x6db4ff, 0.2);
@@ -361,7 +374,7 @@ class BattleScene extends Phaser.Scene {
                 this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
             });
         }
-        
+
         // Draw AI expanded zones
         if (this.expandedDeploymentZones.enemy && this.expandedDeploymentZones.enemy.expandedAreas) {
             this.expandedDeploymentZones.enemy.expandedAreas.forEach(area => {
@@ -369,7 +382,7 @@ class BattleScene extends Phaser.Scene {
                 const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
                 const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
                 const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
-                
+
                 // AI expanded zones - brighter red with dashed border
                 this.deploymentZoneGraphics.lineStyle(3, 0xff6b6b, 0.8);
                 this.deploymentZoneGraphics.fillStyle(0xff6b6b, 0.2);
@@ -385,7 +398,7 @@ class BattleScene extends Phaser.Scene {
 
         // Energy bar positioned at the very bottom, centered
         this.createEnergyBar();
-        
+
         // Timer in top right corner
         this.createTimer();
 
@@ -397,7 +410,7 @@ class BattleScene extends Phaser.Scene {
         aiStatusBg.strokeRoundedRect(5, 32, 105, 70, 4);
         aiStatusBg.setScrollFactor(0);
         aiStatusBg.setDepth(1000);
-        
+
         this.aiStrategyText = this.add.text(10, 36, 'AI: ---', {
             fontSize: '9px',
             fill: '#fbbf24',
@@ -416,7 +429,7 @@ class BattleScene extends Phaser.Scene {
         backButtonBg.strokeRoundedRect(5, 5, 70, 24, 4);
         backButtonBg.setScrollFactor(0);
         backButtonBg.setDepth(1000);
-        
+
         const backButton = this.add.text(40, 17, '← Menu', {
             fontSize: '11px',
             fill: '#e2e8f0',
@@ -429,7 +442,7 @@ class BattleScene extends Phaser.Scene {
         backButton.on('pointerover', () => {
             backButton.setFill('#60a5fa');
         });
-        
+
         backButton.on('pointerout', () => {
             backButton.setFill('#e2e8f0');
         });
@@ -450,7 +463,7 @@ class BattleScene extends Phaser.Scene {
         const startX = (GAME_CONFIG.WIDTH - totalWidth) / 2; // Center horizontally
 
         this.tankCards = [];
-        
+
         // Create 4 cards from hand
         for (let index = 0; index < 4; index++) {
             const cardId = this.hand[index];
@@ -469,7 +482,7 @@ class BattleScene extends Phaser.Scene {
 
             // Icon - use mini card drawing for all card types
             const tankIcon = this.graphicsManager.createMiniCardGraphics(
-                cardX + cardWidth/2,
+                cardX + cardWidth / 2,
                 cardsY + 30,
                 cardId
             );
@@ -493,7 +506,7 @@ class BattleScene extends Phaser.Scene {
 
             // Card name - positioned lower with improved styling
             const displayName = cardDef.name;
-            const nameText = this.add.text(cardX + cardWidth/2, cardsY + cardHeight - 12, displayName, {
+            const nameText = this.add.text(cardX + cardWidth / 2, cardsY + cardHeight - 12, displayName, {
                 fontSize: UI_CONFIG.CARDS.NAME_TEXT.FONT_SIZE,
                 fill: UI_CONFIG.CARDS.NAME_TEXT.COLOR,
                 fontFamily: 'Arial'
@@ -528,16 +541,16 @@ class BattleScene extends Phaser.Scene {
                 if (index !== this.selectedCard) {
                     card.setTint(0xcccccc);
                 }
-                
+
                 // Cancel any pending tooltip timer
                 if (this.tooltipTimer) {
                     this.tooltipTimer.destroy();
                     this.tooltipTimer = null;
                 }
-                
+
                 // Add a small delay before showing tooltip to prevent rapid showing/hiding
                 this.tooltipTimer = this.time.delayedCall(500, () => {
-                    this.showCardTooltip(index, cardX + cardWidth/2, cardsY - 15);
+                    this.showCardTooltip(index, cardX + cardWidth / 2, cardsY - 15);
                     this.tooltipTimer = null;
                 });
             });
@@ -546,13 +559,13 @@ class BattleScene extends Phaser.Scene {
                 if (index !== this.selectedCard) {
                     card.clearTint();
                 }
-                
+
                 // Cancel any pending tooltip timer
                 if (this.tooltipTimer) {
                     this.tooltipTimer.destroy();
                     this.tooltipTimer = null;
                 }
-                
+
                 this.hideCardTooltip();
             });
 
@@ -611,7 +624,7 @@ class BattleScene extends Phaser.Scene {
         timerBg.strokeRoundedRect(GAME_CONFIG.WIDTH - 70, 5, 65, 24, 4);
         timerBg.setScrollFactor(0);
         timerBg.setDepth(1000);
-        
+
         // Timer text with icon
         this.timerText = this.add.text(GAME_CONFIG.WIDTH - 38, 17, `⏱ ${this.formatTime(this.battleTime)}`, {
             fontSize: '12px',
@@ -635,7 +648,7 @@ class BattleScene extends Phaser.Scene {
         enemyPanelBg.strokeRoundedRect(5, 108, 85, 45, 4);
         enemyPanelBg.setScrollFactor(0);
         enemyPanelBg.setDepth(1000);
-        
+
         this.enemyTowerStatus = this.add.text(10, 112, '', {
             fontSize: '9px',
             fill: '#f87171',
@@ -654,7 +667,7 @@ class BattleScene extends Phaser.Scene {
         playerPanelBg.strokeRoundedRect(5, 156, 85, 45, 4);
         playerPanelBg.setScrollFactor(0);
         playerPanelBg.setDepth(1000);
-        
+
         this.playerTowerStatus = this.add.text(10, 160, '', {
             fontSize: '9px',
             fill: '#60a5fa',
@@ -696,13 +709,13 @@ class BattleScene extends Phaser.Scene {
         if (this.battleEnded) {
             return;
         }
-        
+
         // End any existing previews before starting new ones
         this.endDeploymentPreview();
         this.endSpellPreview();
-        
+
         this.selectedCard = index;
-        
+
         // Start appropriate preview based on card type
         const selectedCard = this.tankCards[index];
         if (selectedCard.cardType === CARD_TYPES.TROOP) {
@@ -711,9 +724,9 @@ class BattleScene extends Phaser.Scene {
             // For spells and buildings, start spell preview (which handles both)
             this.startSpellPreview(0, 0, selectedCard); // Position will be updated on mouse move
         }
-        
+
         this.updateCardSelection();
-        
+
         // Show selection feedback
         this.showCardSelectionFeedback(index);
     }
@@ -737,37 +750,37 @@ class BattleScene extends Phaser.Scene {
         const cardRef = this.tankCards[cardIndex];
         const isTroop = cardRef.cardType === CARD_TYPES.TROOP;
         const tankData = isTroop ? cardRef.tankData : null;
-        
+
         // Dynamic positioning to avoid edge clipping
         const tooltipWidth = 280;
         const tooltipHeight = 180;
         let tooltipX = x - tooltipWidth / 2;
         let tooltipY = y - tooltipHeight - 15;
-        
+
         // Adjust if tooltip would go off screen
         if (tooltipX < 10) tooltipX = 10;
         if (tooltipX + tooltipWidth > GAME_CONFIG.WIDTH - 10) {
             tooltipX = GAME_CONFIG.WIDTH - tooltipWidth - 10;
         }
         if (tooltipY < 10) tooltipY = y + 15; // Show below card if no room above
-        
+
         this.cardTooltip = this.add.container(tooltipX, tooltipY);
         this.cardTooltip.setScrollFactor(0);
         this.cardTooltip.setDepth(100); // Ensure tooltip is on top
-        
-    // Enhanced tooltip background with gradient effect
+
+        // Enhanced tooltip background with gradient effect
         const tooltipBg = this.add.graphics();
-        
+
         // Main background
         tooltipBg.fillStyle(0x1a1a1a, 0.95);
         tooltipBg.fillRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
-        
-    // Determine cost (troop vs non-troop) and draw border with energy accent
-    const costVal = isTroop ? tankData.cost : cardRef.cardDef.cost;
-    const borderColor = costVal <= this.energy ? 0x4a90e2 : 0x666666;
+
+        // Determine cost (troop vs non-troop) and draw border with energy accent
+        const costVal = isTroop ? tankData.cost : cardRef.cardDef.cost;
+        const borderColor = costVal <= this.energy ? 0x4a90e2 : 0x666666;
         tooltipBg.lineStyle(3, borderColor, 0.8);
         tooltipBg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
-        
+
         // Header section with type color
         const typeColors = {
             [TANK_TYPES.LIGHT]: 0x00ff88,
@@ -780,7 +793,7 @@ class BattleScene extends Phaser.Scene {
         const headerColor = isTroop ? (typeColors[tankData.type] || 0x4a90e2) : 0x4a90e2;
         tooltipBg.fillStyle(headerColor, 0.3);
         tooltipBg.fillRoundedRect(2, 2, tooltipWidth - 4, 35, 6);
-        
+
         // Tank name and tier
         const nameText = this.add.text(15, 12, isTroop ? `${tankData.name}` : `${cardRef.cardDef.name}`, {
             fontSize: '16px',
@@ -793,15 +806,15 @@ class BattleScene extends Phaser.Scene {
             fill: '#cccccc',
             fontFamily: 'Arial'
         }).setOrigin(1, 0);
-        
+
         // Tank type indicator
         const typeText = this.add.text(15, 28, isTroop ? tankData.type.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
             fontSize: '10px',
             fill: '#aaaaaa',
             fontFamily: 'Arial'
         });
-        
-    // Cost indicator with energy status
+
+        // Cost indicator with energy status
         const costColor = costVal <= this.energy ? '#00ff00' : '#ff6666';
         const costText = this.add.text(tooltipWidth - 15, 28, `Cost: ${costVal}`, {
             fontSize: '12px',
@@ -809,13 +822,13 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             fontStyle: 'bold'
         }).setOrigin(1, 0);
-        
+
         if (!isTroop) {
             // Simple content for spells/buildings
             const descY = 55;
             const desc = cardRef.cardDef.id === 'smoke_barrage' ? `Small area damage and brief stun.`
-                        : cardRef.cardDef.id === 'artillery_strike' ? `Medium-radius area damage.`
-                        : cardRef.cardDef.id === 'v1_launcher' ? `Launches homing missiles that explode on impact.`
+                : cardRef.cardDef.id === 'artillery_strike' ? `Medium-radius area damage.`
+                    : cardRef.cardDef.id === 'v1_launcher' ? `Launches homing missiles that explode on impact.`
                         : `Special card.`;
             const body = this.add.text(15, descY, desc, {
                 fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', wordWrap: { width: tooltipWidth - 30 }
@@ -825,12 +838,12 @@ class BattleScene extends Phaser.Scene {
             this.tooltipFadeInTween = this.tweens.add({ targets: this.cardTooltip, alpha: 1, duration: 150 });
             return;
         }
-        
+
         // Main stats section (troop)
         const statsY = 50;
         const leftColumnX = 15;
         const rightColumnX = 150;
-        
+
         // Combat stats (left column)
         const combatTitle = this.add.text(leftColumnX, statsY, 'COMBAT', {
             fontSize: '11px',
@@ -838,8 +851,8 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             fontStyle: 'bold'
         });
-        
-        const combatStats = this.add.text(leftColumnX, statsY + 15, 
+
+        const combatStats = this.add.text(leftColumnX, statsY + 15,
             `Health: ${tankData.stats.hp}\n` +
             `Damage: ${tankData.stats.damage}\n` +
             `Range: ${tankData.stats.range}\n` +
@@ -849,7 +862,7 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             lineSpacing: 2
         });
-        
+
         // Mobility & Armor stats (right column)
         const mobilityTitle = this.add.text(rightColumnX, statsY, 'MOBILITY & ARMOR', {
             fontSize: '11px',
@@ -857,7 +870,7 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             fontStyle: 'bold'
         });
-        
+
         const mobilityStats = this.add.text(rightColumnX, statsY + 15,
             `Speed: ${tankData.stats.speed}\n` +
             `Front Armor: ${tankData.stats.armor.front}\n` +
@@ -868,32 +881,32 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             lineSpacing: 2
         });
-        
-    // Abilities section
+
+        // Abilities section
         const abilitiesY = 120;
-    if (tankData.abilities && tankData.abilities.length > 0) {
+        if (tankData.abilities && tankData.abilities.length > 0) {
             const abilitiesTitle = this.add.text(leftColumnX, abilitiesY, 'ABILITIES', {
                 fontSize: '11px',
                 fill: '#ff6699',
                 fontFamily: 'Arial',
                 fontStyle: 'bold'
             });
-            
+
             const abilitiesText = tankData.abilities.map(ability => {
                 // Convert ability names to readable format
                 return ability.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             }).join(', ');
-            
+
             const abilitiesDesc = this.add.text(leftColumnX, abilitiesY + 15, abilitiesText, {
                 fontSize: '10px',
                 fill: '#ffccdd',
                 fontFamily: 'Arial',
                 wordWrap: { width: tooltipWidth - 30 }
             });
-            
+
             this.cardTooltip.add([abilitiesTitle, abilitiesDesc]);
         }
-        
+
         // Description at bottom
         const descY = abilitiesY + (tankData.abilities && tankData.abilities.length > 0 ? 35 : 15);
         const descText = this.add.text(leftColumnX, descY, tankData.description, {
@@ -903,13 +916,13 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'italic',
             wordWrap: { width: tooltipWidth - 30 }
         });
-        
+
         // Add all elements to container
         this.cardTooltip.add([
             tooltipBg, nameText, tierText, typeText, costText,
             combatTitle, combatStats, mobilityTitle, mobilityStats, descText
         ]);
-        
+
         // Smooth fade-in animation
         this.cardTooltip.setAlpha(0);
         this.tooltipFadeInTween = this.tweens.add({
@@ -926,13 +939,13 @@ class BattleScene extends Phaser.Scene {
             this.tooltipFadeInTween.destroy();
             this.tooltipFadeInTween = null;
         }
-        
+
         // Cancel any ongoing fade-out animation
         if (this.tooltipFadeOutTween) {
             this.tooltipFadeOutTween.destroy();
             this.tooltipFadeOutTween = null;
         }
-        
+
         if (this.cardTooltip) {
             // Immediately destroy if already fully transparent or if we need to clean up quickly
             if (this.cardTooltip.alpha === 0) {
@@ -940,7 +953,7 @@ class BattleScene extends Phaser.Scene {
                 this.cardTooltip = null;
                 return;
             }
-            
+
             // Smooth fade-out animation before destroying
             this.tooltipFadeOutTween = this.tweens.add({
                 targets: this.cardTooltip,
@@ -973,8 +986,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTowerSet(isPlayerTeam) {
-        const teamConfig = isPlayerTeam ? 
-            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER : 
+        const teamConfig = isPlayerTeam ?
+            BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER :
             BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY;
 
         this.createTower(teamConfig.LEFT, 'left', isPlayerTeam, false);
@@ -988,10 +1001,10 @@ class BattleScene extends Phaser.Scene {
             positionConfig.tileX,
             positionConfig.tileY
         );
-        
+
         // Create custom tower graphics
         const tower = this.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
-        
+
         // Set tower properties
         const health = isMainTower ? BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH : BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
         tower.health = health;
@@ -1002,16 +1015,16 @@ class BattleScene extends Phaser.Scene {
         tower.lastShotTime = 0;
         tower.target = null;
         tower.lastTargetUpdate = 0;
-        
+
         // Main towers start deactivated and only activate when hit
         tower.activated = isMainTower ? false : true;
-        
+
         // Adjust position for main towers
         if (isMainTower) {
             // Move the tower half a tile up to center it
             tower.x += GAME_CONFIG.TILE_SIZE / 2;
         }
-        
+
         // Add to buildings array
         this.buildings.push(tower);
     }
@@ -1024,118 +1037,118 @@ class BattleScene extends Phaser.Scene {
         const darkStone = 0x555555;        // Dark stone
         const metalColor = 0x666666;       // Metal
         const goldColor = 0xffdd00;        // Gold for main towers
-        
+
         // Create a container for the tower
         const tower = this.add.container(x, y);
-        
+
         // Create graphics object for drawing
         const graphics = this.add.graphics();
-        
+
         if (isMainTower) {
             // Main Tower - Large fortress-like structure
             const size = 60; // Base size
-            
+
             // Foundation
             graphics.fillStyle(darkStone);
-            graphics.fillRect(-size/2, size/3, size, size/3);
-            
+            graphics.fillRect(-size / 2, size / 3, size, size / 3);
+
             // Main structure - octagonal shape for more interesting silhouette
             graphics.fillStyle(stoneColor);
-            graphics.fillCircle(0, 0, size/2.2);
-            
+            graphics.fillCircle(0, 0, size / 2.2);
+
             // Tower walls with team colors
             graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillCircle(0, 0, size/2.5);
-            
+            graphics.fillCircle(0, 0, size / 2.5);
+
             // Inner keep
             graphics.fillStyle(stoneColor);
-            graphics.fillCircle(0, 0, size/3.5);
-            
+            graphics.fillCircle(0, 0, size / 3.5);
+
             // Golden crown for main towers
             graphics.fillStyle(goldColor);
-            graphics.fillRect(-size/4, -size/2.2, size/2, size/8);
-            graphics.fillTriangle(-size/4, -size/2.2, 0, -size/1.8, size/4, -size/2.2);
-            
+            graphics.fillRect(-size / 4, -size / 2.2, size / 2, size / 8);
+            graphics.fillTriangle(-size / 4, -size / 2.2, 0, -size / 1.8, size / 4, -size / 2.2);
+
             // Battlements
             graphics.fillStyle(stoneColor);
             for (let i = 0; i < 8; i++) {
                 const angle = (i / 8) * Math.PI * 2;
-                const bx = Math.cos(angle) * size/2.8;
-                const by = Math.sin(angle) * size/2.8;
+                const bx = Math.cos(angle) * size / 2.8;
+                const by = Math.sin(angle) * size / 2.8;
                 graphics.fillRect(bx - 2, by - 4, 4, 8);
             }
-            
+
             // Command center windows
             graphics.fillStyle(0x000000);
-            graphics.fillRect(-size/8, -size/8, size/4, size/8);
-            graphics.fillRect(-size/12, size/12, size/6, size/12);
-            
+            graphics.fillRect(-size / 8, -size / 8, size / 4, size / 8);
+            graphics.fillRect(-size / 12, size / 12, size / 6, size / 12);
+
             // Flag/antenna
             graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRect(-1, -size/1.8, 2, size/6);
-            graphics.fillTriangle(1, -size/1.8, 1, -size/2.2, size/8, -size/2.4);
-            
+            graphics.fillRect(-1, -size / 1.8, 2, size / 6);
+            graphics.fillTriangle(1, -size / 1.8, 1, -size / 2.2, size / 8, -size / 2.4);
+
         } else {
             // Side Tower - Smaller defensive tower
             const size = 40; // Smaller than main tower
-            
+
             // Foundation
             graphics.fillStyle(darkStone);
-            graphics.fillRect(-size/2, size/3, size, size/4);
-            
+            graphics.fillRect(-size / 2, size / 3, size, size / 4);
+
             // Main tower body
             graphics.fillStyle(stoneColor);
-            graphics.fillRoundedRect(-size/2.5, -size/3, size/1.25, size * 0.8, 4);
-            
+            graphics.fillRoundedRect(-size / 2.5, -size / 3, size / 1.25, size * 0.8, 4);
+
             // Team color accent
             graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRoundedRect(-size/3, -size/4, size/1.5, size * 0.6, 3);
-            
+            graphics.fillRoundedRect(-size / 3, -size / 4, size / 1.5, size * 0.6, 3);
+
             // Gun turret
             graphics.fillStyle(metalColor);
-            graphics.fillCircle(0, -size/8, size/6);
-            
+            graphics.fillCircle(0, -size / 8, size / 6);
+
             // Gun barrel
             graphics.fillStyle(darkStone);
-            graphics.fillRect(size/6, -size/8 - 2, size/3, 4);
-            
+            graphics.fillRect(size / 6, -size / 8 - 2, size / 3, 4);
+
             // Defensive walls
             graphics.fillStyle(stoneColor);
-            graphics.fillRect(-size/2.2, -size/3, 4, size/4);
-            graphics.fillRect(size/2.2 - 4, -size/3, 4, size/4);
-            
+            graphics.fillRect(-size / 2.2, -size / 3, 4, size / 4);
+            graphics.fillRect(size / 2.2 - 4, -size / 3, 4, size / 4);
+
             // Windows/firing ports
             graphics.fillStyle(0x000000);
-            graphics.fillRect(-size/8, -size/6, size/4, 3);
-            graphics.fillRect(-size/12, size/12, size/6, 2);
-            
+            graphics.fillRect(-size / 8, -size / 6, size / 4, 3);
+            graphics.fillRect(-size / 12, size / 12, size / 6, 2);
+
             // Team banner
             graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRect(-1, -size/2.5, 2, size/8);
-            graphics.fillRect(1, -size/2.5, size/12, size/16);
+            graphics.fillRect(-1, -size / 2.5, 2, size / 8);
+            graphics.fillRect(1, -size / 2.5, size / 12, size / 16);
         }
-        
+
         // Add the graphics to the container
         tower.add(graphics);
-        
+
         // Add depth and visual appeal
         tower.setDepth(10);
-        
+
         return tower;
     }
 
     createTowerHealthBars() {
         const config = UI_CONFIG.HEALTH_BARS.TOWER;
-        
+
         this.buildings.forEach(building => {
             // Health bar fill (no background)
             const healthFill = this.add.graphics();
             building.healthFill = healthFill;
-            
+
             // Health percentage text
             const healthText = this.add.text(
-                building.x, 
-                building.y - config.OFFSET_Y, 
+                building.x,
+                building.y - config.OFFSET_Y,
                 `${building.health}/${building.maxHealth}`, {
                 fontSize: '14px',
                 fill: '#ffffff',
@@ -1144,7 +1157,7 @@ class BattleScene extends Phaser.Scene {
                 strokeThickness: 2
             }).setOrigin(0.5);
             building.healthText = healthText;
-            
+
             this.updateBuildingHealth(building);
         });
     }
@@ -1155,17 +1168,17 @@ class BattleScene extends Phaser.Scene {
             callback: () => {
                 if (this.energy < this.maxEnergy) {
                     this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
-                    
+
                     // Visual feedback for energy gain
                     this.showEnergyGainEffect();
                 }
-                
+
                 // Reset progress for next cycle
                 this.energyRegenProgress = 0;
-                
+
                 // Update the delay for next tick based on current battle time
                 this.energyTimer.delay = this.getEnergyRegenDelay();
-                
+
                 // Update energy bar after resetting progress
                 this.updateEnergyBar();
             },
@@ -1191,19 +1204,19 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         energyGainText.setScrollFactor(0);
-        
+
         // Pulse effect on the newest energy square
         if (this.energy > 0) {
             const latestSquareIndex = this.energy - 1;
             const squareX = config.x + (latestSquareIndex * (config.squareSize + config.spacing)) + config.squareSize / 2;
             const squareY = config.y + config.squareSize / 2;
-            
+
             // Create a temporary glow effect on the newest square
             const glowCircle = this.add.graphics();
             glowCircle.setScrollFactor(0);
             glowCircle.fillStyle(0x4ade80, 0.5);
             glowCircle.fillCircle(squareX, squareY, config.squareSize);
-            
+
             this.tweens.add({
                 targets: glowCircle,
                 scaleX: 1.8,
@@ -1214,7 +1227,7 @@ class BattleScene extends Phaser.Scene {
                 onComplete: () => glowCircle.destroy()
             });
         }
-        
+
         this.tweens.add({
             targets: energyGainText,
             y: energyGainText.y - 30,
@@ -1227,44 +1240,44 @@ class BattleScene extends Phaser.Scene {
 
     updateEnergyBar() {
         const config = this.energyBarConfig;
-        
+
         // Clear previous graphics
         this.energyBarBg.clear();
         this.energyBarFill.clear();
-        
+
         // Draw individual energy squares with modern styling
         for (let i = 0; i < this.maxEnergy; i++) {
             const squareX = config.x + (i * (config.squareSize + config.spacing));
             const squareY = config.y;
-            
+
             // Background square (empty state) with modern dark styling
             this.energyBarBg.fillStyle(0x1e3a5f, 0.9);
             this.energyBarBg.lineStyle(1, 0x3d5a80, 0.6);
             this.energyBarBg.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
             this.energyBarBg.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-            
+
             // Filled square if we have energy for this slot
             if (i < this.energy) {
                 // Gradient effect: brighter blue for current energy
                 let fillColor = 0x3b82f6; // Base blue
                 let glowColor = 0x60a5fa; // Glow color
                 let alpha = 1.0;
-                
+
                 // Make the most recent energy points brighter with glow
                 if (i >= this.energy - 2 && i < this.energy) {
                     fillColor = 0x60a5fa; // Brighter blue for recent energy
-                    
+
                     // Add subtle glow effect
                     this.energyBarFill.fillStyle(glowColor, 0.3);
                     this.energyBarFill.fillRoundedRect(squareX - 2, squareY - 2, config.squareSize + 4, config.squareSize + 4, 4);
                 }
-                
+
                 // Main fill
                 this.energyBarFill.fillStyle(fillColor, alpha);
                 this.energyBarFill.lineStyle(1, 0x93c5fd, 0.8);
                 this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
                 this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-                
+
                 // Add inner highlight for filled squares
                 this.energyBarFill.fillStyle(0xffffff, 0.25);
                 this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 6, 4, 2);
@@ -1273,23 +1286,23 @@ class BattleScene extends Phaser.Scene {
             else if (i === this.energy && this.energy < this.maxEnergy) {
                 // Calculate fill width based on progress (fills from left to right)
                 const fillWidth = Math.floor(config.squareSize * this.energyRegenProgress);
-                
+
                 if (fillWidth > 0) {
                     // Darker blue for in-progress fill
                     const progressColor = 0x2563eb;
-                    
+
                     // Draw partial fill from left
                     this.energyBarFill.fillStyle(progressColor, 0.7);
-                    this.energyBarFill.fillRoundedRect(squareX, squareY, fillWidth, config.squareSize, 
+                    this.energyBarFill.fillRoundedRect(squareX, squareY, fillWidth, config.squareSize,
                         fillWidth >= config.squareSize - 3 ? 3 : 0); // Only round corners when nearly full
-                    
+
                     // Add subtle border on the progress
                     this.energyBarFill.lineStyle(1, 0x60a5fa, 0.5);
                     this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
                 }
             }
         }
-        
+
         // Update energy text with modern styling
         if (this.energyText) {
             this.energyText.setText(`⚡ ${this.energy}/${this.maxEnergy}`);
@@ -1300,7 +1313,7 @@ class BattleScene extends Phaser.Scene {
                 fontWeight: 'bold'
             });
         }
-        
+
         // Update deployment preview if active (energy might have changed during preview)
         // Only update if deploymentPreview has been initialized
         if (this.deploymentPreview && this.deploymentPreview.active) {
@@ -1314,7 +1327,7 @@ class BattleScene extends Phaser.Scene {
             callback: () => {
                 this.battleTime--;
                 this.updateTimerDisplay();
-                
+
                 if (this.battleTime <= 0) {
                     if (!this.overtimeActive) {
                         // Check if overtime is needed
@@ -1337,13 +1350,13 @@ class BattleScene extends Phaser.Scene {
     updateTimerDisplay() {
         let timeText;
         let timeColor = '#f1f5f9';
-        
+
         if (this.overtimeActive) {
             // Overtime display
             const overtimeSeconds = Math.abs(this.battleTime);
             timeText = `⚡ +${this.formatTime(overtimeSeconds)}`;
             timeColor = '#f87171';
-            
+
             // Pulse effect during overtime
             this.tweens.add({
                 targets: this.timerText,
@@ -1355,7 +1368,7 @@ class BattleScene extends Phaser.Scene {
             });
         } else {
             timeText = `⏱ ${this.formatTime(this.battleTime)}`;
-            
+
             // Change timer color when time is running low
             if (this.battleTime <= 10) {
                 timeColor = '#f87171'; // Red - Critical
@@ -1373,7 +1386,7 @@ class BattleScene extends Phaser.Scene {
                 timeColor = '#fbbf24'; // Yellow
             }
         }
-        
+
         this.timerText.setText(timeText);
         this.timerText.setFill(timeColor);
     }
@@ -1381,20 +1394,20 @@ class BattleScene extends Phaser.Scene {
     checkOvertimeConditions() {
         const playerBase = this.buildings.find(b => b.isPlayerOwned);
         const enemyBase = this.buildings.find(b => !b.isPlayerOwned);
-        
+
         // If both bases alive and health is close, activate overtime
         if (playerBase && enemyBase) {
             const playerHealthPercent = playerBase.health / playerBase.maxHealth;
             const enemyHealthPercent = enemyBase.health / enemyBase.maxHealth;
             const healthDiff = Math.abs(playerHealthPercent - enemyHealthPercent);
-            
+
             if (healthDiff <= 0.1 && !this.overtimeActive) {
                 // Health difference <= 10% - activate overtime
                 this.activateOvertime();
                 return;
             }
         }
-        
+
         // No overtime needed - end battle normally
         this.endBattle('time');
     }
@@ -1403,10 +1416,10 @@ class BattleScene extends Phaser.Scene {
         this.overtimeActive = true;
         this.overtimeStartTime = this.time.now;
         this.maxOvertimeSeconds = 60; // 1 minute overtime max
-        
+
         // Show overtime notification
         this.showOvertimeNotification();
-        
+
         // Overtime timer continues counting down from 0
         this.battleTime = 0;
     }
@@ -1435,9 +1448,9 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         titleText.setScrollFactor(0);
         titleText.setDepth(100);
-        
+
         const targets = [titleText];
-        
+
         if (subtitle) {
             const subtitleText = this.add.text(GAME_CONFIG.WIDTH / 2, yPosition + 30, subtitle, {
                 fontSize: '16px',
@@ -1450,7 +1463,7 @@ class BattleScene extends Phaser.Scene {
             subtitleText.setDepth(100);
             targets.push(subtitleText);
         }
-        
+
         // Dramatic entrance animation
         this.tweens.add({
             targets: targets,
@@ -1532,7 +1545,7 @@ class BattleScene extends Phaser.Scene {
         } else if (card.type === CARD_TYPES.BUILDING) {
             this.placeBuilding(card, worldX, worldY);
         }
-        
+
         // Notify AI of player card deployment (spells and buildings)
         this.aiController.notifyAIOfPlayerAction('deploy', {
             cardId: card.id,
@@ -1542,7 +1555,7 @@ class BattleScene extends Phaser.Scene {
             isSwarm: false,
             count: 1
         });
-        
+
         this.energy -= card.cost;
         this.updateEnergyBar();
         this.cycleCard(this.selectedCard);
@@ -1575,16 +1588,16 @@ class BattleScene extends Phaser.Scene {
                 return target.isPlayerTank === true || target.isPlayerOwned === true;
             }
         };
-        
+
         const colors = {
             smoke_barrage: isPlayerCast ? 0x66ccff : 0xff6666,
             artillery_strike: isPlayerCast ? 0xff7733 : 0xff4400
         };
-        
+
         if (card.id === 'smoke_barrage') {
             // Enhanced visual effect for smoke barrage
             this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.smoke_barrage, 'SMOKE BARRAGE', isPlayerCast);
-            
+
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1602,7 +1615,7 @@ class BattleScene extends Phaser.Scene {
         } else if (card.id === 'artillery_strike') {
             // Enhanced visual effect for artillery strike
             this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.artillery_strike, 'ARTILLERY STRIKE', isPlayerCast);
-            
+
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1638,7 +1651,7 @@ class BattleScene extends Phaser.Scene {
     _placeBuildingInternal(card, x, y, isPlayerOwned) {
         // Create building graphics using GraphicsManager
         const building = this.graphicsManager.createBuildingGraphics(x, y, card.id);
-        
+
         // Set building properties
         building.buildingId = card.id;
         building.buildingDef = card;
@@ -1650,12 +1663,12 @@ class BattleScene extends Phaser.Scene {
         building.target = null;
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
-        
+
         this.buildings.push(building);
-        
+
         // Create health bar
         this.createBuildingHealthBar(building);
-        
+
         // For buildings with lifetime (like V1 launcher), set up destruction timer
         if (card.payload.lifetimeMs) {
             this.time.delayedCall(card.payload.lifetimeMs, () => {
@@ -1667,7 +1680,7 @@ class BattleScene extends Phaser.Scene {
                 building.destroy();
             });
         }
-        
+
         // For buildings that launch missiles automatically (like V1 launcher)
         if (card.payload.launchIntervalMs) {
             const timer = this.time.addEvent({
@@ -1681,7 +1694,7 @@ class BattleScene extends Phaser.Scene {
                 }
             });
         }
-        
+
         if (!isPlayerOwned) console.log('🤖 AI: Placed', card.name, 'at', Math.round(x), Math.round(y));
     }
 
@@ -1717,9 +1730,9 @@ class BattleScene extends Phaser.Scene {
             ...this.tanks.filter(t => t.isPlayerTank !== isPlayerBuilding && t.health > 0),
             ...this.buildings.filter(b => b.isPlayerOwned !== isPlayerBuilding && b.health > 0 && b !== building)
         ];
-        
+
         if (enemies.length === 0) return; // No targets available
-        
+
         // Find closest enemy
         let closestEnemy = null;
         let closestDistance = Infinity;
@@ -1730,13 +1743,13 @@ class BattleScene extends Phaser.Scene {
                 closestEnemy = enemy;
             }
         });
-        
+
         if (!closestEnemy) return;
-        
+
         // Create missile graphics
         const missile = this.add.container(building.x, building.y);
         const missileBody = this.add.graphics();
-        
+
         // Draw missile shape (pointed cylinder)
         missileBody.fillStyle(0xff4400);
         missileBody.fillRect(-3, -8, 6, 16); // Body
@@ -1754,10 +1767,10 @@ class BattleScene extends Phaser.Scene {
         // Engine glow
         missileBody.fillStyle(0xffff00);
         missileBody.fillCircle(0, 10, 3);
-        
+
         missile.add(missileBody);
         missile.setDepth(500);
-        
+
         // Missile properties
         missile.target = closestEnemy;
         missile.damage = payload.missileDamage || 100;
@@ -1765,14 +1778,14 @@ class BattleScene extends Phaser.Scene {
         missile.blastRadius = payload.blastRadius || 60;
         missile.isPlayerMissile = isPlayerBuilding;
         missile.isMissile = true;
-        
+
         // Add to projectiles array for cleanup tracking
         this.projectiles.push(missile);
-        
+
         // Launch effect
         this.combatSystem.showMuzzleFlash(building, closestEnemy.x, closestEnemy.y);
         this.playUISound('shoot');
-        
+
         // Create smoke trail effect
         const createSmokeTrail = () => {
             if (!missile.scene) return;
@@ -1788,11 +1801,11 @@ class BattleScene extends Phaser.Scene {
                 onComplete: () => smoke.destroy()
             });
         };
-        
+
         // Update missile position each frame
         const updateMissile = () => {
             if (!missile.scene) return;
-            
+
             // Check if target is still valid
             let currentTarget = missile.target;
             if (!currentTarget || !currentTarget.scene || currentTarget.health <= 0) {
@@ -1801,13 +1814,13 @@ class BattleScene extends Phaser.Scene {
                     ...this.tanks.filter(t => t.isPlayerTank !== missile.isPlayerMissile && t.health > 0),
                     ...this.buildings.filter(b => b.isPlayerOwned !== missile.isPlayerMissile && b.health > 0)
                 ];
-                
+
                 if (newEnemies.length === 0) {
                     // No targets, explode at current position
                     this.explodeMissile(missile);
                     return;
                 }
-                
+
                 let nearest = null;
                 let nearestDist = Infinity;
                 newEnemies.forEach(e => {
@@ -1820,40 +1833,40 @@ class BattleScene extends Phaser.Scene {
                 missile.target = nearest;
                 currentTarget = nearest;
             }
-            
+
             if (!currentTarget) {
                 this.explodeMissile(missile);
                 return;
             }
-            
+
             // Calculate direction to target
             const angle = GameHelpers.angle(missile.x, missile.y, currentTarget.x, currentTarget.y);
             const distance = GameHelpers.distance(missile.x, missile.y, currentTarget.x, currentTarget.y);
-            
+
             // Rotate missile to face target
             missile.setRotation(angle + Math.PI / 2); // +90 degrees because missile points up
-            
+
             // Move missile toward target
             const deltaTime = 1 / 60; // Approximate frame time
             const moveDistance = missile.speed * deltaTime;
-            
+
             if (distance <= moveDistance + 10) {
                 // Hit target - explode!
                 missile.setPosition(currentTarget.x, currentTarget.y);
                 this.explodeMissile(missile);
                 return;
             }
-            
+
             // Move toward target
             missile.x += Math.cos(angle) * moveDistance;
             missile.y += Math.sin(angle) * moveDistance;
-            
+
             // Create smoke trail
             if (Math.random() < 0.3) {
                 createSmokeTrail();
             }
         };
-        
+
         // Create update timer for missile tracking
         const missileTimer = this.time.addEvent({
             delay: 16, // ~60fps
@@ -1869,66 +1882,66 @@ class BattleScene extends Phaser.Scene {
      */
     explodeMissile(missile) {
         if (!missile.scene) return;
-        
+
         // Stop the update timer
         if (missile.updateTimer) {
             missile.updateTimer.remove();
         }
-        
+
         // Remove from projectiles array
         const index = this.projectiles.indexOf(missile);
         if (index > -1) {
             this.projectiles.splice(index, 1);
         }
-        
+
         // Show explosion effect
         this.combatSystem.showExplosionEffect(missile.x, missile.y, 1.5);
         this.playUISound('explosion');
-        
+
         // Apply area damage
         const isPlayerMissile = missile.isPlayerMissile;
         const damage = missile.damage;
         const radius = missile.blastRadius;
-        
+
         // Get all potential targets
         const allTargets = [
             ...this.tanks.filter(t => t.health > 0),
             ...this.buildings.filter(b => b.health > 0)
         ];
-        
+
         allTargets.forEach(target => {
             // Skip friendly units
-            const isEnemy = (target.isPlayerTank !== undefined) 
+            const isEnemy = (target.isPlayerTank !== undefined)
                 ? target.isPlayerTank !== isPlayerMissile
                 : target.isPlayerOwned !== isPlayerMissile;
-            
+
             if (!isEnemy) return;
-            
+
             const distance = GameHelpers.distance(missile.x, missile.y, target.x, target.y);
             if (distance <= radius) {
                 // Calculate damage falloff based on distance (full damage at center, less at edges)
                 const damageMultiplier = 1 - (distance / radius) * 0.5; // 50% to 100% damage
                 const finalDamage = Math.floor(damage * damageMultiplier);
-                
+
                 // Activate main towers when hit
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
                     console.log(`Main tower activated by missile! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
                 }
-                
+
                 // Apply damage (clamp to 0)
                 target.health = Math.max(0, target.health - finalDamage);
-                
+
                 // Update health display
                 if (target.tankData) {
                     this.updateTankHealth(target);
                 } else {
                     this.updateBuildingHealth(target);
                 }
-                
+
                 // Show damage number
                 this.combatSystem.showDamageNumber(target.x, target.y, finalDamage);
-                
+
                 // Check for destruction
                 // Only handle destruction if target is still present in tanks/buildings
                 if (
@@ -1942,7 +1955,7 @@ class BattleScene extends Phaser.Scene {
                 }
             }
         });
-        
+
         // Destroy the missile
         missile.destroy();
     }
@@ -1966,13 +1979,13 @@ class BattleScene extends Phaser.Scene {
      */
     createEnhancedSpellEffect(x, y, radius, color, spellName, isPlayerCast) {
         console.log('🎯 Enhanced spell effect:', spellName, 'at', x, y, 'radius:', radius);
-        
+
         // Create VERY BRIGHT initial flash
         const flash = this.add.graphics();
         flash.fillStyle(0xffffff, 1.0);
         flash.fillCircle(x, y, radius * 1.2);
         flash.setDepth(1001);
-        
+
         this.tweens.add({
             targets: flash,
             alpha: 0,
@@ -1980,13 +1993,13 @@ class BattleScene extends Phaser.Scene {
             ease: 'Power2',
             onComplete: () => flash.destroy()
         });
-        
+
         // Create large filled circle background
         const bgCircle = this.add.graphics();
         bgCircle.fillStyle(color, 0.6);
         bgCircle.fillCircle(x, y, radius);
         bgCircle.setDepth(998);
-        
+
         this.tweens.add({
             targets: bgCircle,
             alpha: 0,
@@ -1994,14 +2007,14 @@ class BattleScene extends Phaser.Scene {
             ease: 'Power2',
             onComplete: () => bgCircle.destroy()
         });
-        
+
         // Create multiple expanding rings for dramatic effect
         for (let i = 0; i < 4; i++) {
             const ring = this.add.graphics();
             ring.lineStyle(6, color, 1);
             ring.strokeCircle(x, y, 10);
             ring.setDepth(999 + i);
-            
+
             this.tweens.add({
                 targets: ring,
                 alpha: 0,
@@ -2010,7 +2023,7 @@ class BattleScene extends Phaser.Scene {
                 ease: 'Power2',
                 onComplete: () => ring.destroy()
             });
-            
+
             this.tweens.add({
                 targets: ring,
                 scaleX: radius / 10,
@@ -2020,7 +2033,7 @@ class BattleScene extends Phaser.Scene {
                 ease: 'Cubic.Out'
             });
         }
-        
+
         // Add LARGE spell name label in center
         const labelColor = isPlayerCast ? '#66ccff' : '#ff6666';
         const label = this.add.text(x, y - 10, spellName, {
@@ -2033,7 +2046,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         label.setDepth(1002);
         label.setScale(0);
-        
+
         // Animate label with bounce
         this.tweens.add({
             targets: label,
@@ -2052,7 +2065,7 @@ class BattleScene extends Phaser.Scene {
                 });
             }
         });
-        
+
         // Add MANY particles for extra visual flair
         for (let i = 0; i < 16; i++) {
             const angle = (Math.PI * 2 * i) / 16;
@@ -2061,10 +2074,10 @@ class BattleScene extends Phaser.Scene {
             particle.fillCircle(0, 0, 6);
             particle.setPosition(x, y);
             particle.setDepth(1000);
-            
+
             const targetX = x + Math.cos(angle) * radius * 1.2;
             const targetY = y + Math.sin(angle) * radius * 1.2;
-            
+
             this.tweens.add({
                 targets: particle,
                 x: targetX,
@@ -2112,7 +2125,7 @@ class BattleScene extends Phaser.Scene {
         if (!this.deploymentPreview.active) {
             return;
         }
-        
+
         // If coordinates are provided, update them; otherwise use stored coordinates
         if (tileX !== undefined && tileY !== undefined) {
             this.deploymentPreview.tileX = tileX;
@@ -2122,21 +2135,21 @@ class BattleScene extends Phaser.Scene {
             tileX = this.deploymentPreview.tileX;
             tileY = this.deploymentPreview.tileY;
         }
-        
+
         // Create preview graphics if they don't exist yet (lazy initialization)
         if (!this.deploymentPreview.previewTank && this.deploymentPreview.selectedCard) {
             const selectedCard = this.deploymentPreview.selectedCard;
             const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
-            
+
             this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
-                snappedPos.worldX, snappedPos.worldY, 
+                snappedPos.worldX, snappedPos.worldY,
                 selectedCard.tankData.type, true, selectedCard.tankData.id
             );
             this.deploymentPreview.previewTank.setAlpha(0.5);
             this.deploymentPreview.previewTank.setDepth(15);
             // Face upward (toward enemy field)
             this.deploymentPreview.previewTank.setRotation(-Math.PI / 2);
-            
+
             // Create range circle if tank has range
             const range = selectedCard.tankData.stats.range;
             if (range > 0) {
@@ -2144,30 +2157,30 @@ class BattleScene extends Phaser.Scene {
                 this.deploymentPreview.previewRangeCircle.setDepth(25);
             }
         }
-        
+
         if (!this.deploymentPreview.previewTank) {
             return;
         }
-        
+
         // Check if current position is valid
         const isValid = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
-        
+
         // Check if there's enough energy
-    const selectedCardData = this.tankCards[this.selectedCard];
-    const cost = selectedCardData.cardType === CARD_TYPES.TROOP ? selectedCardData.tankData.cost : selectedCardData.cardDef.cost;
-    const hasEnoughEnergy = this.energy >= cost;
-        
+        const selectedCardData = this.tankCards[this.selectedCard];
+        const cost = selectedCardData.cardType === CARD_TYPES.TROOP ? selectedCardData.tankData.cost : selectedCardData.cardDef.cost;
+        const hasEnoughEnergy = this.energy >= cost;
+
         this.deploymentPreview.validPosition = isValid && hasEnoughEnergy;
-        
+
         // Update preview tank position only if coordinates were provided
         if (arguments.length >= 2) {
             const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
             this.deploymentPreview.previewTank.setPosition(snappedPos.worldX, snappedPos.worldY);
         }
-        
+
         // Always update tank appearance based on validity and energy
         const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
-        
+
         if (isValid && hasEnoughEnergy) {
             // Valid position and enough energy - bright preview
             this.deploymentPreview.previewTank.setAlpha(0.8);
@@ -2196,7 +2209,7 @@ class BattleScene extends Phaser.Scene {
                 }
             });
         }
-        
+
         // Update attack range circle
         this.updatePreviewAttackRange(snappedPos.worldX, snappedPos.worldY, isValid, hasEnoughEnergy);
     }
@@ -2205,15 +2218,15 @@ class BattleScene extends Phaser.Scene {
         if (!this.deploymentPreview.previewRangeCircle) {
             return;
         }
-        
-    const selectedCardData = this.tankCards[this.selectedCard];
-    const range = selectedCardData.tankData?.stats?.range || 0; // Only for troops
-        
+
+        const selectedCardData = this.tankCards[this.selectedCard];
+        const range = selectedCardData.tankData?.stats?.range || 0; // Only for troops
+
         this.deploymentPreview.previewRangeCircle.clear();
-        
+
         // Draw range circle with appropriate color based on validity and energy
         let circleColor, circleAlpha;
-        
+
         if (isValid && hasEnoughEnergy) {
             // Valid position and enough energy - green
             circleColor = 0x00ff00;
@@ -2227,7 +2240,7 @@ class BattleScene extends Phaser.Scene {
             circleColor = 0xff6666;
             circleAlpha = 0.2;
         }
-        
+
         this.deploymentPreview.previewRangeCircle.lineStyle(2, circleColor, 0.8);
         this.deploymentPreview.previewRangeCircle.fillStyle(circleColor, circleAlpha);
         if (range > 0) {
@@ -2238,29 +2251,29 @@ class BattleScene extends Phaser.Scene {
 
     endDeploymentPreview() {
         if (!this.deploymentPreview) return;
-        
+
         if (this.deploymentPreview.previewTank) {
             this.deploymentPreview.previewTank.destroy();
             this.deploymentPreview.previewTank = null;
         }
-        
+
         if (this.deploymentPreview.previewRangeCircle) {
             this.deploymentPreview.previewRangeCircle.destroy();
             this.deploymentPreview.previewRangeCircle = null;
         }
-        
+
         this.deploymentPreview.active = false;
         this.deploymentPreview.validPosition = false;
     }
 
     endSpellPreview() {
         if (!this.spellPreview) return;
-        
+
         if (this.spellPreview.radiusCircle) {
             this.spellPreview.radiusCircle.destroy();
             this.spellPreview.radiusCircle = null;
         }
-        
+
         this.spellPreview.active = false;
         this.spellPreview.cardType = null;
         this.spellPreview.radius = 0;
@@ -2268,14 +2281,14 @@ class BattleScene extends Phaser.Scene {
 
     startDeploymentPreview(selectedCard) {
         if (!this.deploymentPreview) return;
-        
+
         // End any existing previews
         this.endSpellPreview();
-        
+
         this.deploymentPreview.active = true;
         this.deploymentPreview.tankType = selectedCard.tankData.type;
         this.deploymentPreview.selectedCard = selectedCard; // Store for later
-        
+
         // Don't create preview graphics yet - wait for mouse to move over battlefield
         // This prevents creating preview at card position when card is clicked
         this.deploymentPreview.previewTank = null;
@@ -2291,7 +2304,7 @@ class BattleScene extends Phaser.Scene {
     startSpellPreview(worldX, worldY, selectedCardData) {
         const card = selectedCardData.cardDef;
         if (!card) return;
-        
+
         // Get the radius from the card payload
         let radius = 0;
         if (card.type === CARD_TYPES.SPELL) {
@@ -2300,15 +2313,15 @@ class BattleScene extends Phaser.Scene {
             // Buildings might have a blast radius for missiles
             radius = card.payload?.blastRadius || 50; // Default building placement radius
         }
-        
+
         this.spellPreview.active = true;
         this.spellPreview.cardType = card.type;
         this.spellPreview.radius = radius;
-        
+
         // Create the radius preview circle
         this.spellPreview.radiusCircle = this.add.graphics();
         this.spellPreview.radiusCircle.setDepth(25);
-        
+
         this.updateSpellPreview(worldX, worldY);
     }
 
@@ -2319,25 +2332,25 @@ class BattleScene extends Phaser.Scene {
      */
     updateSpellPreview(worldX, worldY) {
         if (!this.spellPreview.active || !this.spellPreview.radiusCircle) return;
-        
+
         const radius = this.spellPreview.radius;
         const selectedCardData = this.tankCards[this.selectedCard];
         const card = selectedCardData.cardDef;
         const hasEnoughEnergy = this.energy >= card.cost;
-        
+
         // Check if position is valid
         const isWithinBattlefield = GameHelpers.isWithinBattlefieldWorld(worldX, worldY);
         let isValidPosition = isWithinBattlefield;
-        
+
         // Buildings have stricter placement rules
         if (this.spellPreview.cardType === CARD_TYPES.BUILDING) {
             const { tileX, tileY } = GameHelpers.worldToTile(worldX, worldY);
             isValidPosition = GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones);
         }
-        
+
         // Determine colors based on validity and energy
         let circleColor, fillAlpha, strokeAlpha;
-        
+
         if (isValidPosition && hasEnoughEnergy) {
             // Valid position and enough energy
             if (this.spellPreview.cardType === CARD_TYPES.SPELL) {
@@ -2358,19 +2371,19 @@ class BattleScene extends Phaser.Scene {
             fillAlpha = 0.2;
             strokeAlpha = 0.7;
         }
-        
+
         // Clear and redraw
         this.spellPreview.radiusCircle.clear();
-        
+
         if (radius > 0) {
             // Draw filled circle
             this.spellPreview.radiusCircle.fillStyle(circleColor, fillAlpha);
             this.spellPreview.radiusCircle.fillCircle(worldX, worldY, radius);
-            
+
             // Draw stroke
             this.spellPreview.radiusCircle.lineStyle(3, circleColor, strokeAlpha);
             this.spellPreview.radiusCircle.strokeCircle(worldX, worldY, radius);
-            
+
             // Add crosshair at center for precision
             this.spellPreview.radiusCircle.lineStyle(2, circleColor, strokeAlpha);
             const crossSize = Math.min(15, radius * 0.3);
@@ -2387,7 +2400,7 @@ class BattleScene extends Phaser.Scene {
             this.spellPreview.radiusCircle.destroy();
             this.spellPreview.radiusCircle = null;
         }
-        
+
         this.spellPreview.active = false;
         this.spellPreview.cardType = null;
         this.spellPreview.radius = 0;
@@ -2420,7 +2433,7 @@ class BattleScene extends Phaser.Scene {
     _deployTankInternal(tankId, x, y, isPlayerTank) {
         const tankData = TANK_DATA[tankId];
         const tank = this.graphicsManager.createTankGraphics(x, y, tankData.type, isPlayerTank, tankData.id);
-        
+
         // Tank properties
         tank.tankId = tankId;
         tank.tankData = tankData;
@@ -2430,7 +2443,7 @@ class BattleScene extends Phaser.Scene {
         tank.target = null;
         tank.lastShotTime = 0;
         tank.lastTargetUpdate = 0;
-        
+
         // Pathfinding properties
         tank.path = null;
         tank.pathIndex = 0;
@@ -2448,16 +2461,16 @@ class BattleScene extends Phaser.Scene {
         this.aiController.updateTankAI(tank);
         this.tanks.push(tank);
         this.createTankHealthBar(tank);
-        
+
         if (this.attackRangesVisible) {
             this.createAttackRangeCircle(tank);
         }
-        
+
         // Update statistics
         const stats = isPlayerTank ? this.battleStats.player : this.battleStats.ai;
         stats.tanksDeployed++;
         stats.energySpent += tankData.cost;
-        
+
         if (isPlayerTank) {
             this.playUISound('deploy');
         }
@@ -2471,13 +2484,13 @@ class BattleScene extends Phaser.Scene {
 
     createTankHealthBar(tank) {
         const config = UI_CONFIG.HEALTH_BARS.TANK;
-        
+
         const healthBg = this.add.graphics();
         healthBg.fillStyle(config.BACKGROUND_COLOR);
         healthBg.fillRect(
-            tank.x - config.OFFSET_X, 
-            tank.y - config.OFFSET_Y, 
-            config.WIDTH, 
+            tank.x - config.OFFSET_X,
+            tank.y - config.OFFSET_Y,
+            config.WIDTH,
             config.HEIGHT
         );
         tank.healthBg = healthBg;
@@ -2489,17 +2502,17 @@ class BattleScene extends Phaser.Scene {
 
     createBuildingHealthBar(building) {
         const config = UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK; // Fallback to tank config
-        
+
         const healthBg = this.add.graphics();
         healthBg.fillStyle(config.BACKGROUND_COLOR);
         healthBg.fillRect(
-            building.x - config.OFFSET_X, 
-            building.y - config.OFFSET_Y, 
-            config.WIDTH, 
+            building.x - config.OFFSET_X,
+            building.y - config.OFFSET_Y,
+            config.WIDTH,
             config.HEIGHT
         );
         building.healthBg = healthBg;
-        
+
         const healthFill = this.add.graphics();
         building.healthFill = healthFill;
         this.updateBuildingHealth(building);
@@ -2508,17 +2521,17 @@ class BattleScene extends Phaser.Scene {
     updateTankHealth(tank) {
         const config = UI_CONFIG.HEALTH_BARS.TANK;
         const healthPercent = tank.health / tank.maxHealth;
-        
+
         tank.healthFill.clear();
-        
+
         // Use team colors: blue for player, red for enemy
         const healthColor = tank.isPlayerTank ? 0x2d7dd2 : 0xd22d2d;
-        
+
         tank.healthFill.fillStyle(healthColor);
         tank.healthFill.fillRect(
-            tank.x - config.OFFSET_X, 
-            tank.y - config.OFFSET_Y, 
-            config.WIDTH * healthPercent, 
+            tank.x - config.OFFSET_X,
+            tank.y - config.OFFSET_Y,
+            config.WIDTH * healthPercent,
             config.HEIGHT
         );
     }
@@ -2527,20 +2540,20 @@ class BattleScene extends Phaser.Scene {
         // Use appropriate config based on building type
         const config = building.isMainTower || building.towerType ? UI_CONFIG.HEALTH_BARS.TOWER : (UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK);
         const healthPercent = building.health / building.maxHealth;
-        
+
         building.healthFill.clear();
-        
+
         // Use team colors: blue for player, red for enemy
         const healthColor = building.isPlayerOwned ? 0x2d7dd2 : 0xd22d2d;
-        
+
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
-            building.x - config.OFFSET_X, 
-            building.y - config.OFFSET_Y + 12, 
-            config.WIDTH * healthPercent, 
+            building.x - config.OFFSET_X,
+            building.y - config.OFFSET_Y + 12,
+            config.WIDTH * healthPercent,
             config.HEIGHT
         );
-        
+
         // Update health text
         if (building.healthText) {
             building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
@@ -2555,7 +2568,7 @@ class BattleScene extends Phaser.Scene {
             return;
         }
         this.aiController.updateTankAI(tank); // Update AI targeting
-        
+
         // If no target, don't move
         if (!tank.target) {
             tank.moving = false;
@@ -2565,7 +2578,7 @@ class BattleScene extends Phaser.Scene {
         const targetPos = tank.target;
         const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
         const range = tank.tankData.stats.range;
-        
+
         // If target is in attack range, stop moving and attack
         if (distance <= range) {
             tank.moving = false;
@@ -2577,7 +2590,7 @@ class BattleScene extends Phaser.Scene {
         // Check if we need a new path (target changed or no path exists)
         if (tank.needsNewPath || !tank.path || tank.pathIndex >= tank.path.length) {
             const currentPos = { x: tank.x, y: tank.y };
-            
+
             // Check if pathfinding is needed (crossing river)
             if (Pathfinding.needsPathfinding(currentPos, targetPos)) {
                 try {
@@ -2593,10 +2606,10 @@ class BattleScene extends Phaser.Scene {
                     { worldX: targetPos.x, worldY: targetPos.y }
                 ];
             }
-            
+
             tank.pathIndex = 0;
             tank.needsNewPath = false;
-            
+
             // If no path found, use simple direct movement as fallback
             if (!tank.path || tank.path.length === 0) {
                 tank.path = [
@@ -2611,7 +2624,7 @@ class BattleScene extends Phaser.Scene {
         if (tank.path && tank.pathIndex < tank.path.length) {
             const currentWaypoint = tank.path[tank.pathIndex];
             const waypointDistance = GameHelpers.distance(tank.x, tank.y, currentWaypoint.worldX, currentWaypoint.worldY);
-            
+
             // Check if we're close enough to attack the target from current position
             const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
             if (currentTargetDistance <= range) {
@@ -2620,7 +2633,7 @@ class BattleScene extends Phaser.Scene {
                 tank.needsNewPath = false;
                 return;
             }
-            
+
             // If close enough to current waypoint, move to next one
             if (waypointDistance <= 15) {
                 tank.pathIndex++;
@@ -2635,19 +2648,19 @@ class BattleScene extends Phaser.Scene {
                     return;
                 }
             }
-            
+
             // Move towards current waypoint
             if (tank.pathIndex < tank.path.length) {
                 const waypoint = tank.path[tank.pathIndex];
-                
+
                 // Simple obstacle avoidance - check for other tanks nearby
                 const avoidanceRadius = 40;
                 let avoidanceX = 0;
                 let avoidanceY = 0;
-                
+
                 this.tanks.forEach(otherTank => {
                     if (otherTank === tank || otherTank.health <= 0) return;
-                    
+
                     const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
                     if (otherDistance < avoidanceRadius) {
                         // Calculate avoidance vector
@@ -2662,26 +2675,26 @@ class BattleScene extends Phaser.Scene {
                 const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
                 const baseSpeed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
                 const speedFactor = this.simulationSpeed || 1;
-                
+
                 // Apply movement with avoidance, scaled by simulation speed factor for slow motion
                 const moveX = (Math.cos(targetAngle) * baseSpeed + avoidanceX * 0.1) * speedFactor;
                 const moveY = (Math.sin(targetAngle) * baseSpeed + avoidanceY * 0.1) * speedFactor;
-                
+
                 tank.x += moveX;
                 tank.y += moveY;
-                
+
                 // Always face movement direction when moving
                 tank.setRotation(targetAngle);
-                
+
                 tank.moving = true;
             }
         }
-        
+
         // Keep tanks within battlefield bounds (account for offset)
         const offsetX = GameHelpers.getBattlefieldOffset();
         tank.x = GameHelpers.clamp(tank.x, offsetX + 20, offsetX + GAME_CONFIG.WORLD_WIDTH - 20);
         tank.y = GameHelpers.clamp(tank.y, 20, GAME_CONFIG.WORLD_HEIGHT - 20);
-        
+
         // Update health bar position
         if (tank.healthBg) {
             tank.healthBg.clear();
@@ -2714,7 +2727,7 @@ class BattleScene extends Phaser.Scene {
         // AI configuration with strategic deck composition
         this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
         this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
-        
+
         // Enhanced AI deck using CARD IDs - mirrors player's card system
         // This allows AI to use spells, buildings, and special units
         this.aiDeck = [
@@ -2727,12 +2740,12 @@ class BattleScene extends Phaser.Scene {
             'v1_launcher',          // V1 launcher for sustained fire
             'infantry_platoon'     // Infantry platoon for harassment
         ];
-        
+
         // AI hand system - 4 cards visible from 8-card deck (same as player)
         this.aiHand = [];
         this.aiNextCardIndex = 0;
         this.initializeAIDeck();
-        
+
         // AI strategy state (managed by AIController)
         this.aiStrategy = {
             mode: 'balanced',
@@ -2740,7 +2753,7 @@ class BattleScene extends Phaser.Scene {
             defensiveMode: false,
             preferredTankTypes: ['tank_sherman', 'tank_panther']
         };
-        
+
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
             delay: this.getEnergyRegenDelay(),
@@ -2748,14 +2761,14 @@ class BattleScene extends Phaser.Scene {
                 if (this.aiEnergy < this.aiMaxEnergy) {
                     this.aiEnergy = Math.min(this.aiEnergy + ENERGY_CONFIG.REGEN_RATE, this.aiMaxEnergy);
                 }
-                
+
                 // Update the delay for next tick based on current battle time
                 this.aiEnergyTimer.delay = this.getEnergyRegenDelay();
             },
             loop: true
         });
     }
-    
+
     /**
      * Initialize AI deck with shuffled hand of 4 cards
      */
@@ -2768,7 +2781,7 @@ class BattleScene extends Phaser.Scene {
             this.aiHand.push(this.getNextAICard());
         }
     }
-    
+
     /**
      * Shuffle AI deck using Fisher-Yates algorithm
      */
@@ -2781,7 +2794,7 @@ class BattleScene extends Phaser.Scene {
         this.aiDrawQueue = [...this.aiDeck];
         this.shuffleArray(this.aiDrawQueue);
     }
-    
+
     /**
      * Get next card from AI deck (not already in hand)
      * Uses a queue system to ensure cards don't repeat until all others have been drawn
@@ -2791,7 +2804,7 @@ class BattleScene extends Phaser.Scene {
     getNextAICard(excludeSlotIndex = -1) {
         // Get the card being replaced (it will go back to the draw queue)
         const replacedCard = excludeSlotIndex >= 0 ? this.aiHand[excludeSlotIndex] : null;
-        
+
         // Initialize draw queue if needed
         if (!this.aiDrawQueue || this.aiDrawQueue.length === 0) {
             // Build queue from cards not currently in hand
@@ -2799,18 +2812,18 @@ class BattleScene extends Phaser.Scene {
             this.aiDrawQueue = this.aiDeck.filter(id => !cardsInHand.includes(id));
             this.shuffleArray(this.aiDrawQueue);
         }
-        
+
         // Draw the next card from the queue
         const nextCard = this.aiDrawQueue.shift();
-        
+
         // Add the replaced card back to the end of the queue (if there was one)
         if (replacedCard && !this.aiDrawQueue.includes(replacedCard)) {
             this.aiDrawQueue.push(replacedCard);
         }
-        
+
         return nextCard;
     }
-    
+
     /**
      * Cycle a card in AI hand after deployment
      * @param {number} handIndex - Index of card in AI hand (0-3)
@@ -2825,7 +2838,7 @@ class BattleScene extends Phaser.Scene {
         if (this.aiController) {
             this.aiController.updateAIStrategy();
         }
-        
+
         // Update AI strategy display
         this.updateAIStrategyDisplay();
     }
@@ -2833,13 +2846,13 @@ class BattleScene extends Phaser.Scene {
     updateAIStrategyDisplay() {
         if (!this.aiStrategyText) return;
         if (!this.aiController || !this.aiController.aiStrategy) return;
-        
+
         const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
         const strategy = this.aiController.aiStrategy;
-        
+
         // Compact single-line display
         let strategyText = 'AI: ';
-        
+
         if (strategy.rushMode) {
             strategyText += 'RUSH';
             this.aiStrategyText.setFill('#f87171');
@@ -2850,7 +2863,7 @@ class BattleScene extends Phaser.Scene {
             strategyText += strategy.mode.substring(0, 3).toUpperCase();
             this.aiStrategyText.setFill('#fbbf24');
         }
-        
+
         strategyText += ` [${aiTanks.length}]`;
         this.aiStrategyText.setText(strategyText);
     }
@@ -2858,52 +2871,52 @@ class BattleScene extends Phaser.Scene {
     shouldAIDeploy() {
         const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
         const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-        
+
         // Always deploy if we have no tanks
         if (aiTanks.length === 0) return true;
-        
+
         // Strategic deployment decisions
         switch (this.aiStrategy.mode) {
             case 'aggressive':
                 // Deploy frequently when aggressive
                 return this.aiEnergy >= 2 && aiTanks.length < 6;
-                
+
             case 'defensive':
                 // Deploy when outnumbered or base threatened
-                return (playerTanks.length > aiTanks.length) || 
-                       (this.aiEnergy >= 4 && aiTanks.length < 3);
-                       
+                return (playerTanks.length > aiTanks.length) ||
+                    (this.aiEnergy >= 4 && aiTanks.length < 3);
+
             case 'balanced':
             default:
                 // Maintain tank parity, save energy for good units
                 return (playerTanks.length >= aiTanks.length && this.aiEnergy >= 3) ||
-                       (this.aiEnergy >= 6);
+                    (this.aiEnergy >= 6);
         }
     }
 
     aiDeployTankStrategically() {
         // Choose tank based on current strategy
         const tankId = this.chooseAITank();
-        
+
         // Check if we got a valid tank ID
         if (!tankId) {
             console.warn('AI could not choose a tank to deploy');
             return;
         }
-        
+
         const tankData = TANK_DATA[tankId];
-        
+
         // Check if tank data exists
         if (!tankData) {
             console.warn('Tank data not found for ID:', tankId);
             return;
         }
-        
+
         if (this.aiEnergy < tankData.cost) return; // Not enough energy
-        
+
         // Strategic deployment positioning
         const deploymentPos = this.chooseAIDeploymentPosition(tankData);
-        
+
         // Create AI tank
         this.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
         this.aiEnergy -= tankData.cost;
@@ -2915,7 +2928,7 @@ class BattleScene extends Phaser.Scene {
             const tankData = TANK_DATA[tankId];
             return tankData && this.aiEnergy >= tankData.cost;
         });
-        
+
         if (availableTanks.length === 0) {
             // Fallback to cheapest available tank
             availableTanks = this.aiDeck.filter(tankId => {
@@ -2923,7 +2936,7 @@ class BattleScene extends Phaser.Scene {
                 return tankData && tankData.cost <= this.aiEnergy;
             });
         }
-        
+
         // If still no tanks available, find the absolute cheapest tank
         if (availableTanks.length === 0) {
             // Get all valid tank IDs and find the cheapest one
@@ -2934,35 +2947,35 @@ class BattleScene extends Phaser.Scene {
                     const cheapestData = TANK_DATA[cheapest];
                     return tankData.cost < cheapestData.cost ? tankId : cheapest;
                 });
-                
+
                 // If we can afford the cheapest tank, use it
                 if (TANK_DATA[cheapestTank] && this.aiEnergy >= TANK_DATA[cheapestTank].cost) {
                     availableTanks = [cheapestTank];
                 }
             }
         }
-        
+
         // If we still have no available tanks, return null
         if (availableTanks.length === 0) {
             return null;
         }
-        
+
         // Prefer strategy-appropriate tanks
-        const preferredTanks = availableTanks.filter(tankId => 
+        const preferredTanks = availableTanks.filter(tankId =>
             this.aiStrategy.preferredTankTypes.includes(tankId)
         );
-        
+
         if (preferredTanks.length > 0) {
             // 70% chance to use preferred tank
             if (Math.random() < 0.7) {
                 return preferredTanks[Math.floor(Math.random() * preferredTanks.length)];
             }
         }
-        
+
         // Strategic tank selection based on situation
         const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
         const heavyPlayerTanks = playerTanks.filter(t => t.tankData.type === TANK_TYPES.HEAVY);
-        
+
         if (heavyPlayerTanks.length > 0 && this.aiEnergy >= 4) {
             // Counter heavy tanks with medium/heavy tanks
             const counterTanks = availableTanks.filter(tankId => {
@@ -2973,7 +2986,7 @@ class BattleScene extends Phaser.Scene {
                 return counterTanks[Math.floor(Math.random() * counterTanks.length)];
             }
         }
-        
+
         // Default random selection from available tanks
         return availableTanks[Math.floor(Math.random() * availableTanks.length)];
     }
@@ -2982,32 +2995,32 @@ class BattleScene extends Phaser.Scene {
         const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords(false); // false = enemy zone
         const playerBase = this.buildings.find(b => b.isPlayerOwned);
         const aiBase = this.buildings.find(b => !b.isPlayerOwned);
-        
+
         // Use original zone as base
         const zone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
-        
+
         // Check if we have expanded areas available
         const expandedZones = this.expandedDeploymentZones.enemy;
         let availableAreas = [zone]; // Always include original zone
-        
+
         if (expandedZones && expandedZones.expandedAreas) {
             availableAreas = availableAreas.concat(expandedZones.expandedAreas);
         }
-        
+
         // Choose deployment area (prefer expanded areas for more aggressive positioning)
         let chosenArea = zone;
-        if (expandedZones && expandedZones.expandedAreas.length > 0 && 
+        if (expandedZones && expandedZones.expandedAreas.length > 0 &&
             (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode)) {
             // 70% chance to use expanded area if available and in aggressive mode
             if (Math.random() < 0.7) {
                 chosenArea = expandedZones.expandedAreas[Math.floor(Math.random() * expandedZones.expandedAreas.length)];
             }
         }
-        
+
         // Get center tile of chosen deployment area
         let baseTileX = Math.floor(chosenArea.tileX + chosenArea.tilesWidth / 2);
         let baseTileY = Math.floor(chosenArea.tileY + chosenArea.tilesHeight / 2);
-        
+
         // Strategic positioning based on tank type and strategy
         if (this.aiStrategy.mode === 'aggressive' || this.aiStrategy.rushMode) {
             // Deploy closer to player base for faster attack (further down)
@@ -3016,22 +3029,22 @@ class BattleScene extends Phaser.Scene {
             // Deploy closer to our own base for defense (further up)
             baseTileY = Math.max(baseTileY - 1, chosenArea.tileY);
         }
-        
+
         // Add some randomness to avoid predictable positioning
         const randomOffsetX = GameHelpers.randomInt(-2, 2);
         const randomOffsetY = GameHelpers.randomInt(-1, 1);
-        
+
         const deployTileX = GameHelpers.clamp(
-            baseTileX + randomOffsetX, 
-            chosenArea.tileX, 
+            baseTileX + randomOffsetX,
+            chosenArea.tileX,
             chosenArea.tileX + chosenArea.tilesWidth - 1
         );
         const deployTileY = GameHelpers.clamp(
-            baseTileY + randomOffsetY, 
-            chosenArea.tileY, 
+            baseTileY + randomOffsetY,
+            chosenArea.tileY,
             chosenArea.tileY + chosenArea.tilesHeight - 1
         );
-        
+
         // Convert tile coordinates to world coordinates
         return GameHelpers.tileToWorld(deployTileX, deployTileY);
     }
@@ -3039,20 +3052,20 @@ class BattleScene extends Phaser.Scene {
     notifyAIOfPlayerAction(action, data) {
         const currentTime = this.time.now;
         this.aiStrategy.lastPlayerAction = currentTime;
-        
+
         if (action === 'deploy') {
             // React to player deployment
             if (data.type === TANK_TYPES.HEAVY && this.aiEnergy >= 3) {
                 // Player deployed heavy tank - consider immediate counter
                 const nextDeploymentDelay = GameHelpers.randomInt(1000, 2500);
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
-                
+
                 // Prioritize medium/heavy tanks to counter
                 this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_tiger'];
             } else if (data.cost <= 2 && this.aiEnergy >= 4) {
                 // Player deployed cheap unit - might be rushing
                 this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_panther'];
-                
+
                 // Deploy sooner to match aggression
                 const nextDeploymentDelay = GameHelpers.randomInt(1500, 3000);
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
@@ -3089,20 +3102,20 @@ class BattleScene extends Phaser.Scene {
     aiDeploySwarm(card, x, y) {
         const tankData = TANK_DATA[card.payload.tankId];
         const count = card.payload.count || 1;
-        
+
         // Spread units in a formation
         const spreadRadius = 25;
         for (let i = 0; i < count; i++) {
             const angle = (i / count) * Math.PI * 2;
             const offsetX = Math.cos(angle) * spreadRadius * (0.5 + Math.random() * 0.5);
             const offsetY = Math.sin(angle) * spreadRadius * (0.5 + Math.random() * 0.5);
-            
+
             // Small delay between spawns for visual effect
             this.time.delayedCall(i * 50, () => {
                 this.deployAITank(card.payload.tankId, x + offsetX, y + offsetY);
             });
         }
-        
+
         console.log('🤖 AI: Deployed', count, tankData.name, 'at', Math.round(x), Math.round(y));
     }
 
@@ -3115,7 +3128,7 @@ class BattleScene extends Phaser.Scene {
         if (this.battleEnded || this.gamePaused) {
             return;
         }
-        
+
         // Update energy regeneration progress for gradual fill display
         if (this.energy < this.maxEnergy && this.energyTimer) {
             // Use the timer's built-in elapsed tracking for accurate progress
@@ -3124,10 +3137,10 @@ class BattleScene extends Phaser.Scene {
             this.energyRegenProgress = Math.min(elapsed / totalDelay, 1);
             this.updateEnergyBar();
         }
-        
+
         // Update AI
         this.aiController.updateAI();
-        
+
         // Update all tanks
         this.tanks.forEach(tank => {
             if (tank.health > 0) {
@@ -3164,11 +3177,11 @@ class BattleScene extends Phaser.Scene {
                     // Player gets credit for destroying AI tank
                     this.battleStats.player.tanksDestroyed++;
                 }
-                
+
                 // Create destruction effect
                 this.combatSystem.showExplosionEffect(tank.x, tank.y, 1.2);
                 this.playUISound('explosion');
-                
+
                 tank.destroy();
                 if (tank.healthBg) tank.healthBg.destroy();
                 if (tank.healthFill) tank.healthFill.destroy();
@@ -3190,14 +3203,14 @@ class BattleScene extends Phaser.Scene {
         // Clean up any stray projectiles that might have missed their targets
         const offsetX = GameHelpers.getBattlefieldOffset();
         this.projectiles = this.projectiles.filter(projectile => {
-            if (!projectile.scene || projectile.x < offsetX - 100 || projectile.x > offsetX + GAME_CONFIG.WORLD_WIDTH + 100 || 
+            if (!projectile.scene || projectile.x < offsetX - 100 || projectile.x > offsetX + GAME_CONFIG.WORLD_WIDTH + 100 ||
                 projectile.y < -100 || projectile.y > GAME_CONFIG.WORLD_HEIGHT + 100) {
                 if (projectile.destroy) projectile.destroy();
                 return false;
             }
             return true;
         });
-        
+
         // Update debug panel
         this.updateDebugPanel();
     }
@@ -3250,7 +3263,7 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-fps', this.game.loop.actualFps.toFixed(1));
             const objectCount = this.children.list.length;
             window.debugPanel.updateValue('debug-objects', objectCount);
-            
+
             // Memory usage (if available)
             if (performance.memory) {
                 const memoryMB = (performance.memory.usedJSHeapSize / 1024 / 1024).toFixed(1);
@@ -3266,13 +3279,13 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-ai-towers', aiTowersAlive);
 
             // Deployment Zones
-            const playerExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.player ? 
+            const playerExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.player ?
                 this.expandedDeploymentZones.player.expandedAreas?.length || 0 : 0;
-            const aiExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.enemy ? 
+            const aiExpanded = this.expandedDeploymentZones && this.expandedDeploymentZones.enemy ?
                 this.expandedDeploymentZones.enemy.expandedAreas?.length || 0 : 0;
             window.debugPanel.updateValue('debug-player-expanded', playerExpanded > 0 ? 'Yes' : 'No');
             window.debugPanel.updateValue('debug-ai-expanded', aiExpanded > 0 ? 'Yes' : 'No');
-            
+
             // Debug Options Status
             window.debugPanel.updateValue('debug-textures-mode', this.useGraphicsMode ? 'Graphics' : 'Textures');
             window.debugPanel.updateValue('debug-row-numbers', this.rowNumbersVisible ? 'Visible' : 'Hidden');
@@ -3322,7 +3335,7 @@ class BattleScene extends Phaser.Scene {
         this.drawQueue = [...this.deck];
         this.shuffleArray(this.drawQueue);
     }
-    
+
     /**
      * Shuffle an array in place using Fisher-Yates algorithm
      * @param {Array} array - Array to shuffle
@@ -3337,7 +3350,7 @@ class BattleScene extends Phaser.Scene {
     getNextCard(excludeSlotIndex = -1) {
         // Get the card being replaced (it will go back to the draw queue)
         const replacedCard = excludeSlotIndex >= 0 ? this.hand[excludeSlotIndex] : null;
-        
+
         // Initialize draw queue if needed
         if (!this.drawQueue || this.drawQueue.length === 0) {
             // Build queue from cards not currently in hand
@@ -3345,15 +3358,15 @@ class BattleScene extends Phaser.Scene {
             this.drawQueue = this.deck.filter(id => !cardsInHand.includes(id));
             this.shuffleArray(this.drawQueue);
         }
-        
+
         // Draw the next card from the queue
         const nextCard = this.drawQueue.shift();
-        
+
         // Add the replaced card back to the end of the queue (if there was one)
         if (replacedCard && !this.drawQueue.includes(replacedCard)) {
             this.drawQueue.push(replacedCard);
         }
-        
+
         return nextCard;
     }
 
@@ -3369,12 +3382,12 @@ class BattleScene extends Phaser.Scene {
         const cardId = this.hand[cardIndex];
         const def = CARDS[cardId];
         const tankData = def.type === CARD_TYPES.TROOP ? TANK_DATA[def.payload.tankId] : null;
-        
+
         // Destroy old tank icon and create new one
         if (card.tankIcon) {
             card.tankIcon.destroy();
         }
-        
+
         // Create new tank icon with updated graphics
         const cardX = card.x;
         const cardY = card.y;
@@ -3385,20 +3398,20 @@ class BattleScene extends Phaser.Scene {
             cardId
         );
         card.tankIcon.setScale(1.0); // Use larger scale for better visibility
-        
+
         // Update cost
         card.costText.setText(def.cost);
-        
+
         // Update name
         card.nameText.setText(def.name);
-        
+
         // Update card references
         card.cardId = cardId;
         card.cardDef = def;
         card.cardType = def.type;
         card.tankId = def.type === CARD_TYPES.TROOP ? def.payload.tankId : null;
         card.tankData = tankData;
-        
+
         // Brief highlight animation to show card changed
         this.tweens.add({
             targets: card,
@@ -3411,20 +3424,20 @@ class BattleScene extends Phaser.Scene {
     }
 
     showInsufficientEnergyFeedback() {
-    const selectedCard = this.tankCards[this.selectedCard];
-    const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
-    const displayName = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.name : selectedCard.cardDef.name;
-    const energyNeeded = cost - this.energy;
-        
+        const selectedCard = this.tankCards[this.selectedCard];
+        const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
+        const displayName = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.name : selectedCard.cardDef.name;
+        const energyNeeded = cost - this.energy;
+
         // Flash the energy bar red
         const barWidth = 200;
         const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
         const energyY = GAME_CONFIG.HEIGHT - 20;
-        
+
         this.energyBarFill.clear();
         this.energyBarFill.fillStyle(0xff0000);
         this.energyBarFill.fillRect(barX, energyY, barWidth * (this.energy / this.maxEnergy), 16);
-        
+
         // Flash the selected card
         this.tweens.add({
             targets: selectedCard,
@@ -3438,7 +3451,7 @@ class BattleScene extends Phaser.Scene {
                 this.updateEnergyBar(); // Restore normal energy bar color
             }
         });
-        
+
         // Enhanced error message with specific information
         const errorText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 50, 'NOT ENOUGH ENERGY!', {
             fontSize: '24px',
@@ -3450,9 +3463,9 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         errorText.setScrollFactor(0);
         errorText.setDepth(100);
-        
+
         // Detailed energy info
-        const detailText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20, 
+        const detailText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20,
             `${displayName} costs ${cost} energy\n` +
             `You have ${this.energy} energy\n` +
             `Need ${energyNeeded} more energy`, {
@@ -3465,7 +3478,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         detailText.setScrollFactor(0);
         detailText.setDepth(100);
-        
+
         // Energy regeneration timing info
         const regenRate = this.getEnergyRegenDelay() / 1000; // Convert to seconds
         const timeToEnergy = Math.ceil(energyNeeded * regenRate);
@@ -3480,12 +3493,12 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         regenText.setScrollFactor(0);
         regenText.setDepth(100);
-        
+
         // Animate all text elements
         [errorText, detailText, regenText].forEach((text, index) => {
             text.setAlpha(0);
             text.y += 20;
-            
+
             this.tweens.add({
                 targets: text,
                 alpha: 1,
@@ -3494,7 +3507,7 @@ class BattleScene extends Phaser.Scene {
                 delay: index * 100,
                 ease: 'Back.out'
             });
-            
+
             this.tweens.add({
                 targets: text,
                 alpha: 0,
@@ -3505,14 +3518,14 @@ class BattleScene extends Phaser.Scene {
                 onComplete: () => text.destroy()
             });
         });
-        
+
         // Red flash overlay effect for emphasis
         const flashOverlay = this.add.graphics();
         flashOverlay.fillStyle(0xff0000, 0.3);
         flashOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         flashOverlay.setScrollFactor(0);
         flashOverlay.setDepth(95);
-        
+
         this.tweens.add({
             targets: flashOverlay,
             alpha: 0,
@@ -3615,7 +3628,7 @@ class BattleScene extends Phaser.Scene {
 
         // Play deployment sound
         this.playUISound('deploy');
-        
+
         // End preview and restart for newly cycled card
         this.endDeploymentPreview();
         const newSelectedCard = this.tankCards[this.selectedCard];
@@ -3636,7 +3649,7 @@ class BattleScene extends Phaser.Scene {
 
         // Cycle the card
         this.cycleCard(this.selectedCard);
-        
+
         // End preview and restart for newly cycled card
         this.endSpellPreview();
         const newSelectedCard = this.tankCards[this.selectedCard];
@@ -3668,7 +3681,7 @@ class BattleScene extends Phaser.Scene {
 
         // Play deployment sound
         this.playUISound('deploy');
-        
+
         // End preview and restart for newly cycled card
         this.endSpellPreview();
         const newSelectedCard = this.tankCards[this.selectedCard];
@@ -3731,21 +3744,21 @@ class BattleScene extends Phaser.Scene {
     updateBaseDefense(base) {
         const currentTime = this.time.now;
         const baseRange = 200; // Base defense range
-        
+
         // Main towers don't target until they've been activated (hit at least once)
         if (base.isMainTower && !base.activated) {
             base.target = null;
             return;
         }
-        
+
         // Update base target every 2 seconds or if target is destroyed
         if (currentTime - base.lastTargetUpdate > 2000 || !base.target || base.target.health <= 0) {
             base.lastTargetUpdate = currentTime;
-            
+
             // Find closest enemy tank within range
             let closestEnemy = null;
             let closestDistance = Infinity;
-            
+
             if (base.isPlayerOwned) {
                 // Player base: target AI tanks
                 const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
@@ -3767,7 +3780,7 @@ class BattleScene extends Phaser.Scene {
                     }
                 });
             }
-            
+
             base.target = closestEnemy;
         }
     }
@@ -3778,20 +3791,20 @@ class BattleScene extends Phaser.Scene {
     updateBuildingAI(building) {
         const currentTime = this.time.now;
         const buildingRange = 250; // Building attack range
-        
+
         // Update building target every 1.5 seconds or if target is destroyed
         if (currentTime - (building.lastTargetUpdate || 0) > 1500 || !building.target || building.target.health <= 0) {
             building.lastTargetUpdate = currentTime;
-            
+
             // Find closest enemy tank or building within range
             let closestEnemy = null;
             let closestDistance = Infinity;
-            
+
             if (building.isPlayerOwned) {
                 // Player building: target AI tanks and buildings
                 const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
                 const enemyBuildings = this.buildings.filter(b => !b.isPlayerOwned && !b.isMainTower && b.health > 0);
-                
+
                 [...enemyTanks, ...enemyBuildings].forEach(enemy => {
                     const distance = GameHelpers.distance(building.x, building.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= buildingRange) {
@@ -3803,7 +3816,7 @@ class BattleScene extends Phaser.Scene {
                 // AI building: target player tanks and buildings
                 const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
                 const playerBuildings = this.buildings.filter(b => b.isPlayerOwned && !b.isMainTower && b.health > 0);
-                
+
                 [...playerTanks, ...playerBuildings].forEach(enemy => {
                     const distance = GameHelpers.distance(building.x, building.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= buildingRange) {
@@ -3812,15 +3825,15 @@ class BattleScene extends Phaser.Scene {
                     }
                 });
             }
-            
+
             building.target = closestEnemy;
         }
-        
+
         // If building has a target and is ready to fire, attack
         // Skip manual attack for buildings with automatic timer-based launching (like V1 launcher)
         if (building.target && currentTime - (building.lastAttackTime || 0) > (building.attackCooldown || 2000) && !building.buildingDef?.payload?.launchIntervalMs) {
             building.lastAttackTime = currentTime;
-            
+
             // Different attack logic based on building type
             switch (building.type) {
                 case 'v1_launcher':
@@ -3828,7 +3841,7 @@ class BattleScene extends Phaser.Scene {
                     break;
                 default:
                     // Generic building attack (could be expanded for other building types)
-                    this.combatSystem.createProjectile(building.x, building.y, building.target.x, building.target.y, 
+                    this.combatSystem.createProjectile(building.x, building.y, building.target.x, building.target.y,
                         building.isPlayerOwned, 80, 'building');
                     break;
             }
@@ -3840,15 +3853,15 @@ class BattleScene extends Phaser.Scene {
      */
     fireV1Missile(launcher, target) {
         // Create missile projectile with special effects
-        const missile = this.combatSystem.createProjectile(launcher.x, launcher.y, target.x, target.y, 
+        const missile = this.combatSystem.createProjectile(launcher.x, launcher.y, target.x, target.y,
             launcher.isPlayerOwned, 120, 'missile');
-        
+
         // Add missile trail effect
         if (missile) {
             missile.setTint(launcher.isPlayerOwned ? 0x4444ff : 0xff4444);
             // Could add particle trail here
         }
-        
+
         // Play missile launch sound
         this.playUISound('explosion'); // Temporary, should be missile sound
     }
@@ -3874,7 +3887,7 @@ class BattleScene extends Phaser.Scene {
                 break;
             default:
                 console.log('🔊 Playing: Tank Fire');
-                // this.sound.play('tankFire', { volume: 0.5 });
+            // this.sound.play('tankFire', { volume: 0.5 });
         }
     }
 
@@ -3928,17 +3941,17 @@ class BattleScene extends Phaser.Scene {
         frequencies.forEach((freq, index) => {
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
-            
+
             oscillator.connect(gainNode);
             gainNode.connect(this.audioContext.destination);
-            
+
             oscillator.frequency.setValueAtTime(freq, this.audioContext.currentTime);
             oscillator.type = waveType;
-            
+
             gainNode.gain.setValueAtTime(0, this.audioContext.currentTime);
             gainNode.gain.linearRampToValueAtTime(volume * 0.3, this.audioContext.currentTime + 0.01);
             gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + duration);
-            
+
             const startTime = this.audioContext.currentTime + (index * 0.05);
             oscillator.start(startTime);
             oscillator.stop(startTime + duration);
@@ -3952,27 +3965,27 @@ class BattleScene extends Phaser.Scene {
         const bufferSize = this.audioContext.sampleRate * 0.3;
         const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
         const output = buffer.getChannelData(0);
-        
+
         for (let i = 0; i < bufferSize; i++) {
             output[i] = Math.random() * 2 - 1;
         }
-        
+
         const whiteNoise = this.audioContext.createBufferSource();
         whiteNoise.buffer = buffer;
-        
+
         const filter = this.audioContext.createBiquadFilter();
         filter.type = 'lowpass';
         filter.frequency.setValueAtTime(1000, this.audioContext.currentTime);
         filter.frequency.exponentialRampToValueAtTime(100, this.audioContext.currentTime + 0.3);
-        
+
         const gainNode = this.audioContext.createGain();
         gainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioContext.currentTime + 0.3);
-        
+
         whiteNoise.connect(filter);
         filter.connect(gainNode);
         gainNode.connect(this.audioContext.destination);
-        
+
         whiteNoise.start();
         whiteNoise.stop(this.audioContext.currentTime + 0.3);
     }
@@ -4002,18 +4015,18 @@ class BattleScene extends Phaser.Scene {
     showCardSelectionFeedback(cardIndex) {
         const card = this.tankCards[cardIndex];
         if (!card) return;
-        
+
         // Create selection pulse effect with modern styling
         const selectionPulse = this.add.graphics();
         selectionPulse.setScrollFactor(0);
         selectionPulse.setDepth(50);
-        
+
         // Draw pulse circle around card
         const cardCenterX = card.x + UI_CONFIG.CARDS.WIDTH / 2;
         const cardCenterY = card.y + UI_CONFIG.CARDS.HEIGHT / 2;
         selectionPulse.lineStyle(3, 0x60a5fa, 0.8);
         selectionPulse.strokeCircle(cardCenterX, cardCenterY, 55);
-        
+
         // Animate pulse
         this.tweens.add({
             targets: selectionPulse,
@@ -4024,7 +4037,7 @@ class BattleScene extends Phaser.Scene {
             ease: 'Cubic.easeOut',
             onComplete: () => selectionPulse.destroy()
         });
-        
+
         // Show brief selection info (troop vs non-troop)
         const isTroop = card.cardType === CARD_TYPES.TROOP;
         const displayName = isTroop ? card.tankData?.name : card.cardDef?.name;
@@ -4048,7 +4061,7 @@ class BattleScene extends Phaser.Scene {
                 `${displayName} - Click to place` :
                 `${displayName} - Need ${costVal - this.energy} more ⚡`;
         }
-        
+
         // Feedback background panel
         const feedbackBg = this.add.graphics();
         feedbackBg.fillStyle(0x1e293b, 0.9);
@@ -4057,7 +4070,7 @@ class BattleScene extends Phaser.Scene {
         feedbackBg.strokeRoundedRect(GAME_CONFIG.WIDTH / 2 - 130, GAME_CONFIG.HEIGHT - 195, 260, 30, 8);
         feedbackBg.setScrollFactor(0);
         feedbackBg.setDepth(49);
-        
+
         const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, `${actionIcon} ${infoText}`, {
             fontSize: '13px',
             fill: canAfford ? '#4ade80' : '#f87171',
@@ -4066,7 +4079,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         feedbackText.setScrollFactor(0);
         feedbackText.setDepth(50);
-        
+
         // Fade out feedback after 2 seconds
         this.tweens.add({
             targets: [feedbackBg, feedbackText],
@@ -4079,7 +4092,7 @@ class BattleScene extends Phaser.Scene {
                 feedbackText.destroy();
             }
         });
-        
+
         // Play selection sound
         this.playUISound('select');
     }
@@ -4132,7 +4145,7 @@ class BattleScene extends Phaser.Scene {
     expandDeploymentZone(team, destroyedTowerSide) {
         // Expand deployment zone by 3 tiles from the river on the side where a tower was destroyed
         const isPlayer = (team === 'player');
-        
+
         // Initialize expanded zones if not exists
         if (!this.expandedDeploymentZones[team]) {
             this.expandedDeploymentZones[team] = {
@@ -4141,14 +4154,14 @@ class BattleScene extends Phaser.Scene {
                 expandedAreas: []
             };
         }
-        
+
         // Mark this side as expanded
         if (destroyedTowerSide === 'left') {
             this.expandedDeploymentZones[team].leftSideExpanded = true;
         } else if (destroyedTowerSide === 'right') {
             this.expandedDeploymentZones[team].rightSideExpanded = true;
         }
-        
+
         // Define the column range for the side tower area
         // Left side towers are around columns 2-5, right side towers are around columns 13-16
         let sideStartCol, sideEndCol;
@@ -4159,7 +4172,7 @@ class BattleScene extends Phaser.Scene {
             sideStartCol = 9;
             sideEndCol = 17; // Other half of battlefield
         }
-        
+
         // Create the expanded area for this side
         let expandedArea;
         if (isPlayer) {
@@ -4179,27 +4192,27 @@ class BattleScene extends Phaser.Scene {
                 tilesHeight: 3 // Just 3 rows (18, 19, 20)
             };
         }
-        
+
         // Add this expanded area to the list
         this.expandedDeploymentZones[team].expandedAreas.push(expandedArea);
-        
+
         // Redraw deployment zones to show the expansion
         this.drawDeploymentZones();
-        
+
         // Update deployment area visual indicator
         this.highlightExpandedDeploymentArea(team, expandedArea);
     }
 
     highlightExpandedDeploymentArea(team, expandedArea) {
         const isPlayer = (team === 'player');
-        
+
         // Create a temporary highlight overlay for the expanded area
         const offsetX = GameHelpers.getBattlefieldOffset();
         const areaX = offsetX + expandedArea.tileX * GAME_CONFIG.TILE_SIZE;
         const areaY = expandedArea.tileY * GAME_CONFIG.TILE_SIZE;
         const areaWidth = expandedArea.tilesWidth * GAME_CONFIG.TILE_SIZE;
         const areaHeight = expandedArea.tilesHeight * GAME_CONFIG.TILE_SIZE;
-        
+
         // Create highlight graphics
         const highlight = this.add.graphics();
         highlight.fillStyle(isPlayer ? 0x44ff44 : 0xffaa44, 0.3);
@@ -4207,7 +4220,7 @@ class BattleScene extends Phaser.Scene {
         highlight.lineStyle(3, isPlayer ? 0x44ff44 : 0xffaa44, 0.8);
         highlight.strokeRect(areaX, areaY, areaWidth, areaHeight);
         highlight.setDepth(1);
-        
+
         // Pulsing animation
         this.tweens.add({
             targets: highlight,
@@ -4229,8 +4242,8 @@ class BattleScene extends Phaser.Scene {
 
     showTowerDestroyedNotification(tower) {
         const isPlayerTower = tower.isPlayerOwned;
-        const towerName = tower.isMainTower ? 'MAIN TOWER' : 
-                         tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
+        const towerName = tower.isMainTower ? 'MAIN TOWER' :
+            tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
         const message = `${isPlayerTower ? 'PLAYER' : 'ENEMY'} ${towerName} DESTROYED!`;
         const color = isPlayerTower ? '#ff4444' : '#44ff44';
         this._showNotification(message, color, 200);
@@ -4251,7 +4264,7 @@ class BattleScene extends Phaser.Scene {
         if (this.overtimeActive) {
             const playerTowersDestroyed = this.towerStats.player.towersDestroyed;
             const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
-            
+
             if (playerTowersDestroyed > enemyTowersDestroyed) {
                 this.endBattle('victory');
                 return;
@@ -4268,13 +4281,13 @@ class BattleScene extends Phaser.Scene {
     checkOvertimeConditions() {
         const playerTowersDestroyed = this.towerStats.player.towersDestroyed;
         const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
-        
+
         console.log('═══════════════════════════════════════════════════════');
         console.log('⏰ CHECK OVERTIME CONDITIONS');
         console.log('───────────────────────────────────────────────────────');
         console.log(`🔵 Player destroyed ${playerTowersDestroyed} enemy towers`);
         console.log(`🔴 Enemy destroyed ${enemyTowersDestroyed} player towers`);
-        
+
         // If towers destroyed are equal, activate overtime
         if (playerTowersDestroyed === enemyTowersDestroyed && !this.overtimeActive) {
             console.log('⚖️ Towers tied - activating overtime');
@@ -4282,7 +4295,7 @@ class BattleScene extends Phaser.Scene {
             this.activateOvertime();
             return;
         }
-        
+
         // End battle based on tower count
         if (playerTowersDestroyed > enemyTowersDestroyed) {
             console.log(`✅ Result: VICTORY (Player destroyed more: ${playerTowersDestroyed} > ${enemyTowersDestroyed})`);
@@ -4299,19 +4312,19 @@ class BattleScene extends Phaser.Scene {
         // Create massive destruction animation for base
         const x = building.x;
         const y = building.y;
-        
+
         // Multiple large explosions
         for (let i = 0; i < 5; i++) {
             this.time.delayedCall(i * 200, () => {
                 const offsetX = GameHelpers.randomInt(-30, 30);
                 const offsetY = GameHelpers.randomInt(-30, 30);
-                
+
                 const explosion = this.add.graphics();
                 explosion.fillStyle(0xff3300, 0.9);
                 explosion.fillCircle(x + offsetX, y + offsetY, 40);
                 explosion.lineStyle(6, 0xffaa00);
                 explosion.strokeCircle(x + offsetX, y + offsetY, 40);
-                
+
                 this.tweens.add({
                     targets: explosion,
                     alpha: 0,
@@ -4323,17 +4336,17 @@ class BattleScene extends Phaser.Scene {
                 });
             });
         }
-        
+
         // Remove building from buildings array
         const index = this.buildings.indexOf(building);
         if (index > -1) {
             this.buildings.splice(index, 1);
         }
-        
+
         // Fade out the building
         const tweenTargets = [building, building.healthFill, building.healthText];
         if (building.healthBg) tweenTargets.push(building.healthBg);
-        
+
         this.tweens.add({
             targets: tweenTargets,
             alpha: 0,
@@ -4351,42 +4364,42 @@ class BattleScene extends Phaser.Scene {
         // Prevent multiple calls to endBattle
         if (this.battleEnded) return;
         this.battleEnded = true;
-        
+
         console.log('═══════════════════════════════════════════════════════');
         console.log(`🏁 END BATTLE: ${result.toUpperCase()}`);
         console.log('───────────────────────────────────────────────────────');
         console.log(`📊 towerStats.player: destroyed=${this.towerStats.player.towersDestroyed}, mainDestroyed=${this.towerStats.player.mainTowerDestroyed}`);
         console.log(`📊 towerStats.enemy: destroyed=${this.towerStats.enemy.towersDestroyed}, mainDestroyed=${this.towerStats.enemy.mainTowerDestroyed}`);
         console.log('═══════════════════════════════════════════════════════');
-        
+
         // Clean up any active deployment preview
         this.endDeploymentPreview();
-        
+
         // Record battle end time and finalize statistics
         this.battleStats.battle.endTime = this.time.now;
         this.battleStats.battle.overtimeActivated = this.overtimeActive;
-        
+
         // Play result sound
         if (result === 'victory') {
             this.playUISound('victory');
         } else {
             this.playUISound('defeat');
         }
-        
+
         // Stop all timers
         if (this.battleTimer) this.battleTimer.destroy();
         if (this.energyTimer) this.energyTimer.destroy();
         if (this.aiEnergyTimer) this.aiEnergyTimer.destroy();
-        
+
         // Pause all game activity
         this.physics.pause();
-        
+
         // Create enhanced victory/defeat overlay with statistics using UIManager
         this.uiManager.createEnhancedBattleResultScreen(
-            result, 
-            this.battleStats, 
-            this.gameState, 
-            this.overtimeActive, 
+            result,
+            this.battleStats,
+            this.gameState,
+            this.overtimeActive,
             this.buildings
         );
     }
@@ -4426,42 +4439,42 @@ class BattleScene extends Phaser.Scene {
     // Pause/Resume methods for game analysis
     togglePause() {
         if (this.battleEnded) return;
-        
+
         this.gamePaused = !this.gamePaused;
-        
+
         if (this.gamePaused) {
             this.pauseGame();
         } else {
             this.resumeGame();
         }
-        
+
         // Update button state
         if (window.updatePauseButtonState) {
             window.updatePauseButtonState(this.gamePaused);
         }
-        
+
         return this.gamePaused;
     }
 
     pauseGame() {
         // Cancel any active deployment preview
         this.endDeploymentPreview();
-        
+
         // Pause physics, tweens, and timers
         if (this.physics && this.physics.world) {
             this.physics.world.pause();
         }
-        
+
         // Pause all tweens
         if (this.tweens) {
             this.tweens.pauseAll();
         }
-        
+
         // Pause timers
         if (this.time) {
             this.time.paused = true;
         }
-        
+
         // Show pause overlay
         this.showPauseOverlay();
     }
@@ -4471,31 +4484,31 @@ class BattleScene extends Phaser.Scene {
         if (this.physics && this.physics.world) {
             this.physics.world.resume();
         }
-        
+
         // Resume all tweens
         if (this.tweens) {
             this.tweens.resumeAll();
         }
-        
+
         // Resume timers
         if (this.time) {
             this.time.paused = false;
         }
-        
+
         // Hide pause overlay
         this.hidePauseOverlay();
     }
 
     showPauseOverlay() {
         if (this.pauseOverlay) return;
-        
+
         // Create semi-transparent overlay (low opacity to keep battle visible)
         this.pauseOverlay = this.add.graphics();
         this.pauseOverlay.fillStyle(0x000000, 0.3);
         this.pauseOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         this.pauseOverlay.setScrollFactor(0);
         this.pauseOverlay.setDepth(90);
-        
+
         // Create compact pause indicator at top of screen
         this.pauseText = this.add.text(GAME_CONFIG.WIDTH / 2, 60, '⏸ PAUSED', {
             fontSize: '24px',
@@ -4507,7 +4520,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
         this.pauseText.setScrollFactor(0);
         this.pauseText.setDepth(91);
-        
+
         // Create compact subtitle
         this.pauseSubtext = this.add.text(GAME_CONFIG.WIDTH / 2, 82, 'Click Resume to continue', {
             fontSize: '12px',
@@ -4554,101 +4567,101 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-speed', `${speed.toFixed(2)}x`);
         }
     }
-    
+
     // Row Numbers Display Methods
     toggleRowNumbers() {
         this.rowNumbersVisible = !this.rowNumbersVisible;
-        
+
         if (this.rowNumbersVisible) {
             this.createRowNumbers();
         } else {
             this.hideRowNumbers();
         }
     }
-    
+
     toggleAttackRanges() {
         this.attackRangesVisible = !this.attackRangesVisible;
-        
+
         if (this.attackRangesVisible) {
             this.showAllAttackRanges();
         } else {
             this.hideAllAttackRanges();
         }
     }
-    
+
     toggleTextures() {
         this.useGraphicsMode = !this.useGraphicsMode;
-        
+
         // Recreate the battlefield with the new mode
         this.recreateBattlefield();
     }
-    
+
     recreateBattlefield() {
         // Remove existing battlefield graphics/images
         // We need to be more selective to avoid destroying health bars and other UI elements
-        
+
         // Remove battlefield image if it exists
         if (this.battlefieldImage) {
             this.battlefieldImage.destroy();
             this.battlefieldImage = null;
         }
-        
+
         // Remove specifically the battlefield graphics object (if we have a reference to it)
         if (this.battlefieldGraphics) {
             this.battlefieldGraphics.destroy();
             this.battlefieldGraphics = null;
         }
-        
+
         // Calculate offset to center the battlefield horizontally
         const offsetX = (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
-        
+
         if (this.useGraphicsMode) {
             // Graphics mode - use procedural graphics for detailed grid and features
             this.createDebugBattlefield(offsetX);
         } else {
             this.addArenaTexture();
         }
-        
+
         // Redraw deployment zones to ensure they appear on top
         if (this.deploymentZoneGraphics) {
             this.deploymentZoneGraphics.setDepth(5);
             this.drawDeploymentZones();
         }
     }
-    
+
     showAllAttackRanges() {
         // Clear any existing range circles first
         this.hideAllAttackRanges();
-        
+
         // Create range circles for all alive tanks
         this.tanks.filter(tank => tank.health > 0).forEach(tank => {
             this.createAttackRangeCircle(tank);
         });
     }
-    
+
     createAttackRangeCircle(tank) {
         // Create a new graphics object for the range circle
         const rangeCircle = this.add.graphics();
         rangeCircle.setDepth(5); // Below tanks but above terrain
-        
+
         // Set color based on team
-        const circleColor = tank.isPlayerTank ? 
-            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR : 
+        const circleColor = tank.isPlayerTank ?
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR :
             UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ENEMY_COLOR;
-        
+
         // Draw the range circle
         rangeCircle.lineStyle(
-            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH, 
-            circleColor, 
+            UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH,
+            circleColor,
             UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
         );
         rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
-        
+
         // Store reference on the tank and in our list
         tank.debugRangeCircle = rangeCircle;
         this.attackRangeCircles.push(rangeCircle);
     }
-    
+
     hideAllAttackRanges() {
         // Destroy all existing range circles
         this.attackRangeCircles.forEach(circle => {
@@ -4657,7 +4670,7 @@ class BattleScene extends Phaser.Scene {
             }
         });
         this.attackRangeCircles = [];
-        
+
         // Remove references from tanks
         this.tanks.forEach(tank => {
             if (tank.debugRangeCircle) {
@@ -4665,35 +4678,35 @@ class BattleScene extends Phaser.Scene {
             }
         });
     }
-    
+
     updateAttackRangeCircle(tank) {
         // Update the position of a tank's debug range circle if it exists
         if (this.attackRangesVisible && tank.debugRangeCircle) {
             tank.debugRangeCircle.clear();
-            
-            const circleColor = tank.isPlayerTank ? 
-                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR : 
+
+            const circleColor = tank.isPlayerTank ?
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.PLAYER_COLOR :
                 UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ENEMY_COLOR;
-            
+
             tank.debugRangeCircle.lineStyle(
-                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH, 
-                circleColor, 
+                UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.LINE_WIDTH,
+                circleColor,
                 UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
             );
             tank.debugRangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
         }
     }
-    
+
     createRowNumbers() {
         // Clear any existing row numbers
         this.hideRowNumbers();
-        
+
         const offsetX = GameHelpers.getBattlefieldOffset();
-        
+
         // Create row numbers for each row of the battlefield
         for (let row = 0; row < GAME_CONFIG.TILES_Y; row++) {
             const y = row * GAME_CONFIG.TILE_SIZE + GAME_CONFIG.TILE_SIZE / 2;
-            
+
             // Left side row number
             const leftLabel = this.add.text(offsetX - 20, y, row.toString(), {
                 fontSize: '10px',
@@ -4704,7 +4717,7 @@ class BattleScene extends Phaser.Scene {
             }).setOrigin(1, 0.5);
             leftLabel.setDepth(1000);
             leftLabel.setScrollFactor(0);
-            
+
             // Right side row number
             const rightLabel = this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH + 20, y, row.toString(), {
                 fontSize: '10px',
@@ -4715,11 +4728,11 @@ class BattleScene extends Phaser.Scene {
             }).setOrigin(0, 0.5);
             rightLabel.setDepth(1000);
             rightLabel.setScrollFactor(0);
-            
+
             this.rowNumberLabels.push(leftLabel, rightLabel);
         }
     }
-    
+
     hideRowNumbers() {
         // Destroy all existing row number labels
         this.rowNumberLabels.forEach(label => {
@@ -4729,65 +4742,65 @@ class BattleScene extends Phaser.Scene {
         });
         this.rowNumberLabels = [];
     }
-    
+
     destroy() {
         // Clean up tooltips and related timers/tweens
         if (this.tooltipTimer) {
             this.tooltipTimer.destroy();
             this.tooltipTimer = null;
         }
-        
+
         if (this.tooltipFadeInTween) {
             this.tooltipFadeInTween.destroy();
             this.tooltipFadeInTween = null;
         }
-        
+
         if (this.tooltipFadeOutTween) {
             this.tooltipFadeOutTween.destroy();
             this.tooltipFadeOutTween = null;
         }
-        
+
         if (this.cardTooltip) {
             this.cardTooltip.destroy();
             this.cardTooltip = null;
         }
-        
+
         // Clean up pause overlay
         this.hidePauseOverlay();
         this.gamePaused = false;
-        
+
         // Clean up row numbers when scene is destroyed
         this.hideRowNumbers();
-        
+
         // Clean up attack range circles when scene is destroyed
         this.hideAllAttackRanges();
-        
+
         // Clear current scene reference
         if (window.currentScene === this) {
             window.currentScene = null;
         }
-        
+
         // Reset pause button state
         if (window.refreshPauseButtonState) {
             window.refreshPauseButtonState();
         }
-        
+
         super.destroy();
     }
 
     shutdown() {
         // Clean up deployment preview when scene is shutting down
         this.endDeploymentPreview();
-        
+
         // Clean up tooltip if active
         this.hideCardTooltip();
-        
+
         // Cancel any pending tooltip timer
         if (this.tooltipTimer) {
             this.tooltipTimer.destroy();
             this.tooltipTimer = null;
         }
-        
+
         super.shutdown();
     }
 }

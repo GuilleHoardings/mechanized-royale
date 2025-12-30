@@ -6,7 +6,7 @@
 class GraphicsManager {
     constructor(scene) {
         this.scene = scene;
-        
+
         // Enhanced team colors with better contrast
         this.colors = {
             player: 0x3b82f6,      // Vibrant Blue
@@ -18,7 +18,7 @@ class GraphicsManager {
             metal: 0x9ca3af,       // Lighter metal
             gunmetal: 0x4b5563     // Softer gunmetal
         };
-        
+
         // Type accent colors for different tank types - more vibrant
         this.typeAccentColors = {
             [TANK_TYPES.LIGHT]: { player: 0x4ade80, enemy: 0x22c55e },         // Brighter Green
@@ -60,52 +60,52 @@ class GraphicsManager {
         const typeAccentColor = this.getTypeAccentColor(tankType, isPlayerTank);
         const isPanther = tankId === 'tank_panther';
         const isInfantry = tankId === 'tank_infantry';
-        
+
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
-        
+
         // Create graphics object for drawing
         const graphics = this.scene.add.graphics();
-        
+
         // Special case for infantry
         if (isInfantry) {
             this._drawInfantry(graphics, baseColor, accentColor);
         } else {
             // Draw the tank based on type
             switch (tankType) {
-            case TANK_TYPES.LIGHT:
-                this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.MEDIUM:
-                if (isPanther) {
-                    this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
-                } else {
-                    this._drawMediumTank(graphics, baseColor, darkColor, typeAccentColor);
-                }
-                break;
-            case TANK_TYPES.HEAVY:
-                this._drawHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.TANK_DESTROYER:
-                this._drawTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.ARTILLERY:
-                this._drawArtillery(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.FAST_ATTACK:
-                this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
-                break;
+                case TANK_TYPES.LIGHT:
+                    this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.MEDIUM:
+                    if (isPanther) {
+                        this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
+                    } else {
+                        this._drawMediumTank(graphics, baseColor, darkColor, typeAccentColor);
+                    }
+                    break;
+                case TANK_TYPES.HEAVY:
+                    this._drawHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.TANK_DESTROYER:
+                    this._drawTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.ARTILLERY:
+                    this._drawArtillery(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.FAST_ATTACK:
+                    this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
             }
         }
-        
+
         // Add tracks (except for infantry which has none)
         if (!isInfantry) {
             this._drawTracks(graphics, tankType);
         }
-        
+
         // Add the graphics to the container
         tank.add(graphics);
-        
+
         return tank;
     }
 
@@ -202,28 +202,28 @@ class GraphicsManager {
         } else {
             // Draw the mini tank based on type
             switch (tankType) {
-            case TANK_TYPES.LIGHT:
-                this._drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.MEDIUM:
-                if (isPanther) {
-                    this._drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor);
-                } else {
-                    this._drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor);
-                }
-                break;
-            case TANK_TYPES.HEAVY:
-                this._drawMiniHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.TANK_DESTROYER:
-                this._drawMiniTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.ARTILLERY:
-                this._drawMiniArtillery(graphics, baseColor, darkColor, typeAccentColor);
-                break;
-            case TANK_TYPES.FAST_ATTACK:
-                this._drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor);
-                break;
+                case TANK_TYPES.LIGHT:
+                    this._drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.MEDIUM:
+                    if (isPanther) {
+                        this._drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor);
+                    } else {
+                        this._drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor);
+                    }
+                    break;
+                case TANK_TYPES.HEAVY:
+                    this._drawMiniHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.TANK_DESTROYER:
+                    this._drawMiniTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.ARTILLERY:
+                    this._drawMiniArtillery(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
+                case TANK_TYPES.FAST_ATTACK:
+                    this._drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor);
+                    break;
             }
         }
 
@@ -281,425 +281,553 @@ class GraphicsManager {
     // ========================================
 
     _drawLightTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Light Tank - Small, fast-looking with more detail
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-10, -6, 28, 20, 5);
+
+        // Hull Body
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-12, -8, 24, 16, 3);
-        
-        // Hull details - armor plating with distinctive green accents
+
+        // Hull depth (darker side for 3D effect)
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-12, 0, 24, 8, { tl: 0, tr: 0, bl: 3, br: 3 });
+
+        // Armor plating accents
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-10, -6, 20, 2);
-        graphics.fillRect(-10, 4, 20, 2);
-        graphics.fillRect(-11, -2, 22, 1);
-        
-        // Engine grille
+        graphics.fillRect(-10, -6, 20, 2); // Top plate
+        graphics.fillRect(-10, 4, 20, 2);  // Bottom plate
+
+        // Engine vents
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-12, -1, 3, 2);
-        
+        graphics.fillRect(-11, -2, 6, 4);
+        graphics.lineStyle(1, 0x000000, 0.3);
+        graphics.lineBetween(-11, 0, -5, 0);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 2, 6);
+
         // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(0, 0, 6);
-        
-        // Turret ring detail
-        graphics.fillStyle(this.colors.metal);
-        graphics.strokeCircle(0, 0, 7, 1);
-        
-        // Barrel with muzzle brake
+
+        // Turret bevel
+        graphics.fillStyle(0xffffff, 0.2);
+        graphics.fillCircle(-1, -1, 5);
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 5);
+
+        // Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -1, 12, 2);
-        graphics.fillRect(16, -2, 2, 4);
-        
-        // Vision ports
-        graphics.fillStyle(0x000000);
-        graphics.fillCircle(-8, -3, 1);
-        graphics.fillCircle(8, -3, 1);
+        graphics.fillRect(4, -1, 14, 2);
+        graphics.fillStyle(0x000000, 0.3); // Barrel inner shadow
+        graphics.fillRect(4, 0, 14, 1);
+
+        // Muzzle brake
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(16, -2, 3, 4);
+        graphics.lineStyle(1, 0x000000, 0.5);
+        graphics.strokeRect(16, -2, 3, 4);
+
+        // Hatch
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(0, 0, 2.5);
+        graphics.fillStyle(0x000000, 0.8);
+        graphics.fillCircle(0, 0, 1);
     }
 
     _drawMediumTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Medium Tank - Balanced design with enhanced details
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-14, -8, 32, 24, 6);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-15, -10, 30, 20, 4);
-        
-        // Hull armor plating with distinctive orange accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-13, -8, 26, 3);
-        graphics.fillRect(-13, 5, 26, 3);
-        graphics.fillRect(-14, -2, 28, 1);
-        
-        // Side skirts
+
+        // Hull Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-15, 0, 30, 10, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Side skirts (with independent shading)
         graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-16, -6, 2, 12);
-        graphics.fillRect(14, -6, 2, 12);
-        
-        // Front armor detail
-        graphics.fillStyle(darkColor);
-        graphics.fillRect(13, -6, 2, 12);
-        
-        // Engine compartment
+        graphics.fillRect(-16, -8, 2, 16);
+        graphics.fillRect(14, -8, 2, 16);
+
+        // Armor details
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillRect(-12, -7, 24, 2);
+        graphics.fillRect(-12, 5, 24, 2);
+
+        // Engine deck
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-15, -3, 4, 6);
-        
+        graphics.fillRect(-14, -4, 6, 8);
+        graphics.lineStyle(1, 0x000000, 0.4);
+        for (let i = 0; i < 4; i++) graphics.lineBetween(-14, -2 + i * 2, -8, -2 + i * 2);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 2, 9);
+
         // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(0, 0, 8);
-        
+
+        // Turret Depth/Bevel
+        graphics.fillStyle(0xffffff, 0.15);
+        graphics.fillCircle(-2, -2, 6);
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 6);
+
         // Turret details
-        graphics.fillStyle(this.colors.metal);
-        graphics.strokeCircle(0, 0, 9, 1);
-        graphics.fillRect(-6, -6, 12, 2);
-        
-        // Barrel with thermal sleeve (orange accent)
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillRect(-6, -6, 12, 3); // Rear storage bust
+
+        // Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(8, -2, 15, 4);
+        graphics.fillRect(6, -2, 16, 4);
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRect(6, 0, 16, 2); // Barrel shadow
+
+        // Thermal sleeve
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(12, -3, 8, 6);
-        
-        // Commander's cupola with orange accent
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-4, -4, 2);
-        
-        // Vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-10, -7, 2, 1);
-        graphics.fillRect(-2, -7, 2, 1);
-        graphics.fillRect(6, -7, 2, 1);
+        graphics.fillRect(10, -2.5, 6, 5);
+
+        // Muzzle brake
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(22, -2.5, 3, 5);
+
+        // Commander's cupola
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(-3, -3, 2.5);
     }
 
     _drawPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Panther Tank - Sloped armor design with superior firepower
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-14, -8, 32, 24, 6);
+
+        // Main Hull Body
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-15, -10, 30, 20, 4);
-        
-        // Sloped front armor with distinctive orange accents
+
+        // Depth shading
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-15, 0, 30, 10, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Sloped Glacis (Stylized)
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(-15, -10, -15, 10, -8, -2); // Left slope
-        graphics.fillTriangle(15, -10, 15, 10, 8, -2); // Right slope
-        graphics.fillRect(-8, -8, 16, 3); // Front plate
-        graphics.fillRect(-13, 5, 26, 3); // Rear armor
-        graphics.fillRect(-14, -2, 28, 1); // Center stripe
-        
-        // Side armor
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-16, -6, 2, 12);
-        graphics.fillRect(14, -6, 2, 12);
-        
-        // Engine compartment
+        graphics.fillTriangle(14, -9, 14, 9, 6, 0); // Front nose cone effect
+
+        // Side slopes visualization
+        graphics.fillStyle(baseColor);
+        // We draw triangles to simulate the sloped sides
+
+        // Engine Vents
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-15, -3, 4, 6);
-        
-        // Sloped turret
+        graphics.fillCircle(-10, 0, 3);
+        graphics.lineStyle(1, 0x000000, 0.5);
+        graphics.strokeCircle(-10, 0, 3);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 2, 9);
+
+        // Turret (Sloped styling - boxy but angled)
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 8);
-        // Add sloped turret detail
+        graphics.fillRoundedRect(-8, -8, 18, 16, 4);
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRoundedRect(-8, 0, 18, 8, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Turret Mask (Gun mount)
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(-5, -5, 5, -5, 0, -10);
-        
-        // Long barrel (high damage)
+        graphics.fillRoundedRect(4, -6, 6, 12, 3);
+
+        // Barrel (Long)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(8, -1, 18, 2);
-        graphics.fillRect(24, -2, 3, 4); // Muzzle brake
-        
-        // Vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-12, -8, 2, 1);
-        graphics.fillRect(6, -8, 2, 1);
+        graphics.fillRect(8, -1.5, 20, 3);
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRect(8, 0, 20, 1.5);
+
+        // Muzzle Brake
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(28, -2.5, 4, 5);
+
+        // Commander Hatch
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(-4, -4, 3);
     }
 
     _drawMegaMinion(graphics, baseColor, typeAccentColor) {
-        // Mega Minion uses helicopter silhouette
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(0, 0, 30, 10);
+
+        // Fuselage
         graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-12, -5, 24, 10, 5); // Fuselage
-        graphics.fillRect(8, -2, 14, 4); // Tail boom
-        
+        graphics.fillRoundedRect(-12, -7, 24, 12, 6); // Main body
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-12, -1, 24, 6, { tl: 0, tr: 0, bl: 6, br: 6 });
+
+        // Tail boom
+        graphics.fillStyle(baseColor);
+        graphics.fillRect(8, -4, 16, 4);
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRect(8, -1, 16, 1);
+
+        // Body Stripe
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-10, -1, 20, 2); // Body stripe
-        graphics.fillRect(10, 0, 10, 1); // Tail accent
-        
-        // Canopy - use lighter tint
-        const canopyColor = 0xaad4ff; // Light blue canopy
+        graphics.fillRect(-10, -2, 20, 2);
+        graphics.fillRect(10, -1, 10, 1);
+
+        // Canopy (Shiny)
+        const canopyColor = 0xaad4ff;
         graphics.fillStyle(canopyColor);
-        graphics.fillRoundedRect(-7, -4, 12, 8, 4);
-        
+        graphics.fillRoundedRect(-7, -6, 12, 8, 4);
+        // Glint
+        graphics.fillStyle(0xffffff, 0.6);
+        graphics.fillEllipse(-4, -4, 3, 2);
+
+        // Rotor Mast
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-1, -12, 2, 24); // Rotor mast
-        graphics.fillRect(-22, -1, 44, 2); // Rotor blades
-        graphics.fillCircle(0, 0, 3); // Rotor hub
-        
-        graphics.fillRect(20, -4, 8, 2); // Tail rotor blade
-        graphics.fillRect(20, 2, 8, 2); // Tail rotor opposite blade
-        graphics.fillRect(24, -5, 2, 10); // Tail rotor mast
-        
+        graphics.fillRect(-1, -14, 2, 24);
+        graphics.fillCircle(0, 0, 3);
+
+        // Rotor Blades (Blurred motion effect)
+        graphics.fillStyle(0x000000, 0.1);
+        graphics.fillCircle(0, 0, 24); // Spin blur
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(-22, -1, 44, 2); // Main blade
+        graphics.fillRect(-1, -22, 2, 44); // Cross blade
+
+        // Tail Rotor
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(24, -6, 2, 12);
+        graphics.fillStyle(0x000000, 0.2); // Blur
+        graphics.fillCircle(25, 0, 8);
+
+        // Underbelly Accent
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-6, 1, 12, 1); // Accent underbelly
+        graphics.fillRect(-5, 3, 10, 2);
     }
 
     _drawHeavyTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Heavy Tank - Large, intimidating with complex armor
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-18, -10, 36, 26, 6);
+
+        // Main Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-18, -12, 36, 24, 5);
-        
-        // Complex armor scheme with distinctive red accents
+
+        // Hull Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-18, 0, 36, 12, { tl: 0, tr: 0, bl: 5, br: 5 });
+
+        // Heavy Armor Plates (Front/Back)
         graphics.fillStyle(typeAccentColor);
         graphics.fillRect(-16, -10, 32, 4);
         graphics.fillRect(-16, 6, 32, 4);
-        graphics.fillRect(-17, -3, 34, 2);
-        
-        // Spaced armor panels
+        graphics.fillRect(-17, -3, 34, 2); // Side strip
+
+        // Spaced Armor (Side Skirts)
         graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-18, -8, 3, 16);
-        graphics.fillRect(15, -8, 3, 16);
-        graphics.fillRect(-15, -11, 30, 2);
-        
-        // Side armor details
+        graphics.fillRoundedRect(-19, -8, 4, 16, 1);
+        graphics.fillRoundedRect(15, -8, 4, 16, 1);
+
+        // Armor Depth
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRect(-19, 0, 4, 8);
+        graphics.fillRect(15, 0, 4, 8);
+
+        // Engine Vents
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-16, -6, 8, 12);
+        graphics.lineStyle(1, 0x000000, 0.4);
+        for (let i = 0; i < 6; i++) graphics.lineBetween(-16, -4 + i * 2, -8, -4 + i * 2);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 2, 12);
+
+        // Turret (Large and heavy)
         graphics.fillStyle(darkColor);
-        graphics.fillRect(-16, -4, 4, 8);
-        graphics.fillRect(12, -4, 4, 8);
-        
-        // Front glacis plate
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(16, -8, 2, 16);
-        
-        // Engine deck
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-18, -5, 6, 10);
-        
-        // Turret - larger and more complex
+        graphics.fillCircle(0, 0, 11);
+
+        // Turret Bevel
+        graphics.fillStyle(0xffffff, 0.15);
+        graphics.fillCircle(-2, -2, 9);
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 10);
-        
-        // Turret armor blocks
+        graphics.fillCircle(0, 0, 9);
+
+        // Additional Turret Armor
         graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-8, -8, 16, 3);
-        graphics.fillRect(-10, -2, 20, 4);
-        graphics.strokeCircle(0, 0, 11, 2);
-        
-        // Heavy barrel (thicker) with muzzle brake
+        graphics.fillRect(-8, -8, 16, 4); // Rear bustle
+        graphics.strokeCircle(0, 0, 11.5); // Ring
+
+        // Heavy Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(10, -3, 18, 6);
-        graphics.fillRect(26, -4, 3, 8);
-        
-        // Commander's station with red accent
+        graphics.fillRect(10, -4, 20, 8);
+        graphics.fillStyle(0x000000, 0.3); // Inner
+        graphics.fillRect(10, 0, 20, 4);
+
+        // Muzzle Brake (Huge)
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(28, -5, 5, 10);
+
+        // Commander Hatch
         graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-5, -6, 3);
-        graphics.fillRect(-7, -8, 4, 2);
-        
-        // Multiple vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-12, -9, 2, 1);
-        graphics.fillRect(-4, -9, 2, 1);
-        graphics.fillRect(4, -9, 2, 1);
-        graphics.fillRect(10, -9, 2, 1);
+        graphics.fillCircle(-5, -6, 3.5);
+        graphics.fillStyle(0x000000, 0.2); // Hatch shadow
+        graphics.fillCircle(-5, -6, 2);
     }
 
     _drawTankDestroyer(graphics, baseColor, darkColor, typeAccentColor) {
-        // Tank Destroyer - Low profile, long barrel, sloped armor
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-16, -6, 34, 18, 4);
+
+        // Hull (Low profile)
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-16, -8, 32, 16, 3);
-        
-        // Sloped front armor with distinctive purple accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(16, -8, 16, 8, 20, 0);
-        
-        // Side armor details with zimmerit paste texture
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-14, -6, 28, 2);
-        graphics.fillRect(-14, 4, 28, 2);
-        graphics.fillRect(-15, -1, 30, 1);
-        
-        // Low profile turret/fighting compartment
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-16, 0, 32, 8, { tl: 0, tr: 0, bl: 3, br: 3 });
+
+        // Casemate (Fixed fighting compartment)
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(2, 0, 6);
-        
-        // Turret details
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-4, -4, 12, 8);
-        
-        // Very long barrel with distinctive TD profile
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(8, -1, 22, 2);
-        graphics.fillRect(28, -2, 3, 4);
-        
-        // Gun mantlet with purple accent
+        graphics.fillRoundedRect(-8, -6, 16, 12, 4);
+        graphics.fillStyle(0xffffff, 0.1); // Highlight
+        graphics.fillRoundedRect(-8, -6, 16, 6, { tl: 4, tr: 4, bl: 0, br: 0 });
+
+        // Sloped Front Armor
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(6, -3, 4, 6);
-        
-        // Camouflage netting points
+        graphics.fillTriangle(16, -8, 16, 8, 22, 0);
+
+        // Zimmerit / Side skirts
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-14, -7, 26, 2);
+        graphics.fillRect(-14, 5, 26, 2);
+
+        // Gun Mantlet
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillCircle(8, 0, 5);
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillCircle(8, 0, 3);
+
+        // Very Long Barrel
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(10, -1.5, 26, 3);
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRect(10, 0, 26, 1.5);
+
+        // Muzzle Brake
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(34, -2.5, 4, 5);
+
+        // Camo / Details
         graphics.fillStyle(0x333333);
-        graphics.fillCircle(-10, -6, 1);
-        graphics.fillCircle(0, -6, 1);
-        graphics.fillCircle(10, -6, 1);
+        graphics.fillCircle(-10, -4, 1.5);
+        graphics.fillCircle(0, -4, 1.5);
+        graphics.fillCircle(0, 4, 1.5);
     }
 
     _drawArtillery(graphics, baseColor, darkColor, typeAccentColor) {
-        // Artillery - Large, boxy, huge barrel, complex equipment
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-20, -8, 40, 22, 5);
+
+        // Hull (Boxy)
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-20, -10, 40, 20, 4);
-        
-        // Artillery hull details with distinctive yellow accents
+
+        // Hull Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-20, 0, 40, 10, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Warning/Safety markings
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-18, -8, 36, 3);
-        graphics.fillRect(-18, 5, 36, 3);
-        graphics.fillRect(-19, -2, 38, 2);
-        
-        // Equipment boxes and stowage
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-20, -8, 6, 6);
-        graphics.fillRect(-20, 2, 6, 6);
-        graphics.fillRect(14, -6, 4, 4);
-        graphics.fillRect(14, 2, 4, 4);
-        
-        // Large turret base
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(-2, 0, 9);
-        
-        // Turret ring and rotation mechanism
-        graphics.fillStyle(this.colors.metal);
-        graphics.strokeCircle(-2, 0, 10, 2);
-        graphics.fillRect(-8, -6, 12, 3);
-        
-        // Massive barrel (thicker and longer)
+        graphics.fillRect(-18, -8, 36, 4);
+        graphics.fillRect(-18, -2, 36, 2);
+
+        // Stabilizers (Deployed)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(7, -4, 25, 8);
-        
-        // Recoil system with yellow accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(5, -6, 8, 12);
-        graphics.fillRect(4, -2, 3, 4);
-        
-        // Stabilizer supports
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-22, -2, 4, 4);
-        graphics.fillRect(18, -2, 4, 4);
-        
-        // Elevation mechanism
+        graphics.fillRect(-24, -10, 4, 20); // Rear spades
+
+        // Large Turret Base
         graphics.fillStyle(darkColor);
-        graphics.fillRect(6, -8, 4, 16);
-        
-        // Artillery computer/rangefinder with yellow accents
+        graphics.fillRoundedRect(-10, -8, 20, 16, 4);
+        graphics.fillStyle(0x000000, 0.2); // Turret side depth
+        graphics.fillRoundedRect(-10, 0, 20, 8, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Massive Howitzer Barrel
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(0, -5, 28, 10);
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRect(0, 0, 28, 5);
+
+        // Recoil Cylinders
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-12, -8, 8, 4);
-        graphics.fillCircle(-8, -6, 2);
+        graphics.fillRect(5, -6, 10, 2);
+        graphics.fillRect(5, 4, 10, 2);
+
+        // Elevation Gear
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(0, 0, 6);
+        graphics.strokeCircle(0, 0, 6);
     }
 
     _drawFastAttack(graphics, baseColor, darkColor, typeAccentColor) {
-        // Fast Attack - Very small, angular, modern look
+        // Shadow (Blurred/Speed)
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRoundedRect(-10, -4, 24, 14, 3);
+
+        // Hull (Sleek)
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-10, -6, 20, 12, 2);
-        
-        // Modern angular armor with distinctive cyan accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-10, 0, 20, 6, { tl: 0, tr: 0, bl: 2, br: 2 });
+
+        // Angular Armor
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(10, -6, 10, 6, 14, 0);
-        
-        // Speed stripes for dynamic look with cyan accents
+        graphics.fillTriangle(10, -6, 10, 6, 16, 0); // Nose cone
+
+        // Racing Stripes/Speed lines
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -4, 16, 1);
-        graphics.fillRect(-8, 0, 16, 1);
-        graphics.fillRect(-8, 3, 16, 1);
-        
-        // Small, offset turret
+        graphics.fillRect(-8, -2, 16, 4);
+        graphics.fillStyle(baseColor);
+        graphics.fillRect(-10, -1, 20, 2); // Center line break
+
+        // Turret (Small, Offset)
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(3, 0, 4);
-        
-        // Short barrel with flash suppressor
+        graphics.fillCircle(2, 0, 4);
+
+        // Auto-cannon
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(7, -1, 8, 2);
-        graphics.fillRect(13, -2, 2, 4);
-        
-        // Modern optics
+        graphics.fillRect(6, -1, 10, 2);
+        graphics.fillRect(14, -2, 4, 4); // Muzzle
+
+        // Optics / Sensor package
         graphics.fillStyle(0x000000);
-        graphics.fillRect(1, -2, 2, 1);
-        graphics.fillCircle(5, -3, 1);
-        
-        // Reactive armor blocks with cyan accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -5, 3, 2);
-        graphics.fillRect(-2, -5, 3, 2);
-        graphics.fillRect(4, -5, 3, 2);
+        graphics.fillCircle(1, -2, 1.5);
+
+        // Wheels (if visible, but this has tracks in theory, though it looks like an armored car)
+        // Let's suggest wheel wells
+        graphics.fillStyle(0x000000, 0.4);
+        graphics.fillCircle(-6, 6, 3);
+        graphics.fillCircle(6, 6, 3);
+        graphics.fillCircle(-6, -6, 3);
+        graphics.fillCircle(6, -6, 3);
     }
 
     _drawInfantry(graphics, baseColor, accentColor) {
-        // Infantry squad - simple stick figures
-        graphics.lineStyle(2, baseColor);
-        
-        // First soldier
-        graphics.moveTo(-8, -5);
-        graphics.lineTo(-8, 5); // body
-        graphics.moveTo(-8, -2);
-        graphics.lineTo(-10, 0); // left arm
-        graphics.moveTo(-8, -2);
-        graphics.lineTo(-6, 0); // right arm
-        graphics.moveTo(-8, 5);
-        graphics.lineTo(-10, 7); // left leg
-        graphics.moveTo(-8, 5);
-        graphics.lineTo(-6, 7); // right leg
-        graphics.fillStyle(baseColor);
-        graphics.fillCircle(-8, -7, 2); // head
-        
-        // Second soldier
-        graphics.lineStyle(2, accentColor);
-        graphics.moveTo(-2, -5);
-        graphics.lineTo(-2, 5);
-        graphics.moveTo(-2, -2);
-        graphics.lineTo(-4, 0);
-        graphics.moveTo(-2, -2);
-        graphics.lineTo(0, 0);
-        graphics.moveTo(-2, 5);
-        graphics.lineTo(-4, 7);
-        graphics.moveTo(-2, 5);
-        graphics.lineTo(0, 7);
-        graphics.fillStyle(accentColor);
-        graphics.fillCircle(-2, -7, 2);
-        
-        // Third soldier
-        graphics.lineStyle(2, baseColor);
-        graphics.moveTo(4, -5);
-        graphics.lineTo(4, 5);
-        graphics.moveTo(4, -2);
-        graphics.lineTo(2, 0);
-        graphics.moveTo(4, -2);
-        graphics.lineTo(6, 0);
-        graphics.moveTo(4, 5);
-        graphics.lineTo(2, 7);
-        graphics.moveTo(4, 5);
-        graphics.lineTo(6, 7);
-        graphics.fillStyle(baseColor);
-        graphics.fillCircle(4, -7, 2);
+        // Infantry squad - Top down view with more detail
+        const drawSoldier = (x, y, color) => {
+            // Shadow
+            graphics.fillStyle(0x000000, 0.3);
+            graphics.fillCircle(x + 1, y + 1, 4.5);
+
+            // Shoulders/Vest
+            graphics.fillStyle(0x2d3748); // Dark grey gear
+            graphics.fillRoundedRect(x - 5, y - 3, 10, 6, 2);
+
+            // Helmet
+            graphics.fillStyle(color);
+            graphics.fillCircle(x, y, 3.5);
+
+            // Helmet shine
+            graphics.fillStyle(0xffffff, 0.3);
+            graphics.fillCircle(x - 1.5, y - 1.5, 1.5);
+
+            // Weapon (rifle)
+            graphics.fillStyle(0x000000);
+            graphics.fillRect(x + 1, y - 1, 7, 2); // Barrel
+            graphics.fillRect(x + 1, y, 2, 3);   // Grip
+
+            // Backpack/Radio
+            graphics.fillStyle(0x333333);
+            graphics.fillRect(x - 4, y - 2, 2, 4);
+        };
+
+        drawSoldier(-8, -5, baseColor);
+        drawSoldier(-2, 2, accentColor); // Squad leader logic for color?
+        drawSoldier(4, -5, baseColor);
     }
 
     _drawTracks(graphics, tankType) {
-        // Add tracks/treads for ground vehicles - enhanced with more detail
-        graphics.fillStyle(0x333333);
-        let trackWidth;
-        let trackHeight;
-        
+        // Add tracks/treads with proper length and wheel details
+        let trackLength;
+        let trackThickness;
+
         if (tankType === TANK_TYPES.HEAVY) {
-            trackWidth = 20;
-            trackHeight = 3;
+            trackLength = 38;
+            trackThickness = 5;
         } else if (tankType === TANK_TYPES.ARTILLERY) {
-            trackWidth = 22;
-            trackHeight = 3;
+            trackLength = 40;
+            trackThickness = 4;
         } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            trackWidth = 16;
-            trackHeight = 2;
+            trackLength = 34;
+            trackThickness = 4;
         } else { // LIGHT and FAST_ATTACK
-            trackWidth = 12;
-            trackHeight = 2;
+            trackLength = 26;
+            trackThickness = 3;
         }
-        
-        // Left track with road wheel details
-        graphics.fillRect(-trackWidth / 2, -15, trackWidth, trackHeight);
-        graphics.fillStyle(0x666666);
-        const wheelCount = Math.floor(trackWidth / 4);
-        for (let i = 0; i < wheelCount; i++) {
-            graphics.fillCircle(-trackWidth / 2 + 2 + i * 4, -15 + trackHeight / 2, 1);
+
+        // Calculate offsets to place tracks just outside the hull
+        let yTop, yBot;
+        if (tankType === TANK_TYPES.HEAVY) {
+            yTop = -17;
+            yBot = 12;
+        } else if (tankType === TANK_TYPES.ARTILLERY) {
+            yTop = -15; // Body -10 to 10? No Artillery is -10 to 10ish?
+            yBot = 11;
+        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
+            yTop = -14;
+            yBot = 10;
+        } else {
+            yTop = -11;
+            yBot = 8;
         }
-        
-        // Right track with road wheel details
-        graphics.fillStyle(0x333333);
-        graphics.fillRect(-trackWidth / 2, 13, trackWidth, trackHeight);
-        graphics.fillStyle(0x666666);
-        for (let i = 0; i < wheelCount; i++) {
-            graphics.fillCircle(-trackWidth / 2 + 2 + i * 4, 13 + trackHeight / 2, 1);
-        }
+
+        const drawTrack = (y) => {
+            const x = -trackLength / 2;
+
+            // Track Mat
+            graphics.fillStyle(0x1a1a1a);
+            graphics.fillRoundedRect(x, y, trackLength, trackThickness, 1);
+
+            // Segments
+            graphics.lineStyle(1, 0x000000, 0.4);
+            const segmentCount = Math.floor(trackLength / 3);
+            for (let i = 0; i < segmentCount; i++) {
+                graphics.lineBetween(x + 2 + i * 3, y, x + 2 + i * 3, y + trackThickness);
+            }
+
+            // Wheels
+            const wheelRadius = (trackThickness / 2);
+            const wheelY = y + trackThickness / 2;
+            const numWheels = Math.floor(trackLength / (wheelRadius * 2 + 2));
+
+            graphics.fillStyle(0x444444);
+            graphics.lineStyle(1, 0x000000, 0.5);
+
+            // Distribute wheels
+            const spacing = trackLength / numWheels;
+            for (let i = 0; i < numWheels; i++) {
+                const wx = x + spacing / 2 + i * spacing;
+                graphics.fillCircle(wx, wheelY, wheelRadius - 0.5);
+                graphics.strokeCircle(wx, wheelY, wheelRadius - 0.5);
+            }
+        };
+
+        drawTrack(yTop);
+        drawTrack(yBot);
     }
 
     _drawHelicopterSkids(graphics, typeAccentColor) {
@@ -719,292 +847,312 @@ class GraphicsManager {
     // ========================================
 
     _drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Light tank - Small, fast-looking with enhanced detail
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-8, -4, 20, 14, 3);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-10, -6, 20, 12, 2);
-        
-        // Hull armor plating with distinctive green accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-10, 0, 20, 6, { tl: 0, tr: 0, bl: 2, br: 2 });
+
+        // Accents
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-9, -5, 18, 1);
-        graphics.fillRect(-9, 4, 18, 1);
-        graphics.fillRect(-8, -1, 16, 1);
-        
-        // Small turret
+        graphics.fillRect(-8, -5, 16, 1);
+        graphics.fillRect(-8, 3, 16, 1);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(1, 1, 4.5);
+
+        // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(0, 0, 4);
-        
-        // Fast-looking barrel
+
+        // Bevel
+        graphics.fillStyle(0xffffff, 0.2);
+        graphics.fillCircle(-1, -1, 3);
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 3);
+
+        // Barrel
         graphics.fillStyle(this.colors.gunmetal);
         graphics.fillRect(4, -1, 8, 2);
-        graphics.fillRect(10, -1, 2, 2); // Muzzle brake
-        
-        // Vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-6, -4, 1, 1);
-        graphics.fillRect(2, -4, 1, 1);
+        graphics.fillRect(10, -1.5, 2, 3); // Muzzle brake
     }
 
     _drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Medium tank - Balanced design with enhanced details
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-10, -5, 24, 16, 4);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-12, -7, 24, 14, 3);
-        
-        // Hull armor plating with distinctive orange accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-10, -5, 20, 2);
-        graphics.fillRect(-10, 3, 20, 2);
-        graphics.fillRect(-11, -1, 22, 1);
-        
-        // Side skirts
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-12, 0, 24, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
+
+        // Skirts
         graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-12, -4, 2, 8);
-        graphics.fillRect(10, -4, 2, 8);
-        
-        // Medium turret
+        graphics.fillRect(-12, -6, 2, 12);
+        graphics.fillRect(10, -6, 2, 12);
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(1, 1, 6);
+
+        // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(0, 0, 5);
-        
-        // Medium barrel with thermal sleeve
+
+        // Bevel
+        graphics.fillStyle(0xffffff, 0.2);
+        graphics.fillCircle(-1, -1, 4);
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 4);
+
+        // Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(5, -2, 10, 4);
+        graphics.fillRect(5, -1.5, 12, 3);
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(7, -2, 6, 4); // Thermal sleeve with orange accent
+        graphics.fillRect(8, -1.5, 4, 3); // Sleeve
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(13, -1, 3, 2); // Muzzle brake
-        
-        // Commander cupola
+        graphics.fillRect(15, -2, 2, 4); // Muzzle
+
+        // Cupola
         graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-2, -3, 1);
+        graphics.fillCircle(-2, -2, 1.5);
     }
 
     _drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Panther tank - Sloped armor design with superior firepower
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-10, -5, 24, 16, 4);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-12, -7, 24, 14, 3);
-        
-        // Sloped front armor with distinctive orange accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-12, 0, 24, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
+
+        // Slopes
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(-12, -7, -12, 7, -6, -1); // Left slope
-        graphics.fillTriangle(12, -7, 12, 7, 6, -1); // Right slope
-        graphics.fillRect(-6, -5, 12, 2); // Front plate
-        graphics.fillRect(-10, 3, 20, 2); // Rear armor
-        graphics.fillRect(-11, -1, 22, 1); // Center stripe
-        
-        // Side armor
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-12, -4, 2, 8);
-        graphics.fillRect(10, -4, 2, 8);
-        
-        // Sloped turret
+        graphics.fillTriangle(10, -7, 10, 7, 4, 0); // Front slope
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(1, 1, 6);
+
+        // Turret (Sloped)
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 5);
-        // Add sloped turret detail
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(-3, -3, 3, -3, 0, -6);
-        
-        // Long barrel (high damage)
+        graphics.fillRoundedRect(-5, -5, 10, 10, 2);
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRoundedRect(-5, 0, 10, 5, { tl: 0, tr: 0, bl: 2, br: 2 });
+
+        // Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(5, -1, 12, 2);
-        graphics.fillRect(15, -1, 3, 2); // Muzzle brake
-        
-        // Vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-8, -5, 1, 1);
-        graphics.fillRect(4, -5, 1, 1);
+        graphics.fillRect(5, -1, 14, 2);
+        graphics.fillRect(17, -1.5, 2, 3); // Muzzle
     }
 
     _drawMiniMegaMinion(graphics, baseColor, typeAccentColor) {
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillEllipse(0, 0, 20, 8);
+
+        // Fuselage
         graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-9, -4, 18, 8, 4); // Fuselage
-        graphics.fillRect(6, -1, 9, 2); // Tail boom
+        graphics.fillRoundedRect(-9, -4, 18, 8, 4);
 
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-7, -1, 14, 1); // Body stripe
-        graphics.fillRect(8, 0, 6, 1); // Tail accent
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-9, 0, 18, 4, { tl: 0, tr: 0, bl: 4, br: 4 });
 
+        // Tail
+        graphics.fillStyle(baseColor);
+        graphics.fillRect(6, -2, 10, 2);
+
+        // Canopy
         graphics.fillStyle(0xaad4ff);
-        graphics.fillRoundedRect(-4, -3, 8, 6, 3); // Canopy
+        graphics.fillRoundedRect(-5, -3, 8, 5, 2);
+        // Glint
+        graphics.fillStyle(0xffffff, 0.6);
+        graphics.fillEllipse(-3, -2, 2, 1);
+
+        // Rotors
+        graphics.fillStyle(0x000000, 0.1);
+        graphics.fillCircle(0, 0, 15); // Blur
 
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-1, -7, 2, 14); // Rotor mast
-        graphics.fillRect(-13, -1, 26, 2); // Rotor blades
-        graphics.fillCircle(0, 0, 2); // Rotor hub
-        graphics.fillRect(12, -3, 5, 1); // Tail rotor top blade
-        graphics.fillRect(12, 2, 5, 1); // Tail rotor bottom blade
-        graphics.fillRect(14, -4, 1, 8); // Tail rotor mast
+        graphics.fillRect(-1, -8, 2, 16); // Mast/Center
+        graphics.fillRect(-14, -1, 28, 2); // Blade
+
+        // Tail Rotor
+        graphics.fillRect(16, -3, 1, 6);
     }
 
     _drawMiniHeavyTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Heavy tank - Large, imposing with complex details
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-12, -6, 28, 18, 5);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-14, -9, 28, 18, 4);
-        
-        // Complex armor scheme with distinctive red accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-14, 0, 28, 9, { tl: 0, tr: 0, bl: 4, br: 4 });
+
+        // Additional Armor
         graphics.fillStyle(typeAccentColor);
         graphics.fillRect(-12, -7, 24, 2);
         graphics.fillRect(-12, 5, 24, 2);
-        graphics.fillRect(-13, -2, 26, 2);
-        
-        // Spaced armor panels
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-14, -5, 3, 10);
-        graphics.fillRect(11, -5, 3, 10);
-        graphics.fillRect(-12, -8, 24, 1);
-        
-        // Large turret
+
+        // Turret Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(1, 1, 7);
+
+        // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(0, 0, 6);
-        
-        // Heavy barrel (thicker)
+
+        // Bevel
+        graphics.fillStyle(0xffffff, 0.15);
+        graphics.fillCircle(-2, -2, 4);
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 4);
+
+        // Barrel (Thick)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -3, 12, 6);
-        graphics.fillRect(16, -3, 4, 6); // Large muzzle brake
-        
-        // Commander's station with red accent
+        graphics.fillRect(6, -3, 14, 6);
+        graphics.fillRect(16, -3, 4, 6); // Brake
+
+        // Hatch
         graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-3, -5, 2);
-        
-        // Multiple vision blocks
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(-8, -7, 1, 1);
-        graphics.fillRect(-2, -7, 1, 1);
-        graphics.fillRect(4, -7, 1, 1);
+        graphics.fillCircle(-3, -3, 2);
     }
 
     _drawMiniTankDestroyer(graphics, baseColor, darkColor, typeAccentColor) {
-        // Tank destroyer - Low profile, long gun, distinctive sloped design
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-10, -4, 24, 14, 3);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-12, -6, 24, 12, 2);
-        
-        // Sloped front armor with purple accent
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-12, 0, 24, 6, { tl: 0, tr: 0, bl: 2, br: 2 });
+
+        // Sloped Front
         graphics.fillStyle(typeAccentColor);
         graphics.fillTriangle(12, -6, 12, 6, 16, 0);
-        
-        // Side armor details
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-11, -4, 22, 1);
-        graphics.fillRect(-11, 3, 22, 1);
-        graphics.fillRect(-10, -1, 20, 1);
-        
-        // Low profile fighting compartment
+
+        // Casemate
         graphics.fillStyle(darkColor);
         graphics.fillCircle(2, 0, 4);
-        
-        // Very long barrel (distinctive TD feature)
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -1, 16, 2);
-        graphics.fillRect(20, -2, 3, 4); // Large muzzle brake
-        
-        // Gun mantlet with purple accent
+
+        // Mantlet
         graphics.fillStyle(typeAccentColor);
         graphics.fillRect(4, -2, 4, 4);
+
+        // Long Barrel
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(6, -1.5, 18, 3);
+        graphics.fillRect(22, -2, 3, 4); // Brake
     }
 
     _drawMiniArtillery(graphics, baseColor, darkColor, typeAccentColor) {
-        // Artillery - Large, complex with distinctive equipment
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(-12, -5, 28, 16, 4);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-14, -7, 28, 14, 3);
-        
-        // Artillery hull details with yellow accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-14, 0, 28, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
+
+        // Details
         graphics.fillStyle(typeAccentColor);
         graphics.fillRect(-12, -5, 24, 2);
         graphics.fillRect(-12, 3, 24, 2);
-        graphics.fillRect(-13, -1, 26, 1);
-        
-        // Equipment boxes and stowage
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-14, -5, 4, 4);
-        graphics.fillRect(-14, 1, 4, 4);
-        graphics.fillRect(10, -4, 3, 3);
-        graphics.fillRect(10, 1, 3, 3);
-        
-        // Large turret base
+
+        // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(-1, 0, 5);
-        
-        // Massive barrel (thicker and longer than others)
+
+        // Big Barrel
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(4, -3, 18, 6);
-        
-        // Recoil system with yellow accent
+        graphics.fillRect(2, -3, 20, 6);
+
+        // Recoil
         graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(2, -4, 6, 8);
-        graphics.fillRect(1, -2, 3, 4);
-        
-        // Artillery computer/rangefinder with yellow accent
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -6, 6, 3);
-        graphics.fillCircle(-5, -4, 1);
+        graphics.fillRect(2, -3, 6, 6);
     }
 
     _drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor) {
-        // Fast attack - Modern, angular, high-tech appearance
+        // Shadow (Speed)
+        graphics.fillStyle(0x000000, 0.2);
+        graphics.fillRoundedRect(-8, -3, 20, 12, 2);
+
+        // Hull
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-10, -5, 20, 10, 1);
-        
-        // Modern angular armor with cyan accents
+
+        // Depth
+        graphics.fillStyle(0x000000, 0.15);
+        graphics.fillRoundedRect(-10, 0, 20, 5, { tl: 0, tr: 0, bl: 1, br: 1 });
+
+        // Stripes
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(10, -5, 10, 5, 14, 0);
-        
-        // Speed stripes for dynamic look with cyan accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -3, 16, 1);
-        graphics.fillRect(-8, 0, 16, 1);
-        graphics.fillRect(-8, 2, 16, 1);
-        
-        // Small, offset turret
+        graphics.fillTriangle(10, -5, 10, 5, 14, 0); // Nose
+        graphics.fillRect(-8, -1, 16, 2);
+
+        // Turret
         graphics.fillStyle(darkColor);
         graphics.fillCircle(3, 0, 3);
-        
-        // Short barrel with flash suppressor
+
+        // Weapon
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -1, 8, 2);
-        graphics.fillRect(12, -2, 2, 4); // Flash suppressor
-        
-        // Modern optics
-        graphics.fillStyle(0x000000);
-        graphics.fillRect(1, -2, 2, 1);
-        graphics.fillCircle(4, -3, 1);
-        
-        // Reactive armor blocks with cyan accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -4, 2, 1);
-        graphics.fillRect(-2, -4, 2, 1);
-        graphics.fillRect(4, -4, 2, 1);
+        graphics.fillRect(6, -1, 6, 2);
+        graphics.fillRect(10, -1.5, 2, 3);
     }
 
     _drawMiniInfantry(graphics, baseColor, accentColor) {
-        // Mini infantry squad - simple figures
-        graphics.lineStyle(1, baseColor);
-        
-        // First soldier
-        graphics.moveTo(-4, -3);
-        graphics.lineTo(-4, 2); // body
-        graphics.moveTo(-4, -1);
-        graphics.lineTo(-5, 0); // left arm
-        graphics.moveTo(-4, -1);
-        graphics.lineTo(-3, 0); // right arm
-        graphics.moveTo(-4, 2);
-        graphics.lineTo(-5, 3); // left leg
-        graphics.moveTo(-4, 2);
-        graphics.lineTo(-3, 3); // right leg
-        graphics.fillStyle(baseColor);
-        graphics.fillCircle(-4, -4, 1); // head
-        
-        // Second soldier
-        graphics.lineStyle(1, accentColor);
-        graphics.moveTo(0, -3);
-        graphics.lineTo(0, 2);
-        graphics.moveTo(0, -1);
-        graphics.lineTo(-1, 0);
-        graphics.moveTo(0, -1);
-        graphics.lineTo(1, 0);
-        graphics.moveTo(0, 2);
-        graphics.lineTo(-1, 3);
-        graphics.moveTo(0, 2);
-        graphics.lineTo(1, 3);
-        graphics.fillStyle(accentColor);
-        graphics.fillCircle(0, -4, 1);
+        // Mini infantry squad - Top down style to match main unit
+        const drawMicroSoldier = (x, y, color) => {
+            // Shadow
+            graphics.fillStyle(0x000000, 0.3);
+            graphics.fillCircle(x + 0.5, y + 0.5, 2.5);
+
+            // Shoulders/Vest
+            graphics.fillStyle(0x2d3748);
+            graphics.fillRoundedRect(x - 2.5, y - 1.5, 5, 3, 1);
+
+            // Head
+            graphics.fillStyle(color);
+            graphics.fillCircle(x, y, 2);
+
+            // Weapon hint
+            graphics.fillStyle(0x000000);
+            graphics.fillRect(x + 1, y - 1, 3, 1);
+        };
+
+        drawMicroSoldier(-5, -3, baseColor);
+        drawMicroSoldier(0, 3, accentColor);
+        drawMicroSoldier(5, -3, baseColor);
     }
 
     _drawMiniTracks(graphics, tankType) {
@@ -1020,11 +1168,11 @@ class GraphicsManager {
         } else { // LIGHT and FAST_ATTACK
             trackWidth = 12;
         }
-        
+
         // Track base with better definition
         graphics.fillRect(-trackWidth / 2, -12, trackWidth, 2);
         graphics.fillRect(-trackWidth / 2, 10, trackWidth, 2);
-        
+
         // Road wheels (more detailed)
         graphics.fillStyle(0x666666);
         const wheelCount = Math.floor(trackWidth / 4);
@@ -1062,13 +1210,13 @@ class GraphicsManager {
         graphics.fillStyle(this.colors.gunmetal);
         graphics.fillRoundedRect(-2, -4, 4, 8, 1);
         graphics.fillTriangle(-2, -4, 2, -4, 0, -8); // Pin
-        
+
         // Smoke clouds
         graphics.fillStyle(baseColor);
         graphics.fillEllipse(-6, -2, 6, 4);
         graphics.fillEllipse(0, -3, 8, 5);
         graphics.fillEllipse(6, -1, 5, 3);
-        
+
         // Smoke trails
         graphics.lineStyle(1, accentColor);
         graphics.moveTo(-4, 2);
@@ -1085,17 +1233,17 @@ class GraphicsManager {
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-8, 4, 16, 4, 2);
         graphics.fillRect(-2, 0, 4, 4); // Trail spade
-        
+
         // Barrel
         graphics.fillStyle(this.colors.gunmetal);
         graphics.fillRect(-1, -8, 2, 12);
         graphics.fillRect(-2, -8, 4, 2); // Breech
-        
+
         // Shell
         graphics.fillStyle(accentColor);
         graphics.fillRect(2, -6, 2, 4);
         graphics.fillTriangle(4, -4, 4, -2, 8, -3);
-        
+
         // Explosion indicator
         graphics.fillStyle(0xff0000);
         graphics.fillCircle(6, -3, 2);
