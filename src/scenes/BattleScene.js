@@ -3614,8 +3614,19 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        // Deploy the tank
-        this.deployTank(selectedCard.tankId, worldPoint.x, worldPoint.y);
+        // Deploy the tank(s) - handle swarm units
+        const payload = selectedCard.cardDef.payload || {};
+        if (payload.swarm && payload.count && selectedCard.tankId) {
+            // Deploy multiple units in a spread pattern
+            for (let i = 0; i < payload.count; i++) {
+                const ox = GameHelpers.randomInt(-15, 15);
+                const oy = GameHelpers.randomInt(-10, 10);
+                this.deployTank(selectedCard.tankId, worldPoint.x + ox, worldPoint.y + oy);
+            }
+        } else {
+            // Deploy single unit
+            this.deployTank(selectedCard.tankId, worldPoint.x, worldPoint.y);
+        }
 
         // Spend energy
         this.energy -= selectedCard.tankData.cost;
