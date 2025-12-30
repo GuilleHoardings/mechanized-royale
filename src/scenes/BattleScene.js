@@ -1582,7 +1582,9 @@ class BattleScene extends Phaser.Scene {
         };
         
         if (card.id === 'smoke_barrage') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, colors.smoke_barrage);
+            // Enhanced visual effect for smoke barrage
+            this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.smoke_barrage, 'SMOKE BARRAGE', isPlayerCast);
+            
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1598,7 +1600,9 @@ class BattleScene extends Phaser.Scene {
             this.playUISound('shoot');
             if (!isPlayerCast) console.log('🤖 AI: Cast Smoke Barrage at', Math.round(x), Math.round(y));
         } else if (card.id === 'artillery_strike') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, colors.artillery_strike);
+            // Enhanced visual effect for artillery strike
+            this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.artillery_strike, 'ARTILLERY STRIKE', isPlayerCast);
+            
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1949,6 +1953,129 @@ class BattleScene extends Phaser.Scene {
         gfx.strokeCircle(x, y, radius);
         gfx.setDepth(999);
         this.tweens.add({ targets: gfx, alpha: 0, duration: 500, onComplete: () => gfx.destroy() });
+    }
+
+    /**
+     * Create an enhanced visual effect for spell deployment with label and animations
+     * @param {number} x - World X coordinate
+     * @param {number} y - World Y coordinate
+     * @param {number} radius - Effect radius
+     * @param {number} color - Effect color
+     * @param {string} spellName - Name of the spell to display
+     * @param {boolean} isPlayerCast - Whether cast by player (affects positioning)
+     */
+    createEnhancedSpellEffect(x, y, radius, color, spellName, isPlayerCast) {
+        console.log('🎯 Enhanced spell effect:', spellName, 'at', x, y, 'radius:', radius);
+        
+        // Create VERY BRIGHT initial flash
+        const flash = this.add.graphics();
+        flash.fillStyle(0xffffff, 1.0);
+        flash.fillCircle(x, y, radius * 1.2);
+        flash.setDepth(1001);
+        
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            duration: 150,
+            ease: 'Power2',
+            onComplete: () => flash.destroy()
+        });
+        
+        // Create large filled circle background
+        const bgCircle = this.add.graphics();
+        bgCircle.fillStyle(color, 0.6);
+        bgCircle.fillCircle(x, y, radius);
+        bgCircle.setDepth(998);
+        
+        this.tweens.add({
+            targets: bgCircle,
+            alpha: 0,
+            duration: 1200,
+            ease: 'Power2',
+            onComplete: () => bgCircle.destroy()
+        });
+        
+        // Create multiple expanding rings for dramatic effect
+        for (let i = 0; i < 4; i++) {
+            const ring = this.add.graphics();
+            ring.lineStyle(6, color, 1);
+            ring.strokeCircle(x, y, 10);
+            ring.setDepth(999 + i);
+            
+            this.tweens.add({
+                targets: ring,
+                alpha: 0,
+                duration: 800,
+                delay: i * 150,
+                ease: 'Power2',
+                onComplete: () => ring.destroy()
+            });
+            
+            this.tweens.add({
+                targets: ring,
+                scaleX: radius / 10,
+                scaleY: radius / 10,
+                duration: 800,
+                delay: i * 150,
+                ease: 'Cubic.Out'
+            });
+        }
+        
+        // Add LARGE spell name label in center
+        const labelColor = isPlayerCast ? '#66ccff' : '#ff6666';
+        const label = this.add.text(x, y - 10, spellName, {
+            fontSize: '20px',
+            fill: labelColor,
+            fontFamily: 'Arial Black',
+            fontStyle: 'bold',
+            stroke: '#000000',
+            strokeThickness: 6
+        }).setOrigin(0.5);
+        label.setDepth(1002);
+        label.setScale(0);
+        
+        // Animate label with bounce
+        this.tweens.add({
+            targets: label,
+            scale: 1.2,
+            duration: 300,
+            ease: 'Back.out',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: label,
+                    scale: 0,
+                    alpha: 0,
+                    duration: 300,
+                    delay: 1000,
+                    ease: 'Back.in',
+                    onComplete: () => label.destroy()
+                });
+            }
+        });
+        
+        // Add MANY particles for extra visual flair
+        for (let i = 0; i < 16; i++) {
+            const angle = (Math.PI * 2 * i) / 16;
+            const particle = this.add.graphics();
+            particle.fillStyle(color, 1);
+            particle.fillCircle(0, 0, 6);
+            particle.setPosition(x, y);
+            particle.setDepth(1000);
+            
+            const targetX = x + Math.cos(angle) * radius * 1.2;
+            const targetY = y + Math.sin(angle) * radius * 1.2;
+            
+            this.tweens.add({
+                targets: particle,
+                x: targetX,
+                y: targetY,
+                alpha: 0,
+                duration: 700,
+                delay: i * 30,
+                ease: 'Power2',
+                onComplete: () => particle.destroy()
+            });
+        }
     }
 
     applyAreaEffect(x, y, radius, fn) {
@@ -3500,8 +3627,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     handleSpellCast(selectedCard, worldPoint) {
-        // Cast the spell at the target location
-        this.castSpell(selectedCard.cardId, worldPoint.x, worldPoint.y);
+        // Cast the spell at the target location using the enhanced version
+        this._castSpellInternal(selectedCard.cardDef, worldPoint.x, worldPoint.y, true);
 
         // Spend energy
         this.energy -= selectedCard.cardDef.cost;
