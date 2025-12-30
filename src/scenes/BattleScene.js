@@ -1143,44 +1143,6 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    updateBuildingHealth(building) {
-        // Safety check - building may have been destroyed
-        if (!building || !building.active || !building.healthFill) {
-            return;
-        }
-        
-        const config = UI_CONFIG.HEALTH_BARS.TOWER;
-        const healthPercent = building.health / building.maxHealth;
-        
-        building.healthFill.clear();
-        
-        // Use configured color thresholds for towers
-        let healthColor;
-        if (healthPercent > 0.75) {
-            healthColor = config.COLORS.HIGH;
-        } else if (healthPercent > 0.5) {
-            healthColor = config.COLORS.MEDIUM_HIGH;
-        } else if (healthPercent > 0.25) {
-            healthColor = config.COLORS.MEDIUM;
-        } else {
-            healthColor = config.COLORS.LOW;
-        }
-        
-        building.healthFill.fillStyle(healthColor);
-        building.healthFill.fillRect(
-            building.x - config.OFFSET_X, 
-            building.y - config.OFFSET_Y, 
-            config.WIDTH * healthPercent, 
-            config.HEIGHT
-        );
-        
-        // Update health text
-        if (building.healthText) {
-            building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
-            building.healthText.setFill(healthColor === config.COLORS.LOW ? '#ff0000' : '#ffffff');
-        }
-    }
-
     startEnergyRegeneration() {
         this.energyTimer = this.time.addEvent({
             delay: this.getEnergyRegenDelay(),
@@ -2591,12 +2553,13 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateBuildingHealth(building) {
-        const config = UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK; // Fallback to tank config
+        // Use appropriate config based on building type
+        const config = building.isMainTower || building.towerType ? UI_CONFIG.HEALTH_BARS.TOWER : (UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK);
         const healthPercent = building.health / building.maxHealth;
         
         building.healthFill.clear();
         
-        // Use configured color thresholds
+        // Use consistent color thresholds for all buildings (3 levels)
         let healthColor;
         if (healthPercent > 0.5) {
             healthColor = config.COLORS.HIGH;
@@ -2609,10 +2572,16 @@ class BattleScene extends Phaser.Scene {
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
             building.x - config.OFFSET_X, 
-            building.y - config.OFFSET_Y, 
+            building.y - config.OFFSET_Y + 12, 
             config.WIDTH * healthPercent, 
             config.HEIGHT
         );
+        
+        // Update health text
+        if (building.healthText) {
+            building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
+            building.healthText.setFill(healthColor === config.COLORS.LOW ? '#ff0000' : '#ffffff');
+        }
     }
 
     updateTankMovement(tank) {
