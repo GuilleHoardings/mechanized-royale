@@ -693,8 +693,11 @@ class BattleScene extends Phaser.Scene {
             return;
         }
         
+        // End any existing previews before starting new ones
+        this.endDeploymentPreview();
+        this.endSpellPreview();
+        
         this.selectedCard = index;
-        this.updateCardSelection();
         
         // Start appropriate preview based on card type
         const selectedCard = this.tankCards[index];
@@ -705,15 +708,14 @@ class BattleScene extends Phaser.Scene {
             this.startSpellPreview(0, 0, selectedCard); // Position will be updated on mouse move
         }
         
+        this.updateCardSelection();
+        
         // Show selection feedback
         this.showCardSelectionFeedback(index);
     }
 
     updateCardSelection() {
-        // End any active previews when changing selection
-        this.endDeploymentPreview();
-        this.endSpellPreview();
-        
+        // Update card visuals (don't end previews here - they're managed by selectTankCard)
         this.tankCards.forEach((card, index) => {
             if (index === this.selectedCard) {
                 card.setTint(0xfbbf24); // Golden selection color
@@ -1480,161 +1482,9 @@ class BattleScene extends Phaser.Scene {
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     }
 
-    onPointerDown(pointer) {
-        // Prevent interactions if battle has ended or game is paused
-        if (this.battleEnded || this.gamePaused) {
-            return;
-        }
-        
-        // Convert screen coordinates to world coordinates
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        const tileCoords = GameHelpers.worldToTile(worldX, worldY);
-        
-        const selectedCard = this.tankCards[this.selectedCard];
-        
-        // Handle spell/building preview
-        if (selectedCard.cardType === CARD_TYPES.SPELL || selectedCard.cardType === CARD_TYPES.BUILDING) {
-            this.startSpellPreview(worldX, worldY, selectedCard);
-            return;
-        }
-        
-        // Check if click started in valid deployment area for troops
-        if (GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones)) {
-            // Only show preview for troop cards
-            if (selectedCard.cardType === CARD_TYPES.TROOP) {
-                this.startDeploymentPreview(tileCoords.tileX, tileCoords.tileY, selectedCard);
-            }
-        }
-    }
 
-    onPointerMove(pointer) {
-        if (this.gamePaused) { return; }
-        
-        // Convert screen coordinates to world coordinates
-        const worldX = pointer.worldX;
-        const worldY = pointer.worldY;
-        
-        // Handle spell preview movement
-        if (this.spellPreview.active) {
-            this.updateSpellPreview(worldX, worldY);
-            return;
-        }
-        
-        // Handle troop deployment preview movement
-        if (!this.deploymentPreview.active) { return; }
-        
-        const tileCoords = GameHelpers.worldToTile(worldX, worldY);
-        
-        // Update preview position
-        this.updateDeploymentPreview(tileCoords.tileX, tileCoords.tileY);
-    }
 
-    onPointerUp(pointer) {
-        // Prevent deployment if game is paused
-        if (this.gamePaused) {
-            this.endDeploymentPreview();
-            this.endSpellPreview();
-            return;
-        }
-        
-        const selectedCard = this.tankCards[this.selectedCard];
-        if (selectedCard.cardType !== CARD_TYPES.TROOP) {
-            // Handle spells/buildings on pointer up, then end preview
-            const worldX = pointer.worldX;
-            const worldY = pointer.worldY;
-            this.endSpellPreview();
-            this.useNonTroopCardAt(selectedCard, worldX, worldY);
-            return;
-        }
-        if (!this.deploymentPreview.active) { return; }
-        
-        // If the preview is in a valid position, deploy the tank
-        if (this.deploymentPreview.validPosition) {
-            const selectedCardData = this.tankCards[this.selectedCard];
-            
-            // Check energy when actually deploying (use card cost)
-            if (this.energy >= selectedCardData.cardDef.cost) {
-                const snappedPos = GameHelpers.tileToWorld(
-                    this.deploymentPreview.tileX, 
-                    this.deploymentPreview.tileY
-                );
-                
-                // Swarm support (e.g., Skeleton Army)
-                const payload = selectedCardData.cardDef.payload || {};
-                if (payload.swarm && payload.count && selectedCardData.tankId) {
-                    for (let i = 0; i < payload.count; i++) {
-                        const ox = GameHelpers.randomInt(-15, 15);
-                        const oy = GameHelpers.randomInt(-10, 10);
-                        this.deployTank(selectedCardData.tankId, snappedPos.worldX + ox, snappedPos.worldY + oy);
-                    }
-                } else {
-                    this.deployTank(selectedCardData.tankId, snappedPos.worldX, snappedPos.worldY);
-                }
-                
-                // Notify AI of player card deployment (once per card, not per unit)
-                this.aiController.notifyAIOfPlayerAction('deploy', {
-                    cardId: selectedCardData.cardDef.id,
-                    cardName: selectedCardData.cardDef.name,
-                    tankId: selectedCardData.tankId,
-                    name: selectedCardData.tankData.name,
-                    type: selectedCardData.tankData.type,
-                    cost: selectedCardData.cardDef.cost,
-                    isSwarm: !!(selectedCardData.cardDef.payload && selectedCardData.cardDef.payload.swarm),
-                    count: selectedCardData.cardDef.payload?.count || 1
-                });
-                
-                // Deduct card cost
-                this.energy -= selectedCardData.cardDef.cost;
-                this.updateEnergyBar();
-                
-                // Cycle the used card
-                this.cycleCard(this.selectedCard);
-            } else {
-                // Show energy warning only when actually trying to deploy
-                this.showInsufficientEnergyFeedback();
-            }
-        }
-        
-        // Clean up preview
-        this.endDeploymentPreview();
-    }
 
-    startDeploymentPreview(tileX, tileY, selectedCardData) {
-        if (!this.deploymentPreview) return;
-        
-        this.deploymentPreview.active = true;
-        this.deploymentPreview.tankType = selectedCardData.tankData.type;
-        this.deploymentPreview.startedInBattlefield = true;
-        
-        // Create preview tank graphics (semi-transparent)
-        const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
-        this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
-            snappedPos.worldX, 
-            snappedPos.worldY, 
-            selectedCardData.tankData.type, 
-            true,
-            selectedCardData.tankData.id
-        );
-        this.deploymentPreview.previewTank.setAlpha(0.7);
-        this.deploymentPreview.previewTank.setDepth(15); // Above other tanks
-        
-        // Point the preview tank towards the enemy field
-        const enemyBase = this.buildings.find(b => !b.isPlayerOwned && b.isMainTower);
-        if (enemyBase) {
-            const initialAngle = GameHelpers.angle(snappedPos.worldX, snappedPos.worldY, enemyBase.x, enemyBase.y);
-            this.deploymentPreview.previewTank.setRotation(initialAngle);
-        } else {
-            // If no enemy base found, face upward (towards enemy side)
-            this.deploymentPreview.previewTank.setRotation(-Math.PI / 2); // -90 degrees = upward
-        }
-        
-        // Create preview attack range circle
-        this.deploymentPreview.previewRangeCircle = this.add.graphics();
-        this.deploymentPreview.previewRangeCircle.setDepth(20); // Higher depth to ensure visibility
-        
-        this.updateDeploymentPreview(tileX, tileY);
-    }
 
     // Use a non-troop card (spell or building) at world position
     useNonTroopCardAt(selectedCard, worldX, worldY) {
@@ -2128,7 +1978,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateDeploymentPreview(tileX, tileY) {
-        if (!this.deploymentPreview.active || !this.deploymentPreview.previewTank) {
+        if (!this.deploymentPreview.active) {
             return;
         }
         
@@ -2140,6 +1990,30 @@ class BattleScene extends Phaser.Scene {
             // Use stored coordinates (called from energy update)
             tileX = this.deploymentPreview.tileX;
             tileY = this.deploymentPreview.tileY;
+        }
+        
+        // Create preview graphics if they don't exist yet (lazy initialization)
+        if (!this.deploymentPreview.previewTank && this.deploymentPreview.selectedCard) {
+            const selectedCard = this.deploymentPreview.selectedCard;
+            const snappedPos = GameHelpers.tileToWorld(tileX, tileY);
+            
+            this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
+                snappedPos.worldX, snappedPos.worldY, 
+                selectedCard.tankData.type, true, selectedCard.tankData.id
+            );
+            this.deploymentPreview.previewTank.setAlpha(0.5);
+            this.deploymentPreview.previewTank.setDepth(15);
+            
+            // Create range circle if tank has range
+            const range = selectedCard.tankData.stats.range;
+            if (range > 0) {
+                this.deploymentPreview.previewRangeCircle = this.add.graphics();
+                this.deploymentPreview.previewRangeCircle.setDepth(25);
+            }
+        }
+        
+        if (!this.deploymentPreview.previewTank) {
+            return;
         }
         
         // Check if current position is valid
@@ -2267,25 +2141,12 @@ class BattleScene extends Phaser.Scene {
         
         this.deploymentPreview.active = true;
         this.deploymentPreview.tankType = selectedCard.tankData.type;
+        this.deploymentPreview.selectedCard = selectedCard; // Store for later
         
-        // Create preview tank
-        const worldPoint = this.cameras.main.getWorldPoint(this.input.activePointer.x, this.input.activePointer.y);
-        this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
-            worldPoint.x, worldPoint.y, 
-            selectedCard.tankData.type, true, selectedCard.tankData.id
-        );
-        this.deploymentPreview.previewTank.setAlpha(0.5);
-        
-        // Create range circle if tank has range
-        const range = selectedCard.tankData.stats.range;
-        if (range > 0) {
-            this.deploymentPreview.previewRangeCircle = this.add.graphics();
-            this.deploymentPreview.previewRangeCircle.setDepth(25);
-        }
-        
-        // Initial update
-        const tileCoords = GameHelpers.worldToTile(worldPoint.x, worldPoint.y);
-        this.updateDeploymentPreview(tileCoords.tileX, tileCoords.tileY);
+        // Don't create preview graphics yet - wait for mouse to move over battlefield
+        // This prevents creating preview at card position when card is clicked
+        this.deploymentPreview.previewTank = null;
+        this.deploymentPreview.previewRangeCircle = null;
     }
 
     /**
@@ -3600,9 +3461,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     onPointerUp(pointer) {
-        // End any active previews
-        this.endDeploymentPreview();
-        this.endSpellPreview();
+        // Don't end previews here - they should persist until a new card is selected
+        // Previews are ended by the deployment/spell handlers after successful use
     }
 
     handleTroopDeployment(selectedCard, tileCoords, worldPoint) {
@@ -3637,6 +3497,15 @@ class BattleScene extends Phaser.Scene {
 
         // Play deployment sound
         this.playUISound('deploy');
+        
+        // End preview and restart for newly cycled card
+        this.endDeploymentPreview();
+        const newSelectedCard = this.tankCards[this.selectedCard];
+        if (newSelectedCard && newSelectedCard.cardType === CARD_TYPES.TROOP) {
+            this.startDeploymentPreview(newSelectedCard);
+        } else if (newSelectedCard && (newSelectedCard.cardType === CARD_TYPES.SPELL || newSelectedCard.cardType === CARD_TYPES.BUILDING)) {
+            this.startSpellPreview(0, 0, newSelectedCard);
+        }
     }
 
     handleSpellCast(selectedCard, worldPoint) {
@@ -3649,6 +3518,15 @@ class BattleScene extends Phaser.Scene {
 
         // Cycle the card
         this.cycleCard(this.selectedCard);
+        
+        // End preview and restart for newly cycled card
+        this.endSpellPreview();
+        const newSelectedCard = this.tankCards[this.selectedCard];
+        if (newSelectedCard && newSelectedCard.cardType === CARD_TYPES.TROOP) {
+            this.startDeploymentPreview(newSelectedCard);
+        } else if (newSelectedCard && (newSelectedCard.cardType === CARD_TYPES.SPELL || newSelectedCard.cardType === CARD_TYPES.BUILDING)) {
+            this.startSpellPreview(0, 0, newSelectedCard);
+        }
     }
 
     handleBuildingDeployment(selectedCard, tileCoords, worldPoint) {
@@ -3672,6 +3550,15 @@ class BattleScene extends Phaser.Scene {
 
         // Play deployment sound
         this.playUISound('deploy');
+        
+        // End preview and restart for newly cycled card
+        this.endSpellPreview();
+        const newSelectedCard = this.tankCards[this.selectedCard];
+        if (newSelectedCard && newSelectedCard.cardType === CARD_TYPES.TROOP) {
+            this.startDeploymentPreview(newSelectedCard);
+        } else if (newSelectedCard && (newSelectedCard.cardType === CARD_TYPES.SPELL || newSelectedCard.cardType === CARD_TYPES.BUILDING)) {
+            this.startSpellPreview(0, 0, newSelectedCard);
+        }
     }
 
     deployBuilding(buildingId, x, y) {
