@@ -2419,16 +2419,6 @@ class BattleScene extends Phaser.Scene {
      * 
      * @returns {void}
      */
-    /**
-     * @deprecated Use the pointer down/move/up event system instead.
-     * This method is kept for backwards compatibility only.
-     */
-    onBattlefieldClick(pointer) {
-        // This method is now replaced by the pointer down/move/up system
-        // Keeping it for backwards compatibility but it should not be called
-        return;
-    }
-
     deployTank(tankId, x, y) {
         this._deployTankInternal(tankId, x, y, true);
     }
