@@ -2543,10 +2543,8 @@ class BattleScene extends Phaser.Scene {
                 tank.x += moveX;
                 tank.y += moveY;
                 
-                // Face movement direction (but only if moving significantly)
-                if (Math.abs(moveX) > 0.5 || Math.abs(moveY) > 0.5) {
-                    tank.setRotation(targetAngle);
-                }
+                // Always face movement direction when moving
+                tank.setRotation(targetAngle);
                 
                 tank.moving = true;
             }
