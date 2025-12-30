@@ -78,7 +78,7 @@ class GraphicsManager {
                 break;
             case TANK_TYPES.MEDIUM:
                 if (isPanther) {
-                    this._drawMegaMinion(graphics, baseColor, typeAccentColor);
+                    this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
                 } else {
                     this._drawMediumTank(graphics, baseColor, darkColor, typeAccentColor);
                 }
@@ -98,11 +98,9 @@ class GraphicsManager {
             }
         }
         
-        // Add tracks (except for Panther which has skids, and infantry which has none)
-        if (!isPanther && !isInfantry) {
+        // Add tracks (except for infantry which has none)
+        if (!isInfantry) {
             this._drawTracks(graphics, tankType);
-        } else if (isPanther) {
-            this._drawHelicopterSkids(graphics, typeAccentColor);
         }
         
         // Add the graphics to the container
@@ -112,23 +110,92 @@ class GraphicsManager {
     }
 
     /**
-     * Creates a mini tank graphic for cards
+     * Creates a mini card graphic for cards (troops, spells, buildings)
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} tankType - The type of tank (from TANK_TYPES)
-     * @param {string|null} tankId - Optional tank ID for special tanks
-     * @returns {Phaser.GameObjects.Container} The mini tank container
+     * @param {string} cardId - The card ID from CARDS
+     * @returns {Phaser.GameObjects.Container} The mini card graphic container
      */
-    createMiniTankGraphics(x, y, tankType, tankId = null) {
+    createMiniCardGraphics(x, y, cardId) {
+        const cardDef = CARDS[cardId];
+        if (!cardDef) {
+            console.error(`Card ${cardId} not found in CARDS`);
+            return this.scene.add.container(x, y);
+        }
+
+        const container = this.scene.add.container(x, y);
+        const graphics = this.scene.add.graphics();
+
+        switch (cardDef.type) {
+            case CARD_TYPES.TROOP:
+                this._drawMiniTroopGraphics(graphics, cardDef);
+                break;
+            case CARD_TYPES.SPELL:
+                this._drawMiniSpellGraphics(graphics, cardDef);
+                break;
+            case CARD_TYPES.BUILDING:
+                this._drawMiniBuildingGraphics(graphics, cardDef);
+                break;
+            default:
+                console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
+                break;
+        }
+
+        container.add(graphics);
+        container.setScrollFactor(0);
+        return container;
+    }
+
+    /**
+     * Creates building graphics for the battlefield
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {string} buildingId - The building ID from CARDS
+     * @returns {Phaser.GameObjects.Container} The building container
+     */
+    createBuildingGraphics(x, y, buildingId) {
+        const buildingDef = CARDS[buildingId];
+        if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
+            console.error(`Invalid building: ${buildingId}`);
+            return this.scene.add.container(x, y);
+        }
+
+        const container = this.scene.add.container(x, y);
+        const graphics = this.scene.add.graphics();
+
+        switch (buildingId) {
+            case 'v1_launcher':
+                this._drawV1LauncherBuilding(graphics);
+                break;
+            default:
+                this._drawGenericBuilding(graphics);
+                break;
+        }
+
+        container.add(graphics);
+        return container;
+    }
+
+    /**
+     * Draws mini graphics for troop cards
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
+     * @param {Object} cardDef - The card definition
+     */
+    _drawMiniTroopGraphics(graphics, cardDef) {
+        const tankId = cardDef.payload.tankId;
+        const tankData = TANK_DATA[tankId];
+        if (!tankData) {
+            console.error(`Tank data not found for ${tankId}`);
+            return;
+        }
+
+        const tankType = tankData.type;
         const baseColor = this.colors.player; // Always player color for cards
         const darkColor = this.colors.playerDark;
         const typeAccentColor = this.getTypeAccentColor(tankType, true);
         const isPanther = tankId === 'tank_panther';
         const isInfantry = tankId === 'tank_infantry';
-        
-        const tank = this.scene.add.container(x, y);
-        const graphics = this.scene.add.graphics();
-        
+
         // Special case for infantry
         if (isInfantry) {
             this._drawMiniInfantry(graphics, baseColor, typeAccentColor);
@@ -140,7 +207,7 @@ class GraphicsManager {
                 break;
             case TANK_TYPES.MEDIUM:
                 if (isPanther) {
-                    this._drawMiniMegaMinion(graphics, baseColor, typeAccentColor);
+                    this._drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor);
                 } else {
                     this._drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor);
                 }
@@ -159,18 +226,54 @@ class GraphicsManager {
                 break;
             }
         }
-        
-        // Add mini tracks (except for Panther and infantry)
-        if (!isPanther && !isInfantry) {
+
+        // Add mini tracks (except for infantry)
+        if (!isInfantry) {
             this._drawMiniTracks(graphics, tankType);
-        } else if (isPanther) {
-            this._drawMiniHelicopterSkids(graphics, typeAccentColor);
         }
-        
-        tank.add(graphics);
-        tank.setScrollFactor(0);
-        
-        return tank;
+    }
+
+    /**
+     * Draws mini graphics for spell cards
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
+     * @param {Object} cardDef - The card definition
+     */
+    _drawMiniSpellGraphics(graphics, cardDef) {
+        const spellColor = 0x8b5cf6; // Purple for spells
+        const accentColor = 0xa855f7;
+
+        switch (cardDef.id) {
+            case 'smoke_barrage':
+                this._drawMiniSmokeBarrage(graphics, spellColor, accentColor);
+                break;
+            case 'artillery_strike':
+                this._drawMiniArtilleryStrike(graphics, spellColor, accentColor);
+                break;
+            default:
+                // Generic spell icon
+                this._drawMiniGenericSpell(graphics, spellColor, accentColor);
+                break;
+        }
+    }
+
+    /**
+     * Draws mini graphics for building cards
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
+     * @param {Object} cardDef - The card definition
+     */
+    _drawMiniBuildingGraphics(graphics, cardDef) {
+        const buildingColor = 0x6b7280; // Gray for buildings
+        const accentColor = 0x9ca3af;
+
+        switch (cardDef.id) {
+            case 'v1_launcher':
+                this._drawMiniV1Launcher(graphics, buildingColor, accentColor);
+                break;
+            default:
+                // Generic building icon
+                this._drawMiniGenericBuilding(graphics, buildingColor, accentColor);
+                break;
+        }
     }
 
     // ========================================
@@ -259,6 +362,46 @@ class GraphicsManager {
         graphics.fillRect(-10, -7, 2, 1);
         graphics.fillRect(-2, -7, 2, 1);
         graphics.fillRect(6, -7, 2, 1);
+    }
+
+    _drawPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
+        // Panther Tank - Sloped armor design with superior firepower
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-15, -10, 30, 20, 4);
+        
+        // Sloped front armor with distinctive orange accents
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillTriangle(-15, -10, -15, 10, -8, -2); // Left slope
+        graphics.fillTriangle(15, -10, 15, 10, 8, -2); // Right slope
+        graphics.fillRect(-8, -8, 16, 3); // Front plate
+        graphics.fillRect(-13, 5, 26, 3); // Rear armor
+        graphics.fillRect(-14, -2, 28, 1); // Center stripe
+        
+        // Side armor
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-16, -6, 2, 12);
+        graphics.fillRect(14, -6, 2, 12);
+        
+        // Engine compartment
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(-15, -3, 4, 6);
+        
+        // Sloped turret
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 8);
+        // Add sloped turret detail
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillTriangle(-5, -5, 5, -5, 0, -10);
+        
+        // Long barrel (high damage)
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(8, -1, 18, 2);
+        graphics.fillRect(24, -2, 3, 4); // Muzzle brake
+        
+        // Vision blocks
+        graphics.fillStyle(0x000000);
+        graphics.fillRect(-12, -8, 2, 1);
+        graphics.fillRect(6, -8, 2, 1);
     }
 
     _drawMegaMinion(graphics, baseColor, typeAccentColor) {
@@ -634,6 +777,42 @@ class GraphicsManager {
         graphics.fillCircle(-2, -3, 1);
     }
 
+    _drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
+        // Panther tank - Sloped armor design with superior firepower
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-12, -7, 24, 14, 3);
+        
+        // Sloped front armor with distinctive orange accents
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillTriangle(-12, -7, -12, 7, -6, -1); // Left slope
+        graphics.fillTriangle(12, -7, 12, 7, 6, -1); // Right slope
+        graphics.fillRect(-6, -5, 12, 2); // Front plate
+        graphics.fillRect(-10, 3, 20, 2); // Rear armor
+        graphics.fillRect(-11, -1, 22, 1); // Center stripe
+        
+        // Side armor
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-12, -4, 2, 8);
+        graphics.fillRect(10, -4, 2, 8);
+        
+        // Sloped turret
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, 5);
+        // Add sloped turret detail
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillTriangle(-3, -3, 3, -3, 0, -6);
+        
+        // Long barrel (high damage)
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(5, -1, 12, 2);
+        graphics.fillRect(15, -1, 3, 2); // Muzzle brake
+        
+        // Vision blocks
+        graphics.fillStyle(0x000000);
+        graphics.fillRect(-8, -5, 1, 1);
+        graphics.fillRect(4, -5, 1, 1);
+    }
+
     _drawMiniMegaMinion(graphics, baseColor, typeAccentColor) {
         graphics.fillStyle(baseColor);
         graphics.fillRoundedRect(-9, -4, 18, 8, 4); // Fuselage
@@ -871,5 +1050,208 @@ class GraphicsManager {
         graphics.fillRect(6, 2, 1, 3); // Right strut
         graphics.fillStyle(typeAccentColor);
         graphics.fillRect(-6, 4, 12, 1); // Accent stripe on skids
+    }
+
+    // ========================================
+    // Mini Spell Drawing Methods
+    // ========================================
+
+    _drawMiniSmokeBarrage(graphics, baseColor, accentColor) {
+        // Smoke barrage - grenade with smoke effect
+        // Grenade body
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRoundedRect(-2, -4, 4, 8, 1);
+        graphics.fillTriangle(-2, -4, 2, -4, 0, -8); // Pin
+        
+        // Smoke clouds
+        graphics.fillStyle(baseColor);
+        graphics.fillEllipse(-6, -2, 6, 4);
+        graphics.fillEllipse(0, -3, 8, 5);
+        graphics.fillEllipse(6, -1, 5, 3);
+        
+        // Smoke trails
+        graphics.lineStyle(1, accentColor);
+        graphics.moveTo(-4, 2);
+        graphics.lineTo(-4, 6);
+        graphics.moveTo(0, 2);
+        graphics.lineTo(0, 6);
+        graphics.moveTo(4, 2);
+        graphics.lineTo(4, 6);
+    }
+
+    _drawMiniArtilleryStrike(graphics, baseColor, accentColor) {
+        // Artillery strike - howitzer with shell
+        // Gun carriage
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-8, 4, 16, 4, 2);
+        graphics.fillRect(-2, 0, 4, 4); // Trail spade
+        
+        // Barrel
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(-1, -8, 2, 12);
+        graphics.fillRect(-2, -8, 4, 2); // Breech
+        
+        // Shell
+        graphics.fillStyle(accentColor);
+        graphics.fillRect(2, -6, 2, 4);
+        graphics.fillTriangle(4, -4, 4, -2, 8, -3);
+        
+        // Explosion indicator
+        graphics.fillStyle(0xff0000);
+        graphics.fillCircle(6, -3, 2);
+    }
+
+    _drawMiniGenericSpell(graphics, baseColor, accentColor) {
+        // Generic spell - magical rune or star
+        graphics.fillStyle(baseColor);
+        graphics.fillCircle(0, 0, 8);
+
+        // Star pattern
+        graphics.fillStyle(accentColor);
+        for (let i = 0; i < 5; i++) {
+            const angle = (i * Math.PI * 2) / 5 - Math.PI / 2;
+            const x = Math.cos(angle) * 6;
+            const y = Math.sin(angle) * 6;
+            graphics.fillTriangle(0, 0, x * 0.3, y * 0.3, x, y);
+        }
+
+        // Inner circle
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(0, 0, 3);
+    }
+
+    // ========================================
+    // Mini Building Drawing Methods
+    // ========================================
+
+    _drawMiniV1Launcher(graphics, baseColor, accentColor) {
+        // V1 launcher - rocket launcher with missiles
+        // Base platform
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-8, 4, 16, 4, 2);
+
+        // Launcher frame
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-6, -6, 12, 10);
+        graphics.fillRect(-4, -8, 8, 2);
+
+        // Missiles
+        graphics.fillStyle(accentColor);
+        graphics.fillRect(-3, -4, 2, 6);
+        graphics.fillRect(1, -4, 2, 6);
+
+        // Missile tips
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillTriangle(-4, -4, -2, -4, -3, -8);
+        graphics.fillTriangle(0, -4, 2, -4, 1, -8);
+
+        // Launch rails
+        graphics.lineStyle(1, this.colors.metal);
+        graphics.moveTo(-6, 0);
+        graphics.lineTo(-6, 4);
+        graphics.moveTo(6, 0);
+        graphics.lineTo(6, 4);
+    }
+
+    _drawMiniGenericBuilding(graphics, baseColor, accentColor) {
+        // Generic building - bunker or tower
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-6, -6, 12, 12, 2);
+
+        // Roof
+        graphics.fillStyle(accentColor);
+        graphics.fillTriangle(-8, -6, 8, -6, 0, -10);
+
+        // Door/window
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-2, 2, 4, 4);
+
+        // Details
+        graphics.lineStyle(1, this.colors.gunmetal);
+        graphics.strokeRect(-6, -6, 12, 12);
+    }
+
+    // ========================================
+    // Full-size Building Drawing Methods
+    // ========================================
+
+    _drawV1LauncherBuilding(graphics) {
+        // V1 Launcher - rocket launcher building
+        const baseColor = 0x6b7280; // Gray
+        const accentColor = 0x9ca3af;
+        const metalColor = this.colors.gunmetal;
+
+        // Base platform
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-16, 8, 32, 8, 4);
+
+        // Main structure
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-12, -12, 24, 20, 3);
+
+        // Launcher rails
+        graphics.fillStyle(metalColor);
+        graphics.fillRect(-20, -8, 40, 4);
+        graphics.fillRect(-20, 0, 40, 4);
+
+        // Missile silos
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-18, -6, 8, 8, 2);
+        graphics.fillRoundedRect(-6, -6, 8, 8, 2);
+        graphics.fillRoundedRect(6, -6, 8, 8, 2);
+        graphics.fillRoundedRect(12, -6, 8, 8, 2);
+
+        // Missiles in silos
+        graphics.fillStyle(accentColor);
+        graphics.fillRect(-16, -4, 4, 4);
+        graphics.fillRect(-4, -4, 4, 4);
+        graphics.fillRect(8, -4, 4, 4);
+        graphics.fillRect(14, -4, 4, 4);
+
+        // Missile tips
+        graphics.fillStyle(metalColor);
+        graphics.fillTriangle(-17, -4, -15, -4, -16, -8);
+        graphics.fillTriangle(-5, -4, -3, -4, -4, -8);
+        graphics.fillTriangle(7, -4, 9, -4, 8, -8);
+        graphics.fillTriangle(13, -4, 15, -4, 14, -8);
+
+        // Control panel
+        graphics.fillStyle(metalColor);
+        graphics.fillRoundedRect(-8, 2, 16, 6, 1);
+
+        // Antenna
+        graphics.fillStyle(metalColor);
+        graphics.fillRect(-1, -16, 2, 4);
+        graphics.fillCircle(0, -18, 2);
+    }
+
+    _drawGenericBuilding(graphics) {
+        // Generic building - bunker
+        const baseColor = 0x6b7280; // Gray
+        const accentColor = 0x9ca3af;
+        const metalColor = this.colors.gunmetal;
+
+        // Main structure
+        graphics.fillStyle(baseColor);
+        graphics.fillRoundedRect(-15, -15, 30, 20, 4);
+
+        // Roof
+        graphics.fillStyle(accentColor);
+        graphics.fillTriangle(-18, -15, 18, -15, 0, -22);
+
+        // Door
+        graphics.fillStyle(metalColor);
+        graphics.fillRect(-4, 0, 8, 10);
+
+        // Windows
+        graphics.fillStyle(0x000000);
+        graphics.fillRect(-12, -8, 6, 4);
+        graphics.fillRect(6, -8, 6, 4);
+        graphics.fillRect(-12, 0, 6, 4);
+        graphics.fillRect(6, 0, 6, 4);
+
+        // Details
+        graphics.lineStyle(2, metalColor);
+        graphics.strokeRoundedRect(-15, -15, 30, 20, 4);
     }
 }
