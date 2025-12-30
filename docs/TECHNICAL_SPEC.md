@@ -2,15 +2,11 @@
 
 ## Architecture Overview
 
-Tank Tactics is a **client-only browser game** built with Phaser 3 and vanilla JavaScript. No server required - everything runs locally in the browser with AI opponents providing the challenge.
+Mechanized Royale is a **client-only browser game** built with Phaser 3 and vanilla JavaScript. No server required - everything runs locally in the browser with AI opponents providing the challenge.
 
 ### Game Style
 
 **Clash Royale-inspired vertical battlefield**:
-- Fixed camera view (no scrolling)
-- Vertical layout: Player base at bottom, enemy base at top
-- Deploy-only gameplay (no manual unit control)
-- Units automatically advance and engage enemies
 
 ### Core Systems
 

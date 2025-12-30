@@ -1,8 +1,9 @@
-# Copilot Instructions - Tank Tactics
+# Copilot Instructions - Mechanized Royale
+
 
 ## Project Architecture
 
-Tank Tactics is a **client-only Phaser 3 game** combining Clash Royale-style deployment with World of Tanks combat. No build tools - pure HTML/JS with Live Server for development.
+Mechanized Royale is a **client-only Phaser 3 game** combining Clash Royale-style deployment with World of Tanks combat. No build tools - pure HTML/JS with Live Server for development.
 
 ### Core Game Loop
 1. **Deployment Phase**: Player selects cards (4 visible from 8-card deck) and deploys tanks using energy system

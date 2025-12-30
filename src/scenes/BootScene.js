@@ -107,7 +107,7 @@ class BootScene extends Phaser.Scene {
         const y = GAME_CONFIG.HEIGHT / 2 + 40;
 
         // Title with glow effect (matching MenuScene style)
-        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'TANK TACTICS', {
+            const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'MECHANIZED ROYALE', {
             fontSize: '42px',
             fill: '#60a5fa',
             fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
@@ -116,7 +116,7 @@ class BootScene extends Phaser.Scene {
         titleGlow.setAlpha(0.4);
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
         
-        const title = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'TANK TACTICS', {
+            const title = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'MECHANIZED ROYALE', {
             fontSize: '42px',
             fill: '#f1f5f9',
             fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',

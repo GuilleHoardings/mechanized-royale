@@ -1,8 +1,9 @@
-# Game Design Document - Tank Tactics
+# Game Design Document - Mechanized Royale
+
 
 ## Executive Summary
 
-Tank Tactics is a single-player real-time strategy game inspired by Clash Royale's vertical battlefield and deployment mechanics, combined with World of Tanks' authentic tank warfare and progression systems. Players battle against AI opponents using strategic deployment and tank variety.
+Mechanized Royale is a single-player real-time strategy game inspired by Clash Royale's vertical battlefield and deployment mechanics, combined with World of Tanks' authentic tank warfare and progression systems. Players battle against AI opponents using strategic deployment and tank variety.
 
 In addition, to make it more interesting, it's not going to use only tanks, like in World of Tanks, but also different kind of units like buildings, air units and missiles (or something to that effect to fill in for Clash Royale spells).
 

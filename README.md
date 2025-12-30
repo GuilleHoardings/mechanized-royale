@@ -1,4 +1,4 @@
-# Tank Tactics - Clash Royale meets World of Tanks
+# Mechanized Royale - Clash Royale meets World of Tanks
 
 A real-time strategy game that combines the fast-paced tower defense mechanics of Clash Royale with the tactical depth and progression system of World of Tanks.
 

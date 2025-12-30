@@ -57,7 +57,7 @@ class MenuScene extends Phaser.Scene {
     
     createTitle() {
         // Glow effect
-        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'TANK TACTICS', {
+            const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'MECHANIZED ROYALE', {
             fontSize: '48px',
             fill: '#60a5fa',
             fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
@@ -67,7 +67,7 @@ class MenuScene extends Phaser.Scene {
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
         
         // Main title with gradient-like effect using stroke
-        const title = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'TANK TACTICS', {
+            const title = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'MECHANIZED ROYALE', {
             fontSize: '48px',
             fill: '#f1f5f9',
             fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',

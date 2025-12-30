@@ -1,4 +1,4 @@
-# Development Plan - Tank Tactics
+# Development Plan - Mechanized Royale
 
 ## Project Roadmap
 
