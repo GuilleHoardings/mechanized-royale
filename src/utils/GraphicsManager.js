@@ -343,125 +343,134 @@ class GraphicsManager {
     }
 
     _drawShermanTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
+        // Shadow (Oval for rounded cast hull)
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-14, -8, 32, 24, 6);
+        graphics.fillRoundedRect(-14, -12, 28, 24, 10);
 
-        // Hull
+        // Hull (Cast - very rounded)
         graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-15, -10, 30, 20, 4);
+        graphics.fillRoundedRect(-14, -11, 28, 22, 8);
 
-        // Hull Depth
+        // Hull Depth (Rounded)
         graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-15, 0, 30, 10, { tl: 0, tr: 0, bl: 4, br: 4 });
+        graphics.fillRoundedRect(-14, 0, 28, 11, { tl: 0, tr: 0, bl: 8, br: 8 });
 
-        // Side skirts (with independent shading)
+        // Transmission cover (Front)
         graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-16, -8, 2, 16);
-        graphics.fillRect(14, -8, 2, 16);
+        graphics.fillRoundedRect(8, -8, 4, 16, 2);
 
-        // Armor details
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-12, -7, 24, 2);
-        graphics.fillRect(-12, 5, 24, 2);
+        // Engine deck (Rear)
+        graphics.fillStyle(darkColor);
+        graphics.fillRoundedRect(-12, -9, 10, 18, 2);
 
-        // Engine deck
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-14, -4, 6, 8);
-        graphics.lineStyle(1, 0x000000, 0.4);
-        for (let i = 0; i < 4; i++) graphics.lineBetween(-14, -2 + i * 2, -8, -2 + i * 2);
+        // Star Insignia on Engine Deck
+        graphics.fillStyle(0xffffff, 0.7);
+        this._drawStar(graphics, -7, 0, 4);
 
         // Turret Shadow
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(2, 2, 9);
+        graphics.fillCircle(2, 2, 8);
 
-        // Turret
+        // Turret (Cast rounded)
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 8);
+        graphics.fillCircle(0, 0, 7.5);
 
-        // Turret Depth/Bevel
-        graphics.fillStyle(0xffffff, 0.15);
-        graphics.fillCircle(-2, -2, 6);
+        // Turret Bevel
+        graphics.fillStyle(0xffffff, 0.2);
+        graphics.fillCircle(-2, -2, 5);
         graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 6);
+        graphics.fillCircle(0, 0, 5);
 
-        // Turret details
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-6, -6, 12, 3); // Rear storage bust
-
-        // Barrel
+        // Mantelet (Boxy gun shield on round turret)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -2, 16, 4);
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRect(6, 0, 16, 2); // Barrel shadow
+        graphics.fillRoundedRect(4, -3, 4, 6, 1);
 
-        // Thermal sleeve
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(10, -2.5, 6, 5);
-
-        // Muzzle brake
+        // Barrel (Short, 75mm)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(22, -2.5, 3, 5);
+        graphics.fillRect(6, -1.5, 14, 3);
 
-        // Commander's cupola
+        // Commander's Cupola
         graphics.fillStyle(this.colors.metal);
-        graphics.fillCircle(-3, -3, 2.5);
+        graphics.fillCircle(-2, -3, 2.5);
+        graphics.fillStyle(0x000000, 0.5);
+        graphics.fillCircle(-2, -3, 1);
+    }
+
+    _drawStar(graphics, x, y, radius) {
+        const points = 5;
+        const innerRadius = radius * 0.4;
+        let step = Math.PI / points;
+        let angle = -Math.PI / 2;
+
+        graphics.beginPath();
+        graphics.moveTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+        for (let i = 0; i < points; i++) {
+            angle += step;
+            graphics.lineTo(x + Math.cos(angle) * innerRadius, y + Math.sin(angle) * innerRadius);
+            angle += step;
+            graphics.lineTo(x + Math.cos(angle) * radius, y + Math.sin(angle) * radius);
+        }
+        graphics.closePath();
+        graphics.fillPath();
     }
 
     _drawPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
+        // Shadow (Broader, boxy)
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-14, -8, 32, 24, 6);
+        graphics.fillRoundedRect(-16, -12, 32, 28, 2);
 
-        // Main Hull Body
+        // Hull (Angular, sloped)
         graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-15, -10, 30, 20, 4);
+        graphics.fillRoundedRect(-15, -12, 30, 24, 2);
 
-        // Depth shading
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-15, 0, 30, 10, { tl: 0, tr: 0, bl: 4, br: 4 });
+        // Side Skirts (Schurzen) - Top and Bottom
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(-14, -15, 28, 3); // Top skirt
+        graphics.fillRect(-14, 12, 28, 3); // Bottom skirt
 
-        // Sloped Glacis (Stylized)
+        // Skirt segments
+        graphics.lineStyle(1, 0x000000, 0.3);
+        for (let i = 0; i < 5; i++) {
+            graphics.lineBetween(-14 + i * 6, -15, -14 + i * 6, -12);
+            graphics.lineBetween(-14 + i * 6, 12, -14 + i * 6, 15);
+        }
+
+        // Sloped Glacis (Front)
         graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(14, -9, 14, 9, 6, 0); // Front nose cone effect
+        graphics.fillTriangle(15, -12, 15, 12, 5, 0);
 
-        // Side slopes visualization
-        graphics.fillStyle(baseColor);
-        // We draw triangles to simulate the sloped sides
-
-        // Engine Vents
+        // Engine Vents (Rear)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillCircle(-10, 0, 3);
-        graphics.lineStyle(1, 0x000000, 0.5);
-        graphics.strokeCircle(-10, 0, 3);
+        graphics.fillCircle(-10, -6, 2.5);
+        graphics.fillCircle(-10, 6, 2.5);
 
         // Turret Shadow
         graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(2, 2, 9);
+        graphics.fillRoundedRect(-6, -9, 16, 20, 4);
 
-        // Turret (Sloped styling - boxy but angled)
+        // Turret (Boxy with angled front)
         graphics.fillStyle(darkColor);
-        graphics.fillRoundedRect(-8, -8, 18, 16, 4);
+        graphics.fillRoundedRect(-8, -10, 16, 20, 2);
+
+        // Turret Depth
         graphics.fillStyle(0x000000, 0.2);
-        graphics.fillRoundedRect(-8, 0, 18, 8, { tl: 0, tr: 0, bl: 4, br: 4 });
+        graphics.fillRect(-8, 0, 16, 10);
 
-        // Turret Mask (Gun mount)
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRoundedRect(4, -6, 6, 12, 3);
+        // Gun Mantlet (Curved Saukompf)
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRoundedRect(6, -4, 5, 8, 2);
 
-        // Barrel (Long)
+        // Barrel (Long, 75mm L/70)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(8, -1.5, 20, 3);
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRect(8, 0, 20, 1.5);
+        graphics.fillRect(10, -2, 22, 4);
 
         // Muzzle Brake
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(28, -2.5, 4, 5);
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillRect(30, -3, 4, 6);
 
         // Commander Hatch
         graphics.fillStyle(this.colors.metal);
-        graphics.fillCircle(-4, -4, 3);
+        graphics.fillCircle(-4, -5, 3);
     }
 
     _drawMegaMinion(graphics, baseColor, typeAccentColor) {
