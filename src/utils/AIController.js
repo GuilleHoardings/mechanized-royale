@@ -521,15 +521,15 @@ class AIController {
             aiMainTower: buildings.some(b => !b.isPlayerOwned && b.isMainTower && b.health > 0)
         };
         
-        // Track if AI has an active supply convoy (spawner building)
-        // Supply convoys don't have towerType and are not main towers
-        const aiSupplyConvoys = buildings.filter(b => 
+        // Track if AI has an active V1 launcher (spawner building)
+        // V1 launchers don't have towerType and are not main towers
+        const aiV1Launchers = buildings.filter(b => 
             !b.isPlayerOwned && 
             !b.towerType && 
             !b.isMainTower && 
             b.health > 0
         );
-        this.aiStrategy.aiFurnaceActive = aiSupplyConvoys.length > 0;
+        this.aiStrategy.aiFurnaceActive = aiV1Launchers.length > 0;
     }
     
     /**
@@ -689,7 +689,7 @@ class AIController {
         // Mode-specific preferences using CARD IDs
         const modePreferences = {
             'aggressive': ['tiger', 'panther', 'infantry_platoon', 'jagdpanzer'],
-            'defensive': ['sherman', 'jagdpanzer', 'supply_convoy', 'artillery_strike'],
+            'defensive': ['sherman', 'jagdpanzer', 'v1_launcher', 'artillery_strike'],
             'counter-push': ['panther', 'jagdpanzer', 'sherman'],
             'split-push': ['infantry_platoon', 'panther'],
             'balanced': ['tiger', 'panther', 'sherman', 'jagdpanzer']
@@ -894,7 +894,7 @@ class AIController {
     }
     
     /**
-     * Choose strategic building placement position (for Supply Convoy etc)
+     * Choose strategic building placement position (for V1 Launcher etc)
      * @returns {Object|null} Position {x, y} or null
      */
     chooseAIBuildingPosition() {
@@ -1003,14 +1003,14 @@ class AIController {
             t.tankData.type === TANK_TYPES.LIGHT || t.tankData.type === TANK_TYPES.FAST_ATTACK
         ).length;
         
-        // PRIORITY 1: Consider placing Supply Convoy if no active one and enough energy
-        const supplyConvoyInHand = findCardInHand('supply_convoy');
-        if (supplyConvoyInHand && 
+        // PRIORITY 1: Consider placing V1 Launcher if no active one and enough energy
+        const v1LauncherInHand = findCardInHand('v1_launcher');
+        if (v1LauncherInHand && 
             !this.aiStrategy.aiFurnaceActive && 
             currentTime - this.aiStrategy.lastBuildingTime > 20000 && 
             energy >= 5) {
             if (Math.random() < 0.4) {
-                return { cardId: 'supply_convoy', reason: 'Spawner pressure - no active supply convoy', handIndex: supplyConvoyInHand.index };
+                return { cardId: 'v1_launcher', reason: 'Spawner pressure - no active V1 launcher', handIndex: v1LauncherInHand.index };
             }
         }
         

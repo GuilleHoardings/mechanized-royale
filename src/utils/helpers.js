@@ -36,7 +36,7 @@ const GameHelpers = {
     },
 
     /**
-     * Checks if a building is an actual tower (not a Supply Convoy or other deployable building).
+     * Checks if a building is an actual tower (not a V1 Launcher or other deployable building).
      * Towers have either a towerType ('left', 'right') or isMainTower property.
      * @param {Object} building - Building object to check
      * @returns {boolean} True if the building is an actual tower
@@ -243,7 +243,7 @@ const GameHelpers = {
      * @returns {'victory'|'defeat'|'draw'|null} - Result or null if no clear winner yet
      */
     determineBattleResult(buildings) {
-        // Filter for actual towers only, exclude Supply Convoys and other buildings
+        // Filter for actual towers only, exclude V1 Launchers and other buildings
         const actualTowers = buildings.filter(b => this.isActualTower(b));
         
         // Count towers for each side (each side starts with 3 towers)

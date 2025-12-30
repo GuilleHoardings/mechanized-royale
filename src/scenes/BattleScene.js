@@ -807,7 +807,7 @@ class BattleScene extends Phaser.Scene {
             const descY = 55;
             const desc = cardRef.cardDef.id === 'smoke_barrage' ? `Small area damage and brief stun.`
                         : cardRef.cardDef.id === 'artillery_strike' ? `Medium-radius area damage.`
-                        : cardRef.cardDef.id === 'supply_convoy' ? `Launches homing missiles that explode on impact.`
+                        : cardRef.cardDef.id === 'v1_launcher' ? `Launches homing missiles that explode on impact.`
                         : `Special card.`;
             const body = this.add.text(15, descY, desc, {
                 fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', wordWrap: { width: tooltipWidth - 30 }
@@ -1812,7 +1812,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Places a building (e.g., Supply Convoy) on the battlefield for either the player or AI.
+     * Places a building (e.g., V1 Launcher) on the battlefield for either the player or AI.
      * This internal method consolidates building placement logic, handling graphics, health,
      * ownership, missile launch loop, and timed destruction. Used by both player and AI systems.
      *
@@ -2711,7 +2711,7 @@ class BattleScene extends Phaser.Scene {
             'jagdpanzer',       // Tank destroyer
             'smoke_barrage',              // Smoke barrage for disruption
             'artillery_strike',         // Artillery strike for area damage
-            'supply_convoy',          // Supply convoy for sustained fire
+            'v1_launcher',          // V1 launcher for sustained fire
             'infantry_platoon'     // Infantry platoon for harassment
         ];
         

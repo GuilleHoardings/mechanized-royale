@@ -53,9 +53,9 @@ const CARDS = {
             knockback: 20
         }
     },
-    supply_convoy: {
-        id: 'supply_convoy',
-        name: 'Supply Convoy',
+    v1_launcher: {
+        id: 'v1_launcher',
+        name: 'V1 Launcher',
         type: CARD_TYPES.BUILDING,
         cost: 4,
         payload: {
@@ -88,6 +88,6 @@ const DEFAULT_PLAYER_DECK = [
     'jagdpanzer',
     'smoke_barrage',
     'artillery_strike',
-    'supply_convoy',
+    'v1_launcher',
     'infantry_platoon'
 ];
