@@ -1122,25 +1122,14 @@ class BattleScene extends Phaser.Scene {
         const config = UI_CONFIG.HEALTH_BARS.TOWER;
         
         this.buildings.forEach(building => {
-            // Health bar background
-            const healthBg = this.add.graphics();
-            healthBg.fillStyle(config.BACKGROUND_COLOR);
-            healthBg.fillRect(
-                building.x - config.OFFSET_X, 
-                building.y - config.OFFSET_Y, 
-                config.WIDTH, 
-                config.HEIGHT
-            );
-            building.healthBg = healthBg;
-
-            // Health bar fill
+            // Health bar fill (no background)
             const healthFill = this.add.graphics();
             building.healthFill = healthFill;
             
             // Health percentage text
             const healthText = this.add.text(
                 building.x, 
-                building.y - config.OFFSET_Y - 15, 
+                building.y - config.OFFSET_Y, 
                 `${building.health}/${building.maxHealth}`, {
                 fontSize: '14px',
                 fill: '#ffffff',
@@ -4440,8 +4429,11 @@ class BattleScene extends Phaser.Scene {
         }
         
         // Fade out the building
+        const tweenTargets = [building, building.healthFill, building.healthText];
+        if (building.healthBg) tweenTargets.push(building.healthBg);
+        
         this.tweens.add({
-            targets: [building, building.healthBg, building.healthFill, building.healthText],
+            targets: tweenTargets,
             alpha: 0,
             duration: 1000,
             onComplete: () => {
