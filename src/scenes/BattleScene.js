@@ -805,9 +805,9 @@ class BattleScene extends Phaser.Scene {
         if (!isTroop) {
             // Simple content for spells/buildings
             const descY = 55;
-            const desc = cardRef.cardDef.id === 'zap' ? `Small area damage and brief stun.`
-                        : cardRef.cardDef.id === 'fireball' ? `Medium-radius area damage.`
-                        : cardRef.cardDef.id === 'furnace' ? `Launches homing missiles that explode on impact.`
+            const desc = cardRef.cardDef.id === 'smoke_barrage' ? `Small area damage and brief stun.`
+                        : cardRef.cardDef.id === 'artillery_strike' ? `Medium-radius area damage.`
+                        : cardRef.cardDef.id === 'supply_convoy' ? `Launches homing missiles that explode on impact.`
                         : `Special card.`;
             const body = this.add.text(15, descY, desc, {
                 fontSize: '12px', fill: '#ffffff', fontFamily: 'Arial', wordWrap: { width: tooltipWidth - 30 }
@@ -1746,7 +1746,7 @@ class BattleScene extends Phaser.Scene {
     /**
      * Internal method that handles spell casting logic for both player and AI.
      *
-     * Applies the effects of a spell card (such as "zap" or "fireball") at the specified world coordinates.
+     * Applies the effects of a spell card (such as "smoke_barrage" or "artillery_strike") at the specified world coordinates.
      * Determines which targets are affected based on the caster (player or AI), applies damage, stun, and triggers visual/sound effects.
      *
      * @param {Object} card - The card definition object containing spell properties (e.g., id, payload).
@@ -1768,12 +1768,12 @@ class BattleScene extends Phaser.Scene {
         };
         
         const colors = {
-            zap: isPlayerCast ? 0x66ccff : 0xff6666,
-            fireball: isPlayerCast ? 0xff7733 : 0xff4400
+            smoke_barrage: isPlayerCast ? 0x66ccff : 0xff6666,
+            artillery_strike: isPlayerCast ? 0xff7733 : 0xff4400
         };
         
-        if (card.id === 'zap') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, colors.zap);
+        if (card.id === 'smoke_barrage') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, colors.smoke_barrage);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1787,9 +1787,9 @@ class BattleScene extends Phaser.Scene {
                 }
             });
             this.playUISound('shoot');
-            if (!isPlayerCast) console.log('🤖 AI: Cast Zap at', Math.round(x), Math.round(y));
-        } else if (card.id === 'fireball') {
-            this.createSpellEffectCircle(x, y, card.payload.radius, colors.fireball);
+            if (!isPlayerCast) console.log('🤖 AI: Cast Smoke Barrage at', Math.round(x), Math.round(y));
+        } else if (card.id === 'artillery_strike') {
+            this.createSpellEffectCircle(x, y, card.payload.radius, colors.artillery_strike);
             this.applyAreaEffect(x, y, card.payload.radius, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
@@ -1803,7 +1803,7 @@ class BattleScene extends Phaser.Scene {
             });
             this.combatSystem.showExplosionEffect(x, y, 1.2);
             this.playUISound('explosion');
-            if (!isPlayerCast) console.log('🤖 AI: Cast Fireball at', Math.round(x), Math.round(y));
+            if (!isPlayerCast) console.log('🤖 AI: Cast Artillery Strike at', Math.round(x), Math.round(y));
         }
     }
 
@@ -1812,7 +1812,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Places a building (e.g., Furnace) on the battlefield for either the player or AI.
+     * Places a building (e.g., Supply Convoy) on the battlefield for either the player or AI.
      * This internal method consolidates building placement logic, handling graphics, health,
      * ownership, missile launch loop, and timed destruction. Used by both player and AI systems.
      *
@@ -2705,14 +2705,14 @@ class BattleScene extends Phaser.Scene {
         // Enhanced AI deck using CARD IDs - mirrors player's card system
         // This allows AI to use spells, buildings, and special units
         this.aiDeck = [
-            'giant',            // Win condition - high HP building targeter
-            'mega_minion',      // High DPS support
-            'musketeer',        // Long-range support
-            'mini_pekka',       // Tank killer
-            'zap',              // Cheap spell for swarms/stun
-            'fireball',         // Medium spell for grouped enemies
-            'furnace',          // Spawner building
-            'skeleton_army'     // Swarm unit for distractions
+            'tiger',            // Win condition - heavy tank for base destruction
+            'panther',      // High DPS medium tank
+            'sherman',        // Long-range medium tank
+            'jagdpanzer',       // Tank destroyer
+            'smoke_barrage',              // Smoke barrage for disruption
+            'artillery_strike',         // Artillery strike for area damage
+            'supply_convoy',          // Supply convoy for sustained fire
+            'infantry_platoon'     // Infantry platoon for harassment
         ];
         
         // AI hand system - 4 cards visible from 8-card deck (same as player)
@@ -2725,7 +2725,7 @@ class BattleScene extends Phaser.Scene {
             mode: 'balanced',
             rushMode: false,
             defensiveMode: false,
-            preferredTankTypes: ['tank_musketeer', 'tank_megaminion']
+            preferredTankTypes: ['tank_sherman', 'tank_panther']
         };
         
         // AI energy regeneration
@@ -3035,10 +3035,10 @@ class BattleScene extends Phaser.Scene {
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
                 
                 // Prioritize medium/heavy tanks to counter
-                this.aiStrategy.preferredTankTypes = ['tank_musketeer', 'tank_giant'];
+                this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_tiger'];
             } else if (data.cost <= 2 && this.aiEnergy >= 4) {
                 // Player deployed cheap unit - might be rushing
-                this.aiStrategy.preferredTankTypes = ['tank_musketeer', 'tank_megaminion'];
+                this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_panther'];
                 
                 // Deploy sooner to match aggression
                 const nextDeploymentDelay = GameHelpers.randomInt(1500, 3000);

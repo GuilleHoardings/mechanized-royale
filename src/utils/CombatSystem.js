@@ -376,12 +376,12 @@ class CombatSystem {
      * @param {Object} attacker - Entity that destroyed the target
      */
     handleTargetDestruction(target, attacker) {
-        // Check if it's an actual tower, not a Furnace or other building
+        // Check if it's an actual tower, not a Supply Convoy or other building
         if (GameHelpers.isActualTower(target)) {
             // Tower destroyed - handle tower system
             this.scene.destroyTower(target);
         } else if (target.isPlayerOwned !== undefined) {
-            // Non-tower building destroyed (e.g., Furnace) - just destroy it visually
+            // Non-tower building destroyed (e.g., Supply Convoy) - just destroy it visually
             this.scene.destroyBuilding(target);
         } else {
             // Tank destroyed - create destruction effect

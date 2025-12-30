@@ -58,7 +58,7 @@ class GraphicsManager {
         const accentColor = isPlayerTank ? this.colors.playerAccent : this.colors.enemyAccent;
         const darkColor = isPlayerTank ? this.colors.playerDark : this.colors.enemyDark;
         const typeAccentColor = this.getTypeAccentColor(tankType, isPlayerTank);
-        const isMegaMinion = tankId === 'tank_megaminion';
+        const isPanther = tankId === 'tank_panther';
         
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
@@ -72,7 +72,7 @@ class GraphicsManager {
                 this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
             case TANK_TYPES.MEDIUM:
-                if (isMegaMinion) {
+                if (isPanther) {
                     this._drawMegaMinion(graphics, baseColor, typeAccentColor);
                 } else {
                     this._drawMediumTank(graphics, baseColor, darkColor, typeAccentColor);
@@ -92,8 +92,8 @@ class GraphicsManager {
                 break;
         }
         
-        // Add tracks (except for Mega Minion which has skids)
-        if (!isMegaMinion) {
+        // Add tracks (except for Panther which has skids)
+        if (!isPanther) {
             this._drawTracks(graphics, tankType);
         } else {
             this._drawHelicopterSkids(graphics, typeAccentColor);
@@ -117,7 +117,7 @@ class GraphicsManager {
         const baseColor = this.colors.player; // Always player color for cards
         const darkColor = this.colors.playerDark;
         const typeAccentColor = this.getTypeAccentColor(tankType, true);
-        const isMegaMinion = tankId === 'tank_megaminion';
+        const isPanther = tankId === 'tank_panther';
         
         const tank = this.scene.add.container(x, y);
         const graphics = this.scene.add.graphics();
@@ -128,7 +128,7 @@ class GraphicsManager {
                 this._drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
             case TANK_TYPES.MEDIUM:
-                if (isMegaMinion) {
+                if (isPanther) {
                     this._drawMiniMegaMinion(graphics, baseColor, typeAccentColor);
                 } else {
                     this._drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor);
@@ -148,8 +148,8 @@ class GraphicsManager {
                 break;
         }
         
-        // Add mini tracks (except for Mega Minion)
-        if (!isMegaMinion) {
+        // Add mini tracks (except for Panther)
+        if (!isPanther) {
             this._drawMiniTracks(graphics, tankType);
         } else {
             this._drawMiniHelicopterSkids(graphics, typeAccentColor);

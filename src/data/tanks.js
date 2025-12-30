@@ -1,9 +1,9 @@
 // Tank data definitions
 const TANK_DATA = {
     // Card-inspired units
-    tank_giant: {
-        id: 'tank_giant',
-        name: 'Giant',
+    tank_tiger: {
+        id: 'tank_tiger',
+        name: 'Tiger Tank',
         type: TANK_TYPES.HEAVY,
         tier: 2,
         stats: {
@@ -17,11 +17,11 @@ const TANK_DATA = {
         targetBuildingsOnly: true, // Only targets buildings
         cost: 5,
         abilities: [],
-        description: 'Prioritizes buildings; main win condition'
+        description: 'German heavy tank optimized for destroying enemy fortifications'
     },
-    tank_megaminion: {
-        id: 'tank_megaminion',
-        name: 'Mega Minion',
+    tank_panther: {
+        id: 'tank_panther',
+        name: 'Panther Tank',
         type: TANK_TYPES.MEDIUM,
         tier: 2,
         stats: {
@@ -34,11 +34,11 @@ const TANK_DATA = {
         },
         cost: 3,
         abilities: [],
-        description: 'High DPS support'
+        description: 'German medium tank with superior firepower and armor'
     },
-    tank_musketeer: {
-        id: 'tank_musketeer',
-        name: 'Musketeer',
+    tank_sherman: {
+        id: 'tank_sherman',
+        name: 'Sherman Tank',
         type: TANK_TYPES.MEDIUM,
         tier: 2,
         stats: {
@@ -51,11 +51,11 @@ const TANK_DATA = {
         },
         cost: 4,
         abilities: [],
-        description: 'Versatile long-range support'
+        description: 'Versatile American medium tank with long-range gun'
     },
-    tank_minipakka: {
-        id: 'tank_minipakka',
-        name: 'Mini P.E.K.K.A.',
+    tank_jagdpanzer: {
+        id: 'tank_jagdpanzer',
+        name: 'Jagdpanzer IV',
         type: TANK_TYPES.TANK_DESTROYER,
         tier: 2,
         stats: {
@@ -68,11 +68,11 @@ const TANK_DATA = {
         },
         cost: 4,
         abilities: [],
-        description: 'Deletes tanks when unopposed'
+        description: 'German tank destroyer with high penetration gun'
     },
-    tank_skeleton: {
-        id: 'tank_skeleton',
-        name: 'Skeleton',
+    tank_infantry: {
+        id: 'tank_infantry',
+        name: 'Infantry Squad',
         type: TANK_TYPES.LIGHT,
         tier: 1,
         stats: {
@@ -85,7 +85,7 @@ const TANK_DATA = {
         },
         cost: 1,
         abilities: [],
-        description: 'Cheap swarm unit'
+        description: 'Light infantry unit for scouting and harassment'
     }
 };
 

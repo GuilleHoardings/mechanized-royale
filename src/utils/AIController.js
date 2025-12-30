@@ -140,11 +140,11 @@ class AIController {
         const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
         if (playerTanks.length === 0) return;
         
-        // Check for Zap opportunity - multiple weak/grouped units
-        const zapCard = CARDS['zap'];
-        if (zapCard && this.scene.aiEnergy >= zapCard.cost) {
+        // Check for Smoke Barrage opportunity - multiple weak/grouped units
+        const smokeBarrageCard = CARDS['smoke_barrage'];
+        if (smokeBarrageCard && this.scene.aiEnergy >= smokeBarrageCard.cost) {
             // Find clusters of player units (2+ in radius)
-            const cluster = this.findBestSpellTarget(playerTanks, zapCard.payload.radius, 2);
+            const cluster = this.findBestSpellTarget(playerTanks, smokeBarrageCard.payload.radius, 2);
             if (cluster) {
                 // Prioritize zapping skeleton armies or low HP swarms
                 const swarmUnits = cluster.targets.filter(t => t.tankData && t.tankData.stats.hp <= 100);
@@ -152,23 +152,23 @@ class AIController {
                     // Queue spell with human-like reaction delay
                     const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
                     this.aiStrategy.pendingCounterDeploy = {
-                        cardId: 'zap',
+                        cardId: 'smoke_barrage',
                         isSpell: true,
                         deployTime: currentTime + reactionTime
                     };
                     // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
-                    console.log('🤖 AI: Spotted swarm, preparing Zap in', reactionTime, 'ms');
+                    console.log('🤖 AI: Spotted swarm, preparing Smoke Barrage in', reactionTime, 'ms');
                     return;
                 }
             }
         }
         
-        // Check for Fireball opportunity - high value grouped targets
-        const fireballCard = CARDS['fireball'];
-        if (fireballCard && this.scene.aiEnergy >= fireballCard.cost) {
+        // Check for Artillery Strike opportunity - high value grouped targets
+        const artilleryStrikeCard = CARDS['artillery_strike'];
+        if (artilleryStrikeCard && this.scene.aiEnergy >= artilleryStrikeCard.cost) {
             // Need 2+ medium/high value targets or 1 clump near tower
-            const cluster = this.findBestSpellTarget(playerTanks, fireballCard.payload.radius, 2);
+            const cluster = this.findBestSpellTarget(playerTanks, artilleryStrikeCard.payload.radius, 2);
             if (cluster) {
                 // Calculate total HP value in cluster
                 const totalValue = cluster.targets.reduce((sum, t) => {
@@ -181,13 +181,13 @@ class AIController {
                     // Queue spell with human-like reaction delay
                     const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
                     this.aiStrategy.pendingCounterDeploy = {
-                        cardId: 'fireball',
+                        cardId: 'artillery_strike',
                         isSpell: true,
                         deployTime: currentTime + reactionTime
                     };
                     // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
-                    console.log('🤖 AI: Spotted high-value cluster, preparing Fireball in', reactionTime, 'ms');
+                    console.log('🤖 AI: Spotted high-value cluster, preparing Artillery Strike in', reactionTime, 'ms');
                     return;
                 }
             }
@@ -202,13 +202,13 @@ class AIController {
                     // Queue spell with human-like reaction delay
                     const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
                     this.aiStrategy.pendingCounterDeploy = {
-                        cardId: 'fireball',
+                        cardId: 'artillery_strike',
                         isSpell: true,
                         deployTime: currentTime + reactionTime
                     };
                     // Update lastSpellTime when queueing to prevent spam
                     this.aiStrategy.lastSpellTime = currentTime;
-                    console.log('🤖 AI: Tower under attack, preparing Fireball in', reactionTime, 'ms');
+                    console.log('🤖 AI: Tower under attack, preparing Artillery Strike in', reactionTime, 'ms');
                     return;
                 }
             }
@@ -521,15 +521,15 @@ class AIController {
             aiMainTower: buildings.some(b => !b.isPlayerOwned && b.isMainTower && b.health > 0)
         };
         
-        // Track if AI has an active furnace (spawner building)
-        // Furnaces don't have towerType and are not main towers
-        const aiFurnaces = buildings.filter(b => 
+        // Track if AI has an active supply convoy (spawner building)
+        // Supply convoys don't have towerType and are not main towers
+        const aiSupplyConvoys = buildings.filter(b => 
             !b.isPlayerOwned && 
             !b.towerType && 
             !b.isMainTower && 
             b.health > 0
         );
-        this.aiStrategy.aiFurnaceActive = aiFurnaces.length > 0;
+        this.aiStrategy.aiFurnaceActive = aiSupplyConvoys.length > 0;
     }
     
     /**
@@ -581,7 +581,7 @@ class AIController {
                 strategy.defensiveMode = true;
             }
             // Only include preferred cards that are actually in the AI's deck
-            const criticalPreferred = ['mini_pekka', 'musketeer', 'mega_minion'];
+            const criticalPreferred = ['jagdpanzer', 'sherman', 'panther'];
             strategy.preferredCards = criticalPreferred.filter(card => this.scene.aiDeck.includes(card));
             return;
         }
@@ -673,26 +673,26 @@ class AIController {
         
         // Counter heavy tanks with mini pekka (tank killer)
         if (heavyCount >= 2) {
-            counters.push('mini_pekka');
+            counters.push('jagdpanzer');
         }
         
         // Counter swarm of light tanks with spells or splash
         if (lightCount >= 3) {
-            counters.push('zap', 'fireball');
+            counters.push('smoke_barrage', 'artillery_strike');
         }
         
         // Counter tank destroyers with swarm to surround them
         if (tdCount >= 1) {
-            counters.push('skeleton_army', 'mega_minion');
+            counters.push('infantry_platoon', 'panther');
         }
         
         // Mode-specific preferences using CARD IDs
         const modePreferences = {
-            'aggressive': ['giant', 'mega_minion', 'skeleton_army', 'mini_pekka'],
-            'defensive': ['musketeer', 'mini_pekka', 'furnace', 'fireball'],
-            'counter-push': ['mega_minion', 'mini_pekka', 'musketeer'],
-            'split-push': ['skeleton_army', 'mega_minion'],
-            'balanced': ['giant', 'mega_minion', 'musketeer', 'mini_pekka']
+            'aggressive': ['tiger', 'panther', 'infantry_platoon', 'jagdpanzer'],
+            'defensive': ['sherman', 'jagdpanzer', 'supply_convoy', 'artillery_strike'],
+            'counter-push': ['panther', 'jagdpanzer', 'sherman'],
+            'split-push': ['infantry_platoon', 'panther'],
+            'balanced': ['tiger', 'panther', 'sherman', 'jagdpanzer']
         };
         
         // Combine counters with mode preferences, filtering by cards actually in AI's deck
@@ -894,7 +894,7 @@ class AIController {
     }
     
     /**
-     * Choose strategic building placement position (for Furnace etc)
+     * Choose strategic building placement position (for Supply Convoy etc)
      * @returns {Object|null} Position {x, y} or null
      */
     chooseAIBuildingPosition() {
@@ -936,9 +936,9 @@ class AIController {
         
         // Combo patterns using CARD IDs
         const combos = {
-            'giant': ['mega_minion', 'musketeer'],      // Giant + ranged support
-            'mini_pekka': ['mega_minion'],               // Mini Pekka + air support
-            'musketeer': ['skeleton_army'],              // Musketeer + distraction
+            'tiger': ['panther', 'sherman'],      // Tiger + ranged support
+            'jagdpanzer': ['panther'],               // Jagdpanzer + air support
+            'sherman': ['infantry_platoon'],              // Sherman + distraction
         };
         
         const comboOptions = combos[primaryCardId];
@@ -1003,46 +1003,46 @@ class AIController {
             t.tankData.type === TANK_TYPES.LIGHT || t.tankData.type === TANK_TYPES.FAST_ATTACK
         ).length;
         
-        // PRIORITY 1: Consider placing Furnace if no active one and enough energy
-        const furnaceInHand = findCardInHand('furnace');
-        if (furnaceInHand && 
+        // PRIORITY 1: Consider placing Supply Convoy if no active one and enough energy
+        const supplyConvoyInHand = findCardInHand('supply_convoy');
+        if (supplyConvoyInHand && 
             !this.aiStrategy.aiFurnaceActive && 
             currentTime - this.aiStrategy.lastBuildingTime > 20000 && 
             energy >= 5) {
             if (Math.random() < 0.4) {
-                return { cardId: 'furnace', reason: 'Spawner pressure - no active furnace', handIndex: furnaceInHand.index };
+                return { cardId: 'supply_convoy', reason: 'Spawner pressure - no active supply convoy', handIndex: supplyConvoyInHand.index };
             }
         }
         
-        // PRIORITY 2: Counter swarms with Zap
-        const zapInHand = findCardInHand('zap');
-        if (zapInHand && lightPlayerTanks >= 3) {
+        // PRIORITY 2: Counter swarms with Smoke Barrage
+        const smokeBarrageInHand = findCardInHand('smoke_barrage');
+        if (smokeBarrageInHand && lightPlayerTanks >= 3) {
             if (Math.random() < 0.5) {
-                return { cardId: 'zap', reason: `Counter swarm - ${lightPlayerTanks} light units detected`, handIndex: zapInHand.index };
+                return { cardId: 'smoke_barrage', reason: `Counter swarm - ${lightPlayerTanks} light units detected`, handIndex: smokeBarrageInHand.index };
             }
         }
         
-        // PRIORITY 3: Counter heavy pushes with Mini Pekka
-        const miniPekkaInHand = findCardInHand('mini_pekka');
-        if (miniPekkaInHand && heavyPlayerTanks >= 1) {
+        // PRIORITY 3: Counter heavy pushes with Jagdpanzer
+        const jagdpanzerInHand = findCardInHand('jagdpanzer');
+        if (jagdpanzerInHand && heavyPlayerTanks >= 1) {
             if (Math.random() < 0.6) {
-                return { cardId: 'mini_pekka', reason: `Counter heavy - ${heavyPlayerTanks} heavy tank(s) detected`, handIndex: miniPekkaInHand.index };
+                return { cardId: 'jagdpanzer', reason: `Counter heavy - ${heavyPlayerTanks} heavy tank(s) detected`, handIndex: jagdpanzerInHand.index };
             }
         }
         
-        // PRIORITY 4: Deploy Giant as win condition when we have support
-        const giantInHand = findCardInHand('giant');
-        if (giantInHand && energy >= 7 && aiTanks.length >= 1) {
+        // PRIORITY 4: Deploy Tiger as win condition when we have support
+        const tigerInHand = findCardInHand('tiger');
+        if (tigerInHand && energy >= 7 && aiTanks.length >= 1) {
             if (Math.random() < 0.5) {
-                return { cardId: 'giant', reason: `Win condition - ${aiTanks.length} support units ready, ${energy} energy`, handIndex: giantInHand.index };
+                return { cardId: 'tiger', reason: `Win condition - ${aiTanks.length} support units ready, ${energy} energy`, handIndex: tigerInHand.index };
             }
         }
         
-        // PRIORITY 5: Deploy Skeleton Army as distraction or counter
-        const skeletonArmyInHand = findCardInHand('skeleton_army');
-        if (skeletonArmyInHand) {
+        // PRIORITY 5: Deploy Infantry Platoon as distraction or counter
+        const infantryPlatoonInHand = findCardInHand('infantry_platoon');
+        if (infantryPlatoonInHand) {
             if (playerTanks.some(t => t.tankData.stats.damage >= 100) && Math.random() < 0.4) {
-                return { cardId: 'skeleton_army', reason: 'Distraction - high damage enemy detected', handIndex: skeletonArmyInHand.index };
+                return { cardId: 'infantry_platoon', reason: 'Distraction - high damage enemy detected', handIndex: infantryPlatoonInHand.index };
             }
         }
         
@@ -1066,7 +1066,7 @@ class AIController {
                     const card = CARDS[item.cardId];
                     if (!card.payload.tankId) return false;
                     const data = TANK_DATA[card.payload.tankId];
-                    return data && (data.stats.damage >= 80 || item.cardId === 'giant');
+                    return data && (data.stats.damage >= 80 || item.cardId === 'tiger');
                 });
                 if (aggressivePicks.length > 0) {
                     chosenItem = aggressivePicks[Math.floor(Math.random() * aggressivePicks.length)];
@@ -1412,15 +1412,15 @@ class AIController {
         
         // Counter-pick table using CARD IDs
         const counters = {
-            [TANK_TYPES.HEAVY]: ['mini_pekka', 'skeleton_army'],     // Mini Pekka shreds tanks, skeletons distract
-            [TANK_TYPES.LIGHT]: ['zap', 'mega_minion'],               // Zap for swarms, Mega Minion for damage
-            [TANK_TYPES.FAST_ATTACK]: ['zap', 'mega_minion'],
-            [TANK_TYPES.TANK_DESTROYER]: ['skeleton_army', 'giant'], // Swarm to overwhelm, Giant to tank
-            [TANK_TYPES.ARTILLERY]: ['mega_minion', 'mini_pekka'],   // Fast units to reach artillery
-            [TANK_TYPES.MEDIUM]: ['mini_pekka', 'musketeer']
+            [TANK_TYPES.HEAVY]: ['jagdpanzer', 'infantry_platoon'],     // Jagdpanzer shreds tanks, infantry distract
+            [TANK_TYPES.LIGHT]: ['smoke_barrage', 'panther'],               // Smoke for swarms, Panther for damage
+            [TANK_TYPES.FAST_ATTACK]: ['smoke_barrage', 'panther'],
+            [TANK_TYPES.TANK_DESTROYER]: ['infantry_platoon', 'tiger'], // Swarm to overwhelm, Tiger to tank
+            [TANK_TYPES.ARTILLERY]: ['panther', 'jagdpanzer'],   // Fast units to reach artillery
+            [TANK_TYPES.MEDIUM]: ['jagdpanzer', 'sherman']
         };
         
-        const counterOptions = counters[playerTankData.type] || ['mega_minion'];
+        const counterOptions = counters[playerTankData.type] || ['panther'];
         
         // Find affordable counter from cards
         for (const cardId of counterOptions) {

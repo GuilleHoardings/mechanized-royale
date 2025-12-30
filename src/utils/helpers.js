@@ -36,7 +36,7 @@ const GameHelpers = {
     },
 
     /**
-     * Checks if a building is an actual tower (not a Furnace or other deployable building).
+     * Checks if a building is an actual tower (not a Supply Convoy or other deployable building).
      * Towers have either a towerType ('left', 'right') or isMainTower property.
      * @param {Object} building - Building object to check
      * @returns {boolean} True if the building is an actual tower
@@ -217,8 +217,8 @@ const GameHelpers = {
         return {
             player: {
                 tanks: [
-                    'tank_skeleton', 'tank_megaminion', 'tank_musketeer', 'tank_minipakka',
-                    'tank_giant', 'tank_skeleton', 'tank_megaminion', 'tank_musketeer'
+                    'tank_infantry', 'tank_panther', 'tank_sherman', 'tank_jagdpanzer',
+                    'tank_tiger', 'tank_infantry', 'tank_panther', 'tank_sherman'
                 ], // Starting 8-card deck
                 resources: { credits: 1000, research: 0 },
                 progress: { level: 1, xp: 0 },
@@ -243,7 +243,7 @@ const GameHelpers = {
      * @returns {'victory'|'defeat'|'draw'|null} - Result or null if no clear winner yet
      */
     determineBattleResult(buildings) {
-        // Filter for actual towers only, exclude Furnaces and other buildings
+        // Filter for actual towers only, exclude Supply Convoys and other buildings
         const actualTowers = buildings.filter(b => this.isActualTower(b));
         
         // Count towers for each side (each side starts with 3 towers)
