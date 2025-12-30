@@ -54,54 +54,18 @@ class GraphicsManager {
      * @returns {Phaser.GameObjects.Container} The tank container
      */
     createTankGraphics(x, y, tankType, isPlayerTank, tankId = null) {
-        const baseColor = isPlayerTank ? this.colors.player : this.colors.enemy;
-        const accentColor = isPlayerTank ? this.colors.playerAccent : this.colors.enemyAccent;
-        const darkColor = isPlayerTank ? this.colors.playerDark : this.colors.enemyDark;
-        const typeAccentColor = this.getTypeAccentColor(tankType, isPlayerTank);
-        const isPanther = tankId === 'tank_panther';
-        const isInfantry = tankId === 'tank_infantry';
-
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
 
         // Create graphics object for drawing
         const graphics = this.scene.add.graphics();
 
-        // Special case for infantry
-        if (isInfantry) {
-            this._drawInfantry(graphics, baseColor, accentColor);
-        } else {
-            // Draw the tank based on type
-            switch (tankType) {
-                case TANK_TYPES.LIGHT:
-                    this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.MEDIUM:
-                    if (isPanther) {
-                        this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
-                    } else {
-                        this._drawMediumTank(graphics, baseColor, darkColor, typeAccentColor);
-                    }
-                    break;
-                case TANK_TYPES.HEAVY:
-                    this._drawHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.TANK_DESTROYER:
-                    this._drawTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.ARTILLERY:
-                    this._drawArtillery(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.FAST_ATTACK:
-                    this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-            }
-        }
-
-        // Add tracks (except for infantry which has none)
-        if (!isInfantry) {
-            this._drawTracks(graphics, tankType);
-        }
+        // Use unified drawing method
+        this.drawUnitGraphics(graphics, tankId || tankType, {
+            isPlayer: isPlayerTank,
+            scale: 1.0,
+            showTracks: true
+        });
 
         // Add the graphics to the container
         tank.add(graphics);
@@ -177,6 +141,83 @@ class GraphicsManager {
     }
 
     /**
+     * Draws graphics for a specific unit by ID
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
+     * @param {string} unitId - The unit ID (e.g., 'tank_tiger', 'tank_sherman')
+     * @param {Object} options - Options: isPlayer, scale, showTracks
+     */
+    drawUnitGraphics(graphics, unitId, options = {}) {
+        const isPlayer = options.isPlayer !== undefined ? options.isPlayer : true;
+        const scale = options.scale || 1.0;
+        const showTracks = options.showTracks !== undefined ? options.showTracks : true;
+
+        const baseColor = isPlayer ? this.colors.player : this.colors.enemy;
+        const darkColor = isPlayer ? this.colors.playerDark : this.colors.enemyDark;
+        const accentColor = isPlayer ? this.colors.playerAccent : this.colors.enemyAccent;
+
+        // Get tank data if available to determine type/accent
+        const tankData = TANK_DATA[unitId];
+        const tankType = tankData ? tankData.type : null;
+        const typeAccentColor = tankType ? this.getTypeAccentColor(tankType, isPlayer) : accentColor;
+
+        // Apply scale
+        if (scale !== 1.0) {
+            graphics.setScale(scale);
+        }
+
+        // Draw specific unit
+        switch (unitId) {
+            case 'tank_infantry':
+                this._drawInfantry(graphics, baseColor, accentColor);
+                return; // Infantry has no tracks
+            case 'tank_tiger':
+                this._drawTigerTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case 'tank_panther':
+                this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case 'tank_sherman':
+                this._drawShermanTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case 'tank_jagdpanzer':
+                this._drawJagdpanzer(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            // Fallbacks for types if specific ID not found
+            case TANK_TYPES.LIGHT:
+                this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case TANK_TYPES.HEAVY:
+                this._drawTigerTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case TANK_TYPES.MEDIUM:
+                this._drawShermanTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case TANK_TYPES.ARTILLERY:
+                this._drawArtillery(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case TANK_TYPES.FAST_ATTACK:
+                this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            default:
+                console.warn(`No draw method for unit: ${unitId}, falling back to Medium`);
+                this._drawShermanTank(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+        }
+
+        // Draw tracks if needed
+        if (showTracks) {
+            // Determine track type based on unit or fallback
+            let trackParam = tankType || TANK_TYPES.MEDIUM;
+            // Map specific units to track types if needed
+            if (unitId === 'tank_tiger') trackParam = TANK_TYPES.HEAVY;
+            if (unitId === 'tank_jagdpanzer') trackParam = TANK_TYPES.TANK_DESTROYER;
+            if (unitId === 'tank_sherman' || unitId === 'tank_panther') trackParam = TANK_TYPES.MEDIUM;
+
+            this._drawTracks(graphics, trackParam);
+        }
+    }
+
+    /**
      * Draws mini graphics for troop cards
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
      * @param {Object} cardDef - The card definition
@@ -184,53 +225,18 @@ class GraphicsManager {
     _drawMiniTroopGraphics(graphics, cardDef) {
         const tankId = cardDef.payload.tankId;
         const tankData = TANK_DATA[tankId];
+
         if (!tankData) {
             console.error(`Tank data not found for ${tankId}`);
             return;
         }
 
-        const tankType = tankData.type;
-        const baseColor = this.colors.player; // Always player color for cards
-        const darkColor = this.colors.playerDark;
-        const typeAccentColor = this.getTypeAccentColor(tankType, true);
-        const isPanther = tankId === 'tank_panther';
-        const isInfantry = tankId === 'tank_infantry';
-
-        // Special case for infantry
-        if (isInfantry) {
-            this._drawMiniInfantry(graphics, baseColor, typeAccentColor);
-        } else {
-            // Draw the mini tank based on type
-            switch (tankType) {
-                case TANK_TYPES.LIGHT:
-                    this._drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.MEDIUM:
-                    if (isPanther) {
-                        this._drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor);
-                    } else {
-                        this._drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor);
-                    }
-                    break;
-                case TANK_TYPES.HEAVY:
-                    this._drawMiniHeavyTank(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.TANK_DESTROYER:
-                    this._drawMiniTankDestroyer(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.ARTILLERY:
-                    this._drawMiniArtillery(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-                case TANK_TYPES.FAST_ATTACK:
-                    this._drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor);
-                    break;
-            }
-        }
-
-        // Add mini tracks (except for infantry)
-        if (!isInfantry) {
-            this._drawMiniTracks(graphics, tankType);
-        }
+        // Use the unified drawing method with scaling
+        this.drawUnitGraphics(graphics, tankId, {
+            isPlayer: true,
+            scale: 0.7, // Scale down for card
+            showTracks: true
+        });
     }
 
     /**
@@ -262,16 +268,15 @@ class GraphicsManager {
      * @param {Object} cardDef - The card definition
      */
     _drawMiniBuildingGraphics(graphics, cardDef) {
-        const buildingColor = 0x6b7280; // Gray for buildings
-        const accentColor = 0x9ca3af;
+        graphics.setScale(0.6); // Scale down for card
 
         switch (cardDef.id) {
             case 'v1_launcher':
-                this._drawMiniV1Launcher(graphics, buildingColor, accentColor);
+                this._drawV1LauncherBuilding(graphics);
                 break;
             default:
                 // Generic building icon
-                this._drawMiniGenericBuilding(graphics, buildingColor, accentColor);
+                this._drawGenericBuilding(graphics);
                 break;
         }
     }
@@ -337,7 +342,7 @@ class GraphicsManager {
         graphics.fillCircle(0, 0, 1);
     }
 
-    _drawMediumTank(graphics, baseColor, darkColor, typeAccentColor) {
+    _drawShermanTank(graphics, baseColor, darkColor, typeAccentColor) {
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillRoundedRect(-14, -8, 32, 24, 6);
@@ -514,7 +519,7 @@ class GraphicsManager {
         graphics.fillRect(-5, 3, 10, 2);
     }
 
-    _drawHeavyTank(graphics, baseColor, darkColor, typeAccentColor) {
+    _drawTigerTank(graphics, baseColor, darkColor, typeAccentColor) {
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillRoundedRect(-18, -10, 36, 26, 6);
@@ -585,7 +590,7 @@ class GraphicsManager {
         graphics.fillCircle(-5, -6, 2);
     }
 
-    _drawTankDestroyer(graphics, baseColor, darkColor, typeAccentColor) {
+    _drawJagdpanzer(graphics, baseColor, darkColor, typeAccentColor) {
         // Shadow
         graphics.fillStyle(0x000000, 0.3);
         graphics.fillRoundedRect(-16, -6, 34, 18, 4);
@@ -842,363 +847,7 @@ class GraphicsManager {
         graphics.fillRect(-6, 7, 12, 1); // Accent stripe on skids
     }
 
-    // ========================================
-    // Mini Tank Drawing Methods (for cards)
-    // ========================================
 
-    _drawMiniLightTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-8, -4, 20, 14, 3);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-10, -6, 20, 12, 2);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-10, 0, 20, 6, { tl: 0, tr: 0, bl: 2, br: 2 });
-
-        // Accents
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-8, -5, 16, 1);
-        graphics.fillRect(-8, 3, 16, 1);
-
-        // Turret Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(1, 1, 4.5);
-
-        // Turret
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 4);
-
-        // Bevel
-        graphics.fillStyle(0xffffff, 0.2);
-        graphics.fillCircle(-1, -1, 3);
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 3);
-
-        // Barrel
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(4, -1, 8, 2);
-        graphics.fillRect(10, -1.5, 2, 3); // Muzzle brake
-    }
-
-    _drawMiniMediumTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-10, -5, 24, 16, 4);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-12, -7, 24, 14, 3);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-12, 0, 24, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
-
-        // Skirts
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-12, -6, 2, 12);
-        graphics.fillRect(10, -6, 2, 12);
-
-        // Turret Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(1, 1, 6);
-
-        // Turret
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 5);
-
-        // Bevel
-        graphics.fillStyle(0xffffff, 0.2);
-        graphics.fillCircle(-1, -1, 4);
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 4);
-
-        // Barrel
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(5, -1.5, 12, 3);
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(8, -1.5, 4, 3); // Sleeve
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(15, -2, 2, 4); // Muzzle
-
-        // Cupola
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-2, -2, 1.5);
-    }
-
-    _drawMiniPantherTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-10, -5, 24, 16, 4);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-12, -7, 24, 14, 3);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-12, 0, 24, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
-
-        // Slopes
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(10, -7, 10, 7, 4, 0); // Front slope
-
-        // Turret Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(1, 1, 6);
-
-        // Turret (Sloped)
-        graphics.fillStyle(darkColor);
-        graphics.fillRoundedRect(-5, -5, 10, 10, 2);
-        graphics.fillStyle(0x000000, 0.2);
-        graphics.fillRoundedRect(-5, 0, 10, 5, { tl: 0, tr: 0, bl: 2, br: 2 });
-
-        // Barrel
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(5, -1, 14, 2);
-        graphics.fillRect(17, -1.5, 2, 3); // Muzzle
-    }
-
-    _drawMiniMegaMinion(graphics, baseColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillEllipse(0, 0, 20, 8);
-
-        // Fuselage
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-9, -4, 18, 8, 4);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-9, 0, 18, 4, { tl: 0, tr: 0, bl: 4, br: 4 });
-
-        // Tail
-        graphics.fillStyle(baseColor);
-        graphics.fillRect(6, -2, 10, 2);
-
-        // Canopy
-        graphics.fillStyle(0xaad4ff);
-        graphics.fillRoundedRect(-5, -3, 8, 5, 2);
-        // Glint
-        graphics.fillStyle(0xffffff, 0.6);
-        graphics.fillEllipse(-3, -2, 2, 1);
-
-        // Rotors
-        graphics.fillStyle(0x000000, 0.1);
-        graphics.fillCircle(0, 0, 15); // Blur
-
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-1, -8, 2, 16); // Mast/Center
-        graphics.fillRect(-14, -1, 28, 2); // Blade
-
-        // Tail Rotor
-        graphics.fillRect(16, -3, 1, 6);
-    }
-
-    _drawMiniHeavyTank(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-12, -6, 28, 18, 5);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-14, -9, 28, 18, 4);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-14, 0, 28, 9, { tl: 0, tr: 0, bl: 4, br: 4 });
-
-        // Additional Armor
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-12, -7, 24, 2);
-        graphics.fillRect(-12, 5, 24, 2);
-
-        // Turret Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(1, 1, 7);
-
-        // Turret
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 6);
-
-        // Bevel
-        graphics.fillStyle(0xffffff, 0.15);
-        graphics.fillCircle(-2, -2, 4);
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(0, 0, 4);
-
-        // Barrel (Thick)
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -3, 14, 6);
-        graphics.fillRect(16, -3, 4, 6); // Brake
-
-        // Hatch
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillCircle(-3, -3, 2);
-    }
-
-    _drawMiniTankDestroyer(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-10, -4, 24, 14, 3);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-12, -6, 24, 12, 2);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-12, 0, 24, 6, { tl: 0, tr: 0, bl: 2, br: 2 });
-
-        // Sloped Front
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(12, -6, 12, 6, 16, 0);
-
-        // Casemate
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(2, 0, 4);
-
-        // Mantlet
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(4, -2, 4, 4);
-
-        // Long Barrel
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -1.5, 18, 3);
-        graphics.fillRect(22, -2, 3, 4); // Brake
-    }
-
-    _drawMiniArtillery(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(-12, -5, 28, 16, 4);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-14, -7, 28, 14, 3);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-14, 0, 28, 7, { tl: 0, tr: 0, bl: 3, br: 3 });
-
-        // Details
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-12, -5, 24, 2);
-        graphics.fillRect(-12, 3, 24, 2);
-
-        // Turret
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(-1, 0, 5);
-
-        // Big Barrel
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(2, -3, 20, 6);
-
-        // Recoil
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(2, -3, 6, 6);
-    }
-
-    _drawMiniFastAttack(graphics, baseColor, darkColor, typeAccentColor) {
-        // Shadow (Speed)
-        graphics.fillStyle(0x000000, 0.2);
-        graphics.fillRoundedRect(-8, -3, 20, 12, 2);
-
-        // Hull
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-10, -5, 20, 10, 1);
-
-        // Depth
-        graphics.fillStyle(0x000000, 0.15);
-        graphics.fillRoundedRect(-10, 0, 20, 5, { tl: 0, tr: 0, bl: 1, br: 1 });
-
-        // Stripes
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillTriangle(10, -5, 10, 5, 14, 0); // Nose
-        graphics.fillRect(-8, -1, 16, 2);
-
-        // Turret
-        graphics.fillStyle(darkColor);
-        graphics.fillCircle(3, 0, 3);
-
-        // Weapon
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(6, -1, 6, 2);
-        graphics.fillRect(10, -1.5, 2, 3);
-    }
-
-    _drawMiniInfantry(graphics, baseColor, accentColor) {
-        // Mini infantry squad - Top down style to match main unit
-        const drawMicroSoldier = (x, y, color) => {
-            // Shadow
-            graphics.fillStyle(0x000000, 0.3);
-            graphics.fillCircle(x + 0.5, y + 0.5, 2.5);
-
-            // Shoulders/Vest
-            graphics.fillStyle(0x2d3748);
-            graphics.fillRoundedRect(x - 2.5, y - 1.5, 5, 3, 1);
-
-            // Head
-            graphics.fillStyle(color);
-            graphics.fillCircle(x, y, 2);
-
-            // Weapon hint
-            graphics.fillStyle(0x000000);
-            graphics.fillRect(x + 1, y - 1, 3, 1);
-        };
-
-        drawMicroSoldier(-5, -3, baseColor);
-        drawMicroSoldier(0, 3, accentColor);
-        drawMicroSoldier(5, -3, baseColor);
-    }
-
-    _drawMiniTracks(graphics, tankType) {
-        // Enhanced tracks with more detail
-        graphics.fillStyle(0x333333);
-        let trackWidth;
-        if (tankType === TANK_TYPES.HEAVY) {
-            trackWidth = 16;
-        } else if (tankType === TANK_TYPES.ARTILLERY) {
-            trackWidth = 18;
-        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            trackWidth = 14;
-        } else { // LIGHT and FAST_ATTACK
-            trackWidth = 12;
-        }
-
-        // Track base with better definition
-        graphics.fillRect(-trackWidth / 2, -12, trackWidth, 2);
-        graphics.fillRect(-trackWidth / 2, 10, trackWidth, 2);
-
-        // Road wheels (more detailed)
-        graphics.fillStyle(0x666666);
-        const wheelCount = Math.floor(trackWidth / 4);
-        for (let i = 0; i < wheelCount; i++) {
-            const wheelX = -trackWidth / 2 + 2 + i * 4;
-            graphics.fillCircle(wheelX, -11, 1);
-            graphics.fillCircle(wheelX, 11, 1);
-            // Add rim detail
-            graphics.fillStyle(0x888888);
-            graphics.fillCircle(wheelX, -11, 0.5);
-            graphics.fillCircle(wheelX, 11, 0.5);
-            graphics.fillStyle(0x666666);
-        }
-    }
-
-    _drawMiniHelicopterSkids(graphics, typeAccentColor) {
-        // Landing skids instead of tracks for helicopter icon
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRect(-10, 4, 20, 1); // Cross brace
-        graphics.fillRect(-12, 5, 8, 1); // Left skid
-        graphics.fillRect(4, 5, 8, 1); // Right skid
-        graphics.fillRect(-7, 2, 1, 3); // Left strut
-        graphics.fillRect(6, 2, 1, 3); // Right strut
-        graphics.fillStyle(typeAccentColor);
-        graphics.fillRect(-6, 4, 12, 1); // Accent stripe on skids
-    }
 
     // ========================================
     // Mini Spell Drawing Methods
@@ -1268,56 +917,7 @@ class GraphicsManager {
         graphics.fillCircle(0, 0, 3);
     }
 
-    // ========================================
-    // Mini Building Drawing Methods
-    // ========================================
 
-    _drawMiniV1Launcher(graphics, baseColor, accentColor) {
-        // V1 launcher - rocket launcher with missiles
-        // Base platform
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-8, 4, 16, 4, 2);
-
-        // Launcher frame
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-6, -6, 12, 10);
-        graphics.fillRect(-4, -8, 8, 2);
-
-        // Missiles
-        graphics.fillStyle(accentColor);
-        graphics.fillRect(-3, -4, 2, 6);
-        graphics.fillRect(1, -4, 2, 6);
-
-        // Missile tips
-        graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillTriangle(-4, -4, -2, -4, -3, -8);
-        graphics.fillTriangle(0, -4, 2, -4, 1, -8);
-
-        // Launch rails
-        graphics.lineStyle(1, this.colors.metal);
-        graphics.moveTo(-6, 0);
-        graphics.lineTo(-6, 4);
-        graphics.moveTo(6, 0);
-        graphics.lineTo(6, 4);
-    }
-
-    _drawMiniGenericBuilding(graphics, baseColor, accentColor) {
-        // Generic building - bunker or tower
-        graphics.fillStyle(baseColor);
-        graphics.fillRoundedRect(-6, -6, 12, 12, 2);
-
-        // Roof
-        graphics.fillStyle(accentColor);
-        graphics.fillTriangle(-8, -6, 8, -6, 0, -10);
-
-        // Door/window
-        graphics.fillStyle(this.colors.metal);
-        graphics.fillRect(-2, 2, 4, 4);
-
-        // Details
-        graphics.lineStyle(1, this.colors.gunmetal);
-        graphics.strokeRect(-6, -6, 12, 12);
-    }
 
     // ========================================
     // Full-size Building Drawing Methods
