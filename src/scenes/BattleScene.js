@@ -3641,8 +3641,13 @@ class BattleScene extends Phaser.Scene {
     }
 
     handleBuildingDeployment(selectedCard, tileCoords, worldPoint) {
-        // Check if deployment position is valid (buildings can be placed anywhere on the battlefield)
-        // For now, allow placement anywhere, but could add restrictions later
+        // Check if deployment position is valid (buildings can only be placed in player's deployment zone)
+        const isValid = GameHelpers.isValidDeploymentTile(tileCoords.tileX, tileCoords.tileY, true, this.expandedDeploymentZones);
+
+        if (!isValid) {
+            this.showInvalidPlacementFeedback('Invalid deployment position');
+            return;
+        }
 
         // Deploy the building
         this.deployBuilding(selectedCard.cardId, worldPoint.x, worldPoint.y);
