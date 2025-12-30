@@ -2725,7 +2725,7 @@ class BattleScene extends Phaser.Scene {
             mode: 'balanced',
             rushMode: false,
             defensiveMode: false,
-            preferredTankTypes: ['tank_medium_1', 'tank_light_1']
+            preferredTankTypes: ['tank_musketeer', 'tank_megaminion']
         };
         
         // AI energy regeneration
@@ -3035,10 +3035,10 @@ class BattleScene extends Phaser.Scene {
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
                 
                 // Prioritize medium/heavy tanks to counter
-                this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_heavy_1'];
+                this.aiStrategy.preferredTankTypes = ['tank_musketeer', 'tank_giant'];
             } else if (data.cost <= 2 && this.aiEnergy >= 4) {
                 // Player deployed cheap unit - might be rushing
-                this.aiStrategy.preferredTankTypes = ['tank_medium_1', 'tank_light_1'];
+                this.aiStrategy.preferredTankTypes = ['tank_musketeer', 'tank_megaminion'];
                 
                 // Deploy sooner to match aggression
                 const nextDeploymentDelay = GameHelpers.randomInt(1500, 3000);

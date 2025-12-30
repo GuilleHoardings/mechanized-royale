@@ -217,8 +217,8 @@ const GameHelpers = {
         return {
             player: {
                 tanks: [
-                    'tank_light_1', 'tank_light_2', 'tank_medium_1', 'tank_medium_2',
-                    'tank_heavy_1', 'tank_light_1', 'tank_medium_1', 'tank_light_2'
+                    'tank_skeleton', 'tank_megaminion', 'tank_musketeer', 'tank_minipakka',
+                    'tank_giant', 'tank_skeleton', 'tank_megaminion', 'tank_musketeer'
                 ], // Starting 8-card deck
                 resources: { credits: 1000, research: 0 },
                 progress: { level: 1, xp: 0 },
