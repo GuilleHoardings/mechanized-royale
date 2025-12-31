@@ -1544,7 +1544,7 @@ class BattleScene extends Phaser.Scene {
         if (card.type === CARD_TYPES.SPELL) {
             this.castSpell(card, worldX, worldY);
         } else if (card.type === CARD_TYPES.BUILDING) {
-            this.placeBuilding(card, worldX, worldY);
+            this._placeBuildingInternal(card, worldX, worldY, true);
         }
 
         // Notify AI of player card deployment (spells and buildings)
@@ -1634,9 +1634,6 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
-    placeBuilding(card, x, y) {
-        this._placeBuildingInternal(card, x, y, true);
-    }
 
     /**
      * Places a building (e.g., V1 Launcher) on the battlefield for either the player or AI.
@@ -1664,6 +1661,11 @@ class BattleScene extends Phaser.Scene {
         building.target = null;
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
+
+        // Update statistics
+        const stats = isPlayerOwned ? this.battleStats.player : this.battleStats.ai;
+        stats.buildingsDeployed++;
+        stats.energySpent += card.cost || 0;
 
         this.buildings.push(building);
 
@@ -3677,7 +3679,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Deploy the building
-        this.deployBuilding(selectedCard.cardId, worldPoint.x, worldPoint.y);
+        this._placeBuildingInternal(selectedCard.cardDef, worldPoint.x, worldPoint.y, true);
 
         // Spend energy
         this.energy -= selectedCard.cardDef.cost;
@@ -3699,52 +3701,6 @@ class BattleScene extends Phaser.Scene {
         }
     }
 
-    deployBuilding(buildingId, x, y) {
-        const buildingDef = ENTITIES[buildingId];
-        if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
-            console.error(`Invalid building: ${buildingId}`);
-            return;
-        }
-
-        // Create building graphics
-        const building = this.graphicsManager.createBuildingGraphics(x, y, buildingId);
-
-        // Set building properties
-        building.buildingId = buildingId;
-        building.buildingDef = buildingDef;
-        building.type = buildingId; // e.g., 'v1_launcher'
-        building.health = buildingDef.stats?.hp || 1000; // Use health from entities.js fallback to default
-        building.maxHealth = buildingDef.stats?.hp || 1000;
-        building.isPlayerOwned = true;
-        building.lastShotTime = 0;
-        building.target = null;
-        building.lastTargetUpdate = 0;
-        building.attackCooldown = 2000; // 2 seconds between attacks
-
-        // Add to buildings array
-        this.buildings.push(building);
-
-        // Create health bar
-        this.createBuildingHealthBar(building);
-
-        // Set up missile launching timer for buildings like V1 launcher
-        if (buildingDef.payload?.launchIntervalMs) {
-            const timer = this.time.addEvent({
-                delay: buildingDef.payload.launchIntervalMs,
-                loop: true,
-                callback: () => {
-                    if (!building.scene || building.health <= 0) { timer.remove(); return; }
-                    for (let i = 0; i < (buildingDef.payload?.missileCount || 1); i++) {
-                        this.launchBuildingMissile(building, buildingDef.payload);
-                    }
-                }
-            });
-        }
-
-        // Update statistics
-        this.battleStats.player.buildingsDeployed++;
-        this.battleStats.player.energySpent += buildingDef.cost;
-    }
 
     // Tank AI is delegated to AIController.updateTankAI()
 
