@@ -1661,6 +1661,7 @@ class BattleScene extends Phaser.Scene {
         building.target = null;
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
+        building.canShoot = !card.payload?.launchIntervalMs; // Disable standard shooting for missile launchers
 
         // Update statistics
         const stats = isPlayerOwned ? this.battleStats.player : this.battleStats.ai;
@@ -3166,9 +3167,11 @@ class BattleScene extends Phaser.Scene {
                     this.updateBaseDefense(building);
                     this.combatSystem.checkBaseCombat(building);
                 } else {
-                    // Deployed buildings use building AI
-                    this.updateBuildingAI(building);
-                    this.combatSystem.checkBaseCombat(building);
+                    // Deployed buildings use building AI - skip if they handle their own attacks (like V1)
+                    if (!building.buildingDef?.payload?.launchIntervalMs) {
+                        this.updateBuildingAI(building);
+                        this.combatSystem.checkBaseCombat(building);
+                    }
                 }
             }
         });
