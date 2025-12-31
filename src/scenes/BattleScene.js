@@ -1656,6 +1656,9 @@ class BattleScene extends Phaser.Scene {
         const unitId = card.unitId || card.id;
         const unitDef = UNITS[unitId];
 
+        // Resolve payload from card or unit definition
+        const payload = card.payload || unitDef?.payload;
+
         // Create building graphics using GraphicsManager
         const building = this.graphicsManager.createBuildingGraphics(x, y, unitId);
 
@@ -1670,7 +1673,7 @@ class BattleScene extends Phaser.Scene {
         building.target = null;
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
-        building.canShoot = !(unitDef?.payload?.launchIntervalMs || card.payload?.launchIntervalMs);
+        building.canShoot = !payload?.launchIntervalMs;
 
         // Update statistics
         const stats = isPlayerOwned ? this.battleStats.player : this.battleStats.ai;
@@ -1683,8 +1686,8 @@ class BattleScene extends Phaser.Scene {
         this.createBuildingHealthBar(building);
 
         // For buildings with lifetime (like V1 launcher), set up destruction timer
-        if (card.payload?.lifetimeMs) {
-            this.time.delayedCall(card.payload.lifetimeMs, () => {
+        if (payload?.lifetimeMs) {
+            this.time.delayedCall(payload.lifetimeMs, () => {
                 const idx = this.buildings.indexOf(building);
                 if (idx >= 0) this.buildings.splice(idx, 1);
                 if (building.healthBg) building.healthBg.destroy();
@@ -1695,14 +1698,14 @@ class BattleScene extends Phaser.Scene {
         }
 
         // For buildings that launch missiles automatically (like V1 launcher)
-        if (card.payload?.launchIntervalMs) {
+        if (payload?.launchIntervalMs) {
             const timer = this.time.addEvent({
-                delay: card.payload.launchIntervalMs,
+                delay: payload.launchIntervalMs,
                 loop: true,
                 callback: () => {
                     if (!building.scene || building.health <= 0) { timer.remove(); return; }
-                    for (let i = 0; i < (card.payload?.missileCount || 1); i++) {
-                        this.launchBuildingMissile(building, card.payload);
+                    for (let i = 0; i < (payload.missileCount || 1); i++) {
+                        this.launchBuildingMissile(building, payload);
                     }
                 }
             });
