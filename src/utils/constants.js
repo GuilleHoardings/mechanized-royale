@@ -188,6 +188,18 @@ const UI_CONFIG = {
                 MEDIUM: 0xffff00,       // 25-50% health
                 LOW: 0xff0000           // < 25% health
             }
+        },
+        BUILDING: {
+            WIDTH: 40,
+            HEIGHT: 6,
+            OFFSET_X: 20,
+            OFFSET_Y: 35,
+            BACKGROUND_COLOR: 0x333333,
+            COLORS: {
+                HIGH: 0x00ff00,
+                MEDIUM: 0xffff00,
+                LOW: 0xff0000
+            }
         }
     },
     CARDS: {

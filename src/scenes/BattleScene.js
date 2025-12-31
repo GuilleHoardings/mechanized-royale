@@ -975,7 +975,6 @@ class BattleScene extends Phaser.Scene {
     createBases() {
         this.createPlayerTowers();
         this.createEnemyTowers();
-        this.createTowerHealthBars();
     }
 
     createPlayerTowers() {
@@ -1143,30 +1142,7 @@ class BattleScene extends Phaser.Scene {
         return tower;
     }
 
-    createTowerHealthBars() {
-        const config = UI_CONFIG.HEALTH_BARS.TOWER;
 
-        this.buildings.forEach(building => {
-            // Health bar fill (no background)
-            const healthFill = this.add.graphics();
-            building.healthFill = healthFill;
-
-            // Health percentage text
-            const healthText = this.add.text(
-                building.x,
-                building.y - config.OFFSET_Y,
-                `${building.health}/${building.maxHealth}`, {
-                fontSize: '14px',
-                fill: '#ffffff',
-                fontFamily: 'Arial',
-                stroke: '#000000',
-                strokeThickness: 2
-            }).setOrigin(0.5);
-            building.healthText = healthText;
-
-            this.updateBuildingHealth(building);
-        });
-    }
 
     startEnergyRegeneration() {
         this.energyTimer = this.time.addEvent({
@@ -1714,25 +1690,7 @@ class BattleScene extends Phaser.Scene {
         if (!isPlayerOwned) console.log('🤖 AI: Placed', card.name, 'at', Math.round(x), Math.round(y));
     }
 
-    /**
-     * Creates a health bar for a building (furnace, etc)
-     */
-    createBuildingHealthBar(building) {
-        const config = UI_CONFIG.HEALTH_BARS.TOWER;
-        const healthBg = this.add.graphics();
-        healthBg.fillStyle(config.BACKGROUND_COLOR);
-        healthBg.fillRect(building.x - config.OFFSET_X, building.y - config.OFFSET_Y, config.WIDTH, config.HEIGHT);
-        building.healthBg = healthBg;
-        const healthFill = this.add.graphics();
-        building.healthFill = healthFill;
-        const healthText = this.add.text(
-            building.x, building.y - config.OFFSET_Y - 15,
-            `${building.health}/${building.maxHealth}`,
-            { fontSize: '14px', fill: '#ffffff', fontFamily: 'Arial', stroke: '#000', strokeThickness: 2 }
-        ).setOrigin(0.5);
-        building.healthText = healthText;
-        this.updateBuildingHealth(building);
-    }
+
 
     /**
      * Launch a missile from the building that tracks toward the closest enemy
@@ -2282,18 +2240,7 @@ class BattleScene extends Phaser.Scene {
         this.deploymentPreview.validPosition = false;
     }
 
-    endSpellPreview() {
-        if (!this.spellPreview) return;
 
-        if (this.spellPreview.radiusCircle) {
-            this.spellPreview.radiusCircle.destroy();
-            this.spellPreview.radiusCircle = null;
-        }
-
-        this.spellPreview.active = false;
-        this.spellPreview.cardType = null;
-        this.spellPreview.radius = 0;
-    }
 
     startDeploymentPreview(selectedCard) {
         if (!this.deploymentPreview) return;
@@ -2522,7 +2469,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     createBuildingHealthBar(building) {
-        const config = UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK; // Fallback to tank config
+        // Use appropriate config based on building type
+        const config = building.isMainTower || building.towerType ? UI_CONFIG.HEALTH_BARS.TOWER : UI_CONFIG.HEALTH_BARS.BUILDING;
 
         const healthBg = this.add.graphics();
         healthBg.fillStyle(config.BACKGROUND_COLOR);
@@ -2536,6 +2484,20 @@ class BattleScene extends Phaser.Scene {
 
         const healthFill = this.add.graphics();
         building.healthFill = healthFill;
+
+        // Add health text
+        const healthText = this.add.text(
+            building.x,
+            building.y - config.OFFSET_Y - 10,
+            `${building.health}/${building.maxHealth}`, {
+            fontSize: '12px',
+            fill: '#ffffff',
+            fontFamily: 'Arial',
+            stroke: '#000000',
+            strokeThickness: 2
+        }).setOrigin(0.5);
+        building.healthText = healthText;
+
         this.updateBuildingHealth(building);
     }
 
@@ -2570,7 +2532,7 @@ class BattleScene extends Phaser.Scene {
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
             building.x - config.OFFSET_X,
-            building.y - config.OFFSET_Y + 12,
+            building.y - config.OFFSET_Y,
             config.WIDTH * healthPercent,
             config.HEIGHT
         );
