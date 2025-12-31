@@ -146,7 +146,7 @@ const CARDS = {
         cost: 4,
         payload: {
             lifetimeMs: 50000,
-            launchIntervalMs: 3000,
+            launchIntervalMs: 7000,
             missileCount: 1,
             missileDamage: 100,
             missileSpeed: 180,
