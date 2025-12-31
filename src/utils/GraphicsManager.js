@@ -90,13 +90,13 @@ class GraphicsManager {
      * Creates a mini card graphic for cards (troops, spells, buildings)
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} cardId - The card ID from ENTITIES
+     * @param {string} cardId - The card ID from CARDS
      * @returns {Phaser.GameObjects.Container} The mini card graphic container
      */
     createMiniCardGraphics(x, y, cardId) {
-        const cardDef = ENTITIES[cardId];
+        const cardDef = CARDS[cardId];
         if (!cardDef) {
-            console.error(`Card ${cardId} not found in ENTITIES`);
+            console.error(`Card ${cardId} not found in CARDS`);
             return this.scene.add.container(x, y);
         }
 
@@ -127,11 +127,11 @@ class GraphicsManager {
      * Creates building graphics for the battlefield
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} buildingId - The building ID from ENTITIES
+     * @param {string} buildingId - The building ID from CARDS
      * @returns {Phaser.GameObjects.Container} The building container
      */
     createBuildingGraphics(x, y, buildingId) {
-        const buildingDef = ENTITIES[buildingId];
+        const buildingDef = CARDS[buildingId];
         if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
             console.error(`Invalid building: ${buildingId}`);
             return this.scene.add.container(x, y);
@@ -167,7 +167,7 @@ class GraphicsManager {
         const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayer);
 
         // Get tank data if available to determine type/accent
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
         const unitType = unitData ? unitData.unitType : null;
         const typeAccentColor = unitType ? this.getTypeAccentColor(unitType, isPlayer) : accentColor;
 
@@ -231,7 +231,7 @@ class GraphicsManager {
      */
     _drawMiniTroopGraphics(graphics, cardDef) {
         const unitId = cardDef.unitId || (cardDef.payload && cardDef.payload.unitId);
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
 
         if (!unitData) {
             console.error(`Unit data not found for ${unitId}`);

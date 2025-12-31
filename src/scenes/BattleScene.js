@@ -467,10 +467,9 @@ class BattleScene extends Phaser.Scene {
         // Create 4 cards from hand
         for (let index = 0; index < 4; index++) {
             const cardId = this.hand[index];
-            const cardDef = ENTITIES[cardId];
-            const unitData = cardDef.type === CARD_TYPES.TROOP
-                ? ENTITIES[cardDef.unitId || (cardDef.payload && cardDef.payload.unitId)]
-                : null;
+            const cardDef = CARDS[cardId];
+            const unitId = cardDef.type === CARD_TYPES.TROOP ? (cardDef.unitId || (cardDef.payload && cardDef.payload.unitId)) : null;
+            const unitData = unitId ? UNITS[unitId] : null;
             const cardX = startX + index * cardSpacing;
 
             // Card background
@@ -750,7 +749,8 @@ class BattleScene extends Phaser.Scene {
         this.hideCardTooltip();
         const cardRef = this.tankCards[cardIndex];
         const isTroop = cardRef.cardType === CARD_TYPES.TROOP;
-        const unitData = isTroop ? cardRef.unitData : null;
+        const unitId = isTroop ? (cardRef.cardDef.unitId || (cardRef.cardDef.payload && cardRef.cardDef.payload.unitId)) : null;
+        const unitData = unitId ? UNITS[unitId] : (isTroop ? cardRef.unitData : null);
 
         // Dynamic positioning to avoid edge clipping
         const tooltipWidth = 280;
@@ -1006,9 +1006,9 @@ class BattleScene extends Phaser.Scene {
         // Create custom tower graphics
         const tower = this.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
 
-        // Set tower properties - Pull stats from ENTITIES registry
+        // Set tower properties - Pull stats from UNITS registry
         const entityId = isMainTower ? 'main_tower' : 'side_tower';
-        const entityDef = ENTITIES[entityId];
+        const entityDef = UNITS[entityId];
 
         tower.health = entityDef.stats.hp;
         tower.maxHealth = entityDef.stats.hp;
@@ -1654,7 +1654,7 @@ class BattleScene extends Phaser.Scene {
     _placeBuildingInternal(card, x, y, isPlayerOwned) {
         // Resolve unit definition if card references a unitId
         const unitId = card.unitId || card.id;
-        const unitDef = ENTITIES[unitId];
+        const unitDef = UNITS[unitId];
 
         // Create building graphics using GraphicsManager
         const building = this.graphicsManager.createBuildingGraphics(x, y, unitId);
@@ -2432,7 +2432,7 @@ class BattleScene extends Phaser.Scene {
      * 
      * Used by both player and AI deployment systems.
      * 
-     * @param {string} unitId - The unique unit identifier from ENTITIES.
+     * @param {string} unitId - The unique unit identifier from UNITS.
      * @param {number} x - The world X coordinate (in pixels) for unit deployment.
      * @param {number} y - The world Y coordinate (in pixels) for unit deployment.
      * @param {boolean} isPlayerTank - True if deploying for player, false for AI.
@@ -2444,7 +2444,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     _deployTankInternal(unitId, x, y, isPlayerTank) {
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
         if (!unitData) {
             console.error(`Unit data not found for ID: ${unitId}`);
             return;
@@ -2922,7 +2922,7 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
 
         // Check if unit data exists
         if (!unitData) {
@@ -2943,14 +2943,14 @@ class BattleScene extends Phaser.Scene {
     chooseAITank() {
         // Filter deck by preferred types for current strategy
         let availableTanks = this.aiDeck.filter(unitId => {
-            const unitData = ENTITIES[unitId];
+            const unitData = UNITS[unitId];
             return unitData && this.aiEnergy >= unitData.cost;
         });
 
         if (availableTanks.length === 0) {
             // Fallback to cheapest available unit
             availableTanks = this.aiDeck.filter(unitId => {
-                const unitData = ENTITIES[unitId];
+                const unitData = UNITS[unitId];
                 return unitData && unitData.cost <= this.aiEnergy;
             });
         }
@@ -2958,16 +2958,16 @@ class BattleScene extends Phaser.Scene {
         // If still no units available, find the absolute cheapest unit
         if (availableTanks.length === 0) {
             // Get all valid unit IDs and find the cheapest one
-            const allValidTanks = this.aiDeck.filter(unitId => ENTITIES[unitId]);
+            const allValidTanks = this.aiDeck.filter(unitId => UNITS[unitId]);
             if (allValidTanks.length > 0) {
                 const cheapestTank = allValidTanks.reduce((cheapest, unitId) => {
-                    const unitData = ENTITIES[unitId];
-                    const cheapestData = ENTITIES[cheapest];
+                    const unitData = UNITS[unitId];
+                    const cheapestData = UNITS[cheapest];
                     return unitData.cost < cheapestData.cost ? unitId : cheapest;
                 });
 
                 // If we can afford the cheapest unit, use it
-                if (ENTITIES[cheapestTank] && this.aiEnergy >= ENTITIES[cheapestTank].cost) {
+                if (UNITS[cheapestTank] && this.aiEnergy >= UNITS[cheapestTank].cost) {
                     availableTanks = [cheapestTank];
                 }
             }
@@ -2997,7 +2997,7 @@ class BattleScene extends Phaser.Scene {
         if (heavyPlayerTanks.length > 0 && this.aiEnergy >= 4) {
             // Counter heavy units with medium/heavy units
             const counterTanks = availableTanks.filter(unitId => {
-                const unitData = ENTITIES[unitId];
+                const unitData = UNITS[unitId];
                 return unitData && (unitData.type === TANK_TYPES.MEDIUM || unitData.type === TANK_TYPES.HEAVY);
             });
             if (counterTanks.length > 0) {
@@ -3093,7 +3093,7 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI casts a spell at the specified position
-     * @param {Object} card - Card definition from ENTITIES
+     * @param {Object} card - Card definition from CARDS
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
@@ -3103,7 +3103,7 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI places a building at the specified position
-     * @param {Object} card - Card definition from ENTITIES
+     * @param {Object} card - Card definition from CARDS
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
@@ -3113,13 +3113,13 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI deploys a swarm of units
-     * @param {Object} card - Card definition from ENTITIES
+     * @param {Object} card - Card definition from CARDS
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
     aiDeploySwarm(card, x, y) {
         const unitId = card.unitId || (card.payload && card.payload.unitId);
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
         const count = card.payload?.count || 1;
 
         // Spread units in a formation
@@ -3264,7 +3264,7 @@ class BattleScene extends Phaser.Scene {
             const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
             window.debugPanel.updateValue('debug-player-tanks', playerTanks.length);
             const handNames = this.hand && Array.isArray(this.hand)
-                ? this.hand.map(id => ENTITIES?.[id]?.name || id).join(', ')
+                ? this.hand.map(id => CARDS?.[id]?.name || id).join(', ')
                 : '-';
             window.debugPanel.updateValue('debug-player-hand', handNames);
 
@@ -3401,8 +3401,8 @@ class BattleScene extends Phaser.Scene {
         if (!this.tankCards[cardIndex]) return;
         const card = this.tankCards[cardIndex];
         const cardId = this.hand[cardIndex];
-        const def = ENTITIES[cardId];
-        const unitData = def.type === CARD_TYPES.TROOP ? ENTITIES[def.unitId || (def.payload && def.payload.unitId)] : null;
+        const def = CARDS[cardId];
+        const unitData = def.type === CARD_TYPES.TROOP ? UNITS[def.unitId || (def.payload && def.payload.unitId)] : null;
 
         // Destroy old tank icon and create new one
         if (card.tankIcon) {

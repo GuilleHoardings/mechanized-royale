@@ -145,7 +145,7 @@ class AIController {
         const findInHand = (id) => this.scene.aiHand.findIndex(cId => cId === id);
 
         // Check for Smoke Barrage opportunity - multiple weak/grouped units
-        const smokeBarrageCard = ENTITIES['smoke_barrage'];
+        const smokeBarrageCard = CARDS['smoke_barrage'];
         const smokeHandIndex = findInHand('smoke_barrage');
 
         if (smokeBarrageCard && smokeHandIndex !== -1 && this.scene.aiEnergy >= smokeBarrageCard.cost) {
@@ -172,7 +172,7 @@ class AIController {
         }
 
         // Check for Artillery Strike opportunity - high value grouped targets
-        const artilleryStrikeCard = ENTITIES['artillery_strike'];
+        const artilleryStrikeCard = CARDS['artillery_strike'];
         const artilleryHandIndex = findInHand('artillery_strike');
 
         if (artilleryStrikeCard && artilleryHandIndex !== -1 && this.scene.aiEnergy >= artilleryStrikeCard.cost) {
@@ -418,7 +418,7 @@ class AIController {
         const counter = this.aiStrategy.pendingCounterDeploy;
         if (this.scene.time.now >= counter.deployTime) {
             const cardId = counter.cardId;
-            const card = cardId ? ENTITIES[cardId] : null;
+            const card = cardId ? CARDS[cardId] : null;
 
             if (card && this.scene.aiEnergy >= card.cost) {
                 let deployed = false;
@@ -513,7 +513,7 @@ class AIController {
         }
 
         const unitId = card.unitId || (card.payload && card.payload.unitId);
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
         if (unitData) {
             this.scene.deployAITank(unitId, x, y);
 
@@ -843,7 +843,7 @@ class AIController {
         // Get AI's current hand (4 cards from 8-card deck)
         const energy = this.scene.aiEnergy;
         const hand = this.scene.aiHand.map(cardId => {
-            const card = ENTITIES[cardId];
+            const card = CARDS[cardId];
             return {
                 id: cardId,
                 name: card ? card.name : cardId,
@@ -863,7 +863,7 @@ class AIController {
         const reason = choice.reason;
         const handIndex = choice.handIndex;
 
-        const card = ENTITIES[cardId];
+        const card = CARDS[cardId];
         if (!card) {
             console.log('🤖 AI: Invalid card data for', cardId);
             return;
@@ -917,7 +917,7 @@ class AIController {
 
         // TROOP card - get unit data from card
         const unitId = card.unitId || (card.payload && card.payload.unitId);
-        const unitData = ENTITIES[unitId];
+        const unitData = UNITS[unitId];
         if (!unitData) {
             console.log('🤖 AI: Invalid unit data for card', cardId);
             return;
@@ -1001,14 +1001,14 @@ class AIController {
 
         // Find affordable combo card
         for (const comboCardId of comboOptions) {
-            const comboCard = ENTITIES[comboCardId];
+            const comboCard = CARDS[comboCardId];
 
             // Check if card is in hand
             const handIndex = this.scene.aiHand.findIndex(id => id === comboCardId);
 
             if (comboCard && handIndex !== -1 && this.scene.aiEnergy >= comboCard.cost) {
                 const comboUnitId = comboCard.unitId || (comboCard.payload && comboCard.payload.unitId);
-                const comboData = ENTITIES[comboUnitId];
+                const comboData = UNITS[comboUnitId];
                 if (!comboData) continue;
 
                 // Position combo unit near but not on top of primary
@@ -1040,7 +1040,7 @@ class AIController {
         // Filter available cards from AI's 4-card hand by energy cost
         const availableCards = [];
         this.scene.aiHand.forEach((cardId, index) => {
-            const card = ENTITIES[cardId];
+            const card = CARDS[cardId];
             if (card && card.cost <= energy) {
                 availableCards.push({ cardId, index });
             }
@@ -1108,12 +1108,12 @@ class AIController {
 
         // Get preferred troop cards that are in hand
         const preferredAvailable = availableCards.filter(item => {
-            const card = ENTITIES[item.cardId];
+            const card = CARDS[item.cardId];
             return card.type === CARD_TYPES.TROOP && this.aiStrategy.preferredCards.includes(item.cardId);
         });
 
         // Mode-specific selection for troop cards
-        const troopCards = availableCards.filter(item => ENTITIES[item.cardId].type === CARD_TYPES.TROOP);
+        const troopCards = availableCards.filter(item => CARDS[item.cardId].type === CARD_TYPES.TROOP);
 
         let chosenItem = null;
         let reason = '';
@@ -1123,10 +1123,10 @@ class AIController {
             case 'counter-push':
                 // Prefer high DPS or win conditions
                 const aggressivePicks = troopCards.filter(item => {
-                    const card = ENTITIES[item.cardId];
+                    const card = CARDS[item.cardId];
                     const itemUnitId = card.unitId || (card.payload && card.payload.unitId);
                     if (!itemUnitId) return false;
-                    const data = ENTITIES[itemUnitId];
+                    const data = UNITS[itemUnitId];
                     return data && (data.stats.damage >= 80 || item.cardId === 'tiger');
                 });
                 if (aggressivePicks.length > 0) {
@@ -1138,10 +1138,10 @@ class AIController {
             case 'defensive':
                 // Prefer ranged or high HP units
                 const defensivePicks = troopCards.filter(item => {
-                    const card = ENTITIES[item.cardId];
+                    const card = CARDS[item.cardId];
                     const itemUnitId = card.unitId || (card.payload && card.payload.unitId);
                     if (!itemUnitId) return false;
-                    const data = ENTITIES[itemUnitId];
+                    const data = UNITS[itemUnitId];
                     return data && (data.stats.range >= 200 || data.stats.hp >= 400);
                 });
                 if (defensivePicks.length > 0) {
@@ -1153,7 +1153,7 @@ class AIController {
             case 'split-push':
                 // Prefer cheap units for split pressure
                 const splitPicks = troopCards.filter(item => {
-                    const card = ENTITIES[item.cardId];
+                    const card = CARDS[item.cardId];
                     return card.cost <= 3;
                 });
                 if (splitPicks.length > 0) {
@@ -1486,7 +1486,7 @@ class AIController {
 
         // Find affordable counter from cards
         for (const cardId of counterOptions) {
-            const card = ENTITIES[cardId];
+            const card = CARDS[cardId];
 
             // Check if card is in hand
             const handIndex = this.scene.aiHand.findIndex(id => id === cardId);

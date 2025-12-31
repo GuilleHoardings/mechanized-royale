@@ -62,8 +62,6 @@ const BATTLE_CONFIG = {
     },
     // Tower system (Clash Royale style)
     TOWERS: {
-        SIDE_TOWER_HEALTH: 600,    // DEPRECATED: Now managed in src/data/entities.js
-        MAIN_TOWER_HEALTH: 1200,   // DEPRECATED: Now managed in src/data/entities.js
         DIMENSIONS: {
             MAIN_TOWER: {
                 TILES_WIDTH: 4,

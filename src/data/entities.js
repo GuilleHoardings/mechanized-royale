@@ -195,17 +195,6 @@ const CARDS = {
     }
 };
 
-// Unified Export for backward compatibility (Deprecated)
-// Unified Export - Correctly merge UNITS and CARDS to avoid naming collisions
-const ENTITIES = { ...UNITS };
-for (const [id, card] of Object.entries(CARDS)) {
-    if (ENTITIES[id]) {
-        // Merge card info into existing unit info
-        ENTITIES[id] = { ...ENTITIES[id], ...card };
-    } else {
-        ENTITIES[id] = card;
-    }
-}
 
 // Default player deck order (8 cards)
 const DEFAULT_PLAYER_DECK = [
