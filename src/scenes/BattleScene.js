@@ -1035,106 +1035,38 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTowerGraphics(x, y, isPlayerTeam, isMainTower) {
-        // Team colors
-        const playerBaseColor = 0x4a90e2;  // Blue
-        const enemyBaseColor = 0xd22d2d;   // Red
-        const stoneColor = 0x888888;       // Gray stone
-        const darkStone = 0x555555;        // Dark stone
-        const metalColor = 0x666666;       // Metal
-        const goldColor = 0xffdd00;        // Gold for main towers
-
         // Create a container for the tower
         const tower = this.add.container(x, y);
 
-        // Create graphics object for drawing
-        const graphics = this.add.graphics();
+        // Create graphics object for the base (static)
+        const baseGraphics = this.add.graphics();
+        this.graphicsManager.drawTowerBase(baseGraphics, isPlayerTeam, isMainTower);
+        tower.add(baseGraphics);
 
+        // Create a separate container for the turret (rotatable)
+        // Position the turret at the front of the tower (toward the enemy)
+        // Player: front is top (negative Y), Enemy: front is bottom (positive Y)
+        let turretOffsetY = 0;
         if (isMainTower) {
-            // Main Tower - Large fortress-like structure
-            const size = 60; // Base size
-
-            // Foundation
-            graphics.fillStyle(darkStone);
-            graphics.fillRect(-size / 2, size / 3, size, size / 3);
-
-            // Main structure - octagonal shape for more interesting silhouette
-            graphics.fillStyle(stoneColor);
-            graphics.fillCircle(0, 0, size / 2.2);
-
-            // Tower walls with team colors
-            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillCircle(0, 0, size / 2.5);
-
-            // Inner keep
-            graphics.fillStyle(stoneColor);
-            graphics.fillCircle(0, 0, size / 3.5);
-
-            // Golden crown for main towers
-            graphics.fillStyle(goldColor);
-            graphics.fillRect(-size / 4, -size / 2.2, size / 2, size / 8);
-            graphics.fillTriangle(-size / 4, -size / 2.2, 0, -size / 1.8, size / 4, -size / 2.2);
-
-            // Battlements
-            graphics.fillStyle(stoneColor);
-            for (let i = 0; i < 8; i++) {
-                const angle = (i / 8) * Math.PI * 2;
-                const bx = Math.cos(angle) * size / 2.8;
-                const by = Math.sin(angle) * size / 2.8;
-                graphics.fillRect(bx - 2, by - 4, 4, 8);
-            }
-
-            // Command center windows
-            graphics.fillStyle(0x000000);
-            graphics.fillRect(-size / 8, -size / 8, size / 4, size / 8);
-            graphics.fillRect(-size / 12, size / 12, size / 6, size / 12);
-
-            // Flag/antenna
-            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRect(-1, -size / 1.8, 2, size / 6);
-            graphics.fillTriangle(1, -size / 1.8, 1, -size / 2.2, size / 8, -size / 2.4);
-
-        } else {
-            // Side Tower - Smaller defensive tower
-            const size = 40; // Smaller than main tower
-
-            // Foundation
-            graphics.fillStyle(darkStone);
-            graphics.fillRect(-size / 2, size / 3, size, size / 4);
-
-            // Main tower body
-            graphics.fillStyle(stoneColor);
-            graphics.fillRoundedRect(-size / 2.5, -size / 3, size / 1.25, size * 0.8, 4);
-
-            // Team color accent
-            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRoundedRect(-size / 3, -size / 4, size / 1.5, size * 0.6, 3);
-
-            // Gun turret
-            graphics.fillStyle(metalColor);
-            graphics.fillCircle(0, -size / 8, size / 6);
-
-            // Gun barrel
-            graphics.fillStyle(darkStone);
-            graphics.fillRect(size / 6, -size / 8 - 2, size / 3, 4);
-
-            // Defensive walls
-            graphics.fillStyle(stoneColor);
-            graphics.fillRect(-size / 2.2, -size / 3, 4, size / 4);
-            graphics.fillRect(size / 2.2 - 4, -size / 3, 4, size / 4);
-
-            // Windows/firing ports
-            graphics.fillStyle(0x000000);
-            graphics.fillRect(-size / 8, -size / 6, size / 4, 3);
-            graphics.fillRect(-size / 12, size / 12, size / 6, 2);
-
-            // Team banner
-            graphics.fillStyle(isPlayerTeam ? playerBaseColor : enemyBaseColor);
-            graphics.fillRect(-1, -size / 2.5, 2, size / 8);
-            graphics.fillRect(1, -size / 2.5, size / 12, size / 16);
+            turretOffsetY = isPlayerTeam ? -20 : 20;
         }
+        const turretContainer = this.add.container(0, turretOffsetY);
 
-        // Add the graphics to the container
-        tower.add(graphics);
+        // Create graphics for the turret
+        const turretGraphics = this.add.graphics();
+        this.graphicsManager.drawTowerTurret(turretGraphics, isPlayerTeam, isMainTower);
+        turretContainer.add(turretGraphics);
+
+        // Set initial rotation to point toward the enemy
+        // Player towers point up (toward top of screen), enemy towers point down
+        const initialRotation = isPlayerTeam ? -Math.PI / 2 : Math.PI / 2;
+        turretContainer.setRotation(initialRotation);
+
+        // Add turret to tower container
+        tower.add(turretContainer);
+
+        // Store reference to turret for rotation animation
+        tower.turret = turretContainer;
 
         // Add depth and visual appeal
         tower.setDepth(10);

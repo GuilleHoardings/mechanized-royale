@@ -66,7 +66,24 @@ class CombatSystem {
      * @param {Object} target - Target being shot at
      */
     baseShoot(base, target) {
-        this.createBaseProjectile(base, target);
+        // Animate turret rotation before firing
+        if (base.turret) {
+            const angle = GameHelpers.angle(base.x, base.y, target.x, target.y);
+
+            // Animate the turret rotation
+            this.scene.tweens.add({
+                targets: base.turret,
+                rotation: angle,
+                duration: 150,
+                ease: 'Power2',
+                onComplete: () => {
+                    this.createBaseProjectile(base, target);
+                }
+            });
+        } else {
+            // No turret - just shoot immediately
+            this.createBaseProjectile(base, target);
+        }
     }
 
     /**

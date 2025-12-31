@@ -996,4 +996,212 @@ class GraphicsManager {
         graphics.lineStyle(2, metalColor);
         graphics.strokeRoundedRect(-15, -15, 30, 20, 4);
     }
+
+    /**
+     * Draws the static base of a tower (without the turret)
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object for the base
+     * @param {boolean} isPlayerTeam - Whether this is a player tower
+     * @param {boolean} isMainTower - Whether this is a main (King) tower
+     */
+    drawTowerBase(graphics, isPlayerTeam, isMainTower) {
+        const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayerTeam);
+
+        if (isMainTower) {
+            this._drawCommandBunkerBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor);
+        } else {
+            this._drawDefensiveOutpostBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor);
+        }
+    }
+
+    /**
+     * Draws the turret of a tower (rotatable part)
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object for the turret
+     * @param {boolean} isPlayerTeam - Whether this is a player tower
+     * @param {boolean} isMainTower - Whether this is a main (King) tower
+     */
+    drawTowerTurret(graphics, isPlayerTeam, isMainTower) {
+        const { dark: darkColor } = this.getThemeColors(isPlayerTeam);
+
+        if (isMainTower) {
+            this._drawCommandBunkerTurret(graphics, darkColor);
+        } else {
+            this._drawDefensiveOutpostTurret(graphics, darkColor);
+        }
+    }
+
+    /**
+     * Draws the Main Tower base (Command Bunker) without the turret
+     */
+    _drawCommandBunkerBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor) {
+        const size = 60;
+        const stoneColor = 0x888888;
+        const concreteColor = 0x9ca3af;
+
+        // Direction multiplier: player faces up (-1), enemy faces down (+1)
+        const dir = isPlayerTeam ? -1 : 1;
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 4, size / 2);
+
+        // Reinforced Concrete Base (Pillbox style)
+        graphics.fillStyle(stoneColor);
+        graphics.fillRoundedRect(-size / 2, -size / 2, size, size, 8);
+
+        // Concrete Texture/Grit
+        graphics.fillStyle(0x000000, 0.1);
+        for (let i = 0; i < 15; i++) {
+            graphics.fillCircle(-size / 2 + Math.random() * size, -size / 2 + Math.random() * size, 1.5);
+        }
+
+        // Sloped Armor Plates (Front-facing appearance) - faces toward enemy
+        graphics.fillStyle(concreteColor);
+        if (isPlayerTeam) {
+            // Player: sloped armor at top (facing up toward enemy)
+            graphics.fillTriangle(-size / 2, -size / 2, size / 2, -size / 2, 0, -size / 1.5);
+        } else {
+            // Enemy: sloped armor at bottom (facing down toward player)
+            graphics.fillTriangle(-size / 2, size / 2, size / 2, size / 2, 0, size / 1.5);
+        }
+
+        // Observation Slit - on the front side
+        graphics.fillStyle(0x000000, 0.8);
+        const slitY = isPlayerTeam ? -size / 6 : size / 6 - 6;
+        graphics.fillRect(-size / 4, slitY, size / 2, 6);
+
+        // Antenna - on the back side
+        const antennaY = isPlayerTeam ? size / 4 : -size / 4;
+        this._drawAntenna(graphics, size / 4, antennaY, size / 2);
+
+        // Sandbags at the front (facing the enemy)
+        const sandbagY = isPlayerTeam ? -size / 2.2 - 6 : size / 2.2;
+        this._drawSandbags(graphics, -size / 2, sandbagY, size);
+    }
+
+    /**
+     * Draws the Main Tower turret (rotatable cupola)
+     */
+    _drawCommandBunkerTurret(graphics, darkColor) {
+        const size = 60;
+
+        // Command Cupola (Top) - centered at origin for rotation
+        graphics.fillStyle(darkColor);
+        graphics.fillCircle(0, 0, size / 4);
+        graphics.fillStyle(0xffffff, 0.1); // Shine
+        graphics.fillCircle(-size / 12, -size / 12, size / 8);
+
+        // Gun barrel pointing right (will be rotated)
+        const gunmetal = 0x374151;
+        graphics.fillStyle(gunmetal);
+        graphics.fillRect(size / 6, -4, size / 2.5, 8);
+        graphics.fillStyle(0x000000, 0.4); // Barrel depth
+        graphics.fillRect(size * 0.3, -2, size / 4, 4);
+
+        // Muzzle Brake
+        graphics.fillStyle(gunmetal);
+        graphics.fillRect(size / 1.6, -5, 5, 10);
+    }
+
+    /**
+     * Draws the Side Tower base (Defensive Outpost) without the turret
+     */
+    _drawDefensiveOutpostBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor) {
+        const size = 44;
+        const concreteColor = 0x6b7280;
+
+        // Shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillCircle(2, 3, size / 2);
+
+        // Concrete Platform
+        graphics.fillStyle(concreteColor);
+        graphics.fillCircle(0, 0, size / 2);
+
+        // Rivets around the platform
+        graphics.fillStyle(0x000000, 0.2);
+        for (let i = 0; i < 8; i++) {
+            const angle = (i / 8) * Math.PI * 2;
+            graphics.fillCircle(Math.cos(angle) * (size / 2 - 4), Math.sin(angle) * (size / 2 - 4), 2);
+        }
+
+        // Defensive Wall with team color
+        graphics.lineStyle(4, baseColor, 0.6);
+        graphics.arc(0, 0, size / 2 - 2, 0, Math.PI * 2, false);
+        graphics.strokePath();
+
+        // Banners on the sides
+        graphics.fillStyle(isPlayerTeam ? baseColor : 0xef4444);
+        graphics.fillRect(-size / 2.2, -size / 8, 4, size / 4);
+        graphics.fillRect(size / 2.2 - 4, -size / 8, 4, size / 4);
+
+        // Sandbags at the front (facing the enemy)
+        const sandbagY = isPlayerTeam ? -size / 3 - 6 : size / 3;
+        this._drawSandbags(graphics, -size / 3, sandbagY, size / 1.5);
+    }
+
+    /**
+     * Draws the Side Tower turret (rotatable gun emplacement)
+     */
+    _drawDefensiveOutpostTurret(graphics, darkColor) {
+        const size = 44;
+        const gunmetal = 0x374151;
+
+        // Central Mini-Turret
+        graphics.fillStyle(gunmetal);
+        graphics.fillCircle(0, 0, size / 3.5);
+
+        // Gun Barrel pointing right (will be rotated)
+        graphics.fillStyle(gunmetal);
+        graphics.fillRect(size / 6, -3, size / 2.5, 6);
+        graphics.fillStyle(0x000000, 0.4); // Barrel depth
+        graphics.fillRect(size * 0.3, -1, size / 4, 2);
+
+        // Muzzle Brake
+        graphics.fillStyle(gunmetal);
+        graphics.fillRect(size / 1.8, -4, 4, 8);
+    }
+
+    // Legacy method for backwards compatibility
+    drawTowerGraphics(graphics, isPlayerTeam, isMainTower) {
+        this.drawTowerBase(graphics, isPlayerTeam, isMainTower);
+        // Note: Turret is now drawn separately
+    }
+
+    _drawSandbags(graphics, x, y, width) {
+        const bagWidth = 12;
+        const bagHeight = 6;
+        const bagColor = 0xc0a080; // Sand color
+        const numBags = Math.floor(width / (bagWidth - 2));
+
+        graphics.fillStyle(bagColor);
+        graphics.lineStyle(1, 0x000000, 0.3);
+
+        for (let i = 0; i < numBags; i++) {
+            const bx = x + i * (bagWidth - 2);
+            graphics.fillRoundedRect(bx, y, bagWidth, bagHeight, 2);
+            graphics.strokeRoundedRect(bx, y, bagWidth, bagHeight, 2);
+
+            // Detail on bag
+            graphics.fillStyle(0x000000, 0.1);
+            graphics.fillRect(bx + 2, y + 2, bagWidth - 4, 1);
+            graphics.fillStyle(bagColor);
+        }
+    }
+
+    _drawAntenna(graphics, x, y, height) {
+        const metalColor = 0x4b5563;
+        graphics.fillStyle(metalColor);
+        graphics.fillRect(x - 1, y - height, 2, height);
+
+        // Antenna rings/nodes
+        graphics.fillCircle(x, y - height, 2);
+        graphics.fillCircle(x, y - height * 0.7, 1.5);
+        graphics.fillCircle(x, y - height * 0.4, 1.5);
+
+        // Radio waves (visual effect)
+        graphics.lineStyle(1, 0xffffff, 0.2);
+        for (let i = 1; i <= 3; i++) {
+            graphics.strokeCircle(x, y - height, i * 4);
+        }
+    }
 }
