@@ -1006,10 +1006,12 @@ class BattleScene extends Phaser.Scene {
         // Create custom tower graphics
         const tower = this.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
 
-        // Set tower properties
-        const health = isMainTower ? BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH : BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH;
-        tower.health = health;
-        tower.maxHealth = health;
+        // Set tower properties - Pull stats from ENTITIES registry
+        const entityId = isMainTower ? 'main_tower' : 'side_tower';
+        const entityDef = ENTITIES[entityId];
+
+        tower.health = entityDef.stats.hp;
+        tower.maxHealth = entityDef.stats.hp;
         tower.isPlayerOwned = isPlayerTeam;
         tower.isMainTower = isMainTower;
         tower.towerType = towerType;
@@ -1028,6 +1030,9 @@ class BattleScene extends Phaser.Scene {
 
         // Add to buildings array
         this.buildings.push(tower);
+
+        // Create health bar
+        this.createBuildingHealthBar(tower);
     }
 
     createTowerGraphics(x, y, isPlayerTeam, isMainTower) {

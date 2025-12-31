@@ -102,7 +102,7 @@ const UNITS = {
         id: 'main_tower',
         name: 'King Tower',
         stats: {
-            hp: 1200, // From BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH
+            hp: 1200,
             damage: 80,
             range: 200
         }
@@ -111,7 +111,7 @@ const UNITS = {
         id: 'side_tower',
         name: 'Princess Tower',
         stats: {
-            hp: 600, // From BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH
+            hp: 600,
             damage: 80,
             range: 200
         }
