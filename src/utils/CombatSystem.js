@@ -80,11 +80,11 @@ class CombatSystem {
         let bulletSpeed = 250; // pixels per second - slower for visibility
         let bulletColor = 0xffff00;
 
-        if (attacker.tankData.unitType === TANK_TYPES.HEAVY) {
+        if (attacker.unitData.unitType === TANK_TYPES.HEAVY) {
             bulletTexture = 'shell';
             bulletSpeed = 200;
             bulletColor = 0xff8800;
-        } else if (attacker.tankData.unitType === TANK_TYPES.MEDIUM) {
+        } else if (attacker.unitData.unitType === TANK_TYPES.MEDIUM) {
             bulletSpeed = 225;
             bulletColor = 0xffffff;
         }
@@ -102,8 +102,8 @@ class CombatSystem {
         bullet.setRotation(angle);
 
         // Store bullet properties
-        bullet.damage = attacker.tankData.stats.damage;
-        bullet.penetration = attacker.tankData.stats.penetration;
+        bullet.damage = attacker.unitData.stats.damage;
+        bullet.penetration = attacker.unitData.stats.penetration;
         bullet.attacker = attacker;
         bullet.target = target;
         bullet.speed = bulletSpeed;
@@ -261,7 +261,7 @@ class CombatSystem {
     calculateDamage(bullet) {
         const baseDamage = bullet.damage;
         const penetration = bullet.penetration || baseDamage; // Fallback for old bullets
-        const targetArmorData = bullet.target.tankData?.stats?.armor;
+        const targetArmorData = bullet.target.unitData?.stats?.armor;
         const targetArmor = targetArmorData ?
             (typeof targetArmorData === 'object' ? targetArmorData.front : targetArmorData) : 0;
 
@@ -374,7 +374,7 @@ class CombatSystem {
             return;
         }
 
-        if (this.scene.updateTankHealth && target.tankData) {
+        if (this.scene.updateTankHealth && target.unitData) {
             this.scene.updateTankHealth(target);
         } else if (this.scene.updateBuildingHealth) {
             this.scene.updateBuildingHealth(target);

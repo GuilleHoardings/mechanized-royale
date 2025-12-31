@@ -32,12 +32,12 @@ class GraphicsManager {
 
     /**
      * Gets the type accent color for a tank type
-     * @param {string} tankType - The tank type
+     * @param {string} unitType - The unit type
      * @param {boolean} isPlayerTank - Whether this is a player tank
      * @returns {number} The accent color
      */
-    getTypeAccentColor(tankType, isPlayerTank) {
-        const typeColors = this.typeAccentColors[tankType];
+    getTypeAccentColor(unitType, isPlayerTank) {
+        const typeColors = this.typeAccentColors[unitType];
         if (typeColors) {
             return isPlayerTank ? typeColors.player : typeColors.enemy;
         }
@@ -61,12 +61,12 @@ class GraphicsManager {
      * Creates a full-size tank graphic for the battlefield
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} tankType - The type of tank (from TANK_TYPES)
-     * @param {boolean} isPlayerTank - Whether this is a player tank
-     * @param {string|null} tankId - Optional tank ID for special tanks
-     * @returns {Phaser.GameObjects.Container} The tank container
+     * @param {string} unitType - The type of unit (from TANK_TYPES)
+     * @param {boolean} isPlayerTank - Whether this is a player unit
+     * @param {string|null} unitId - Optional unit ID for special units
+     * @returns {Phaser.GameObjects.Container} The unit container
      */
-    createTankGraphics(x, y, tankType, isPlayerTank, tankId = null) {
+    createTankGraphics(x, y, unitType, isPlayerTank, unitId = null) {
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
 
@@ -74,7 +74,7 @@ class GraphicsManager {
         const graphics = this.scene.add.graphics();
 
         // Use unified drawing method
-        this.drawUnitGraphics(graphics, tankId || tankType, {
+        this.drawUnitGraphics(graphics, unitId || unitType, {
             isPlayer: isPlayerTank,
             scale: 1.0,
             showTracks: true
@@ -167,9 +167,9 @@ class GraphicsManager {
         const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayer);
 
         // Get tank data if available to determine type/accent
-        const tankData = ENTITIES[unitId];
-        const tankType = tankData ? tankData.unitType : null;
-        const typeAccentColor = tankType ? this.getTypeAccentColor(tankType, isPlayer) : accentColor;
+        const unitData = ENTITIES[unitId];
+        const unitType = unitData ? unitData.unitType : null;
+        const typeAccentColor = unitType ? this.getTypeAccentColor(unitType, isPlayer) : accentColor;
 
         // Apply scale
         if (scale !== 1.0) {
@@ -219,7 +219,7 @@ class GraphicsManager {
             // Determine track type based on unit or fallback
             // Determine track type based on unit or fallback
             // Most units map directly to their type for track sizing
-            const trackParam = tankType || TANK_TYPES.MEDIUM;
+            const trackParam = unitType || TANK_TYPES.MEDIUM;
             this._drawTracks(graphics, trackParam);
         }
     }
@@ -230,16 +230,16 @@ class GraphicsManager {
      * @param {Object} cardDef - The card definition
      */
     _drawMiniTroopGraphics(graphics, cardDef) {
-        const tankId = cardDef.payload.tankId;
-        const tankData = ENTITIES[tankId];
+        const unitId = cardDef.unitId || (cardDef.payload && cardDef.payload.unitId);
+        const unitData = ENTITIES[unitId];
 
-        if (!tankData) {
-            console.error(`Tank data not found for ${tankId}`);
+        if (!unitData) {
+            console.error(`Unit data not found for ${unitId}`);
             return;
         }
 
         // Use the unified drawing method with scaling
-        this.drawUnitGraphics(graphics, tankId, {
+        this.drawUnitGraphics(graphics, unitId, {
             isPlayer: true,
             scale: 0.7, // Scale down for card
             showTracks: true
@@ -781,7 +781,7 @@ class GraphicsManager {
         drawSoldier(4, -5, baseColor);
     }
 
-    _drawTracks(graphics, tankType) {
+    _drawTracks(graphics, unitType) {
         const trackSpecs = {
             [TANK_TYPES.HEAVY]: { length: 38, thickness: 5, yTop: -17, yBot: 12 },
             [TANK_TYPES.ARTILLERY]: { length: 40, thickness: 4, yTop: -15, yBot: 11 },
@@ -791,7 +791,7 @@ class GraphicsManager {
             default: { length: 26, thickness: 3, yTop: -11, yBot: 8 }
         };
 
-        const spec = trackSpecs[tankType] || trackSpecs.default;
+        const spec = trackSpecs[unitType] || trackSpecs.default;
         const { length: trackLength, thickness: trackThickness, yTop, yBot } = spec;
 
         const drawTrack = (y) => {

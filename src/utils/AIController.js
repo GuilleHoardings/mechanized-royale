@@ -150,10 +150,10 @@ class AIController {
 
         if (smokeBarrageCard && smokeHandIndex !== -1 && this.scene.aiEnergy >= smokeBarrageCard.cost) {
             // Find clusters of player units (2+ in radius)
-            const cluster = this.findBestSpellTarget(playerTanks, smokeBarrageCard.payload.radius, 2);
+            const cluster = this.findBestSpellTarget(playerTanks, smokeBarrageCard.payload?.radius || 0, 2);
             if (cluster) {
                 // Prioritize zapping skeleton armies or low HP swarms
-                const swarmUnits = cluster.targets.filter(t => t.tankData && t.tankData.stats.hp <= 100);
+                const swarmUnits = cluster.targets.filter(t => t.unitData && t.unitData.stats.hp <= 100);
                 if (swarmUnits.length >= 3 || cluster.targets.length >= 3) {
                     // Queue spell with human-like reaction delay
                     const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
@@ -177,11 +177,11 @@ class AIController {
 
         if (artilleryStrikeCard && artilleryHandIndex !== -1 && this.scene.aiEnergy >= artilleryStrikeCard.cost) {
             // Need 2+ medium/high value targets or 1 clump near tower
-            const cluster = this.findBestSpellTarget(playerTanks, artilleryStrikeCard.payload.radius, 2);
+            const cluster = this.findBestSpellTarget(playerTanks, artilleryStrikeCard.payload?.radius || 0, 2);
             if (cluster) {
                 // Calculate total HP value in cluster
                 const totalValue = cluster.targets.reduce((sum, t) => {
-                    const hp = t.tankData ? t.tankData.stats.hp : 500;
+                    const hp = t.unitData ? t.unitData.stats.hp : 500;
                     return sum + hp;
                 }, 0);
 
@@ -329,7 +329,7 @@ class AIController {
             if (tank.isPlayerTank) {
                 lanes[lane].playerTanks++;
                 // Calculate threat based on tank HP and damage
-                lanes[lane].threat += (tank.tankData.stats.hp + tank.tankData.stats.damage * 2) / 100;
+                lanes[lane].threat += (tank.unitData.stats.hp + tank.unitData.stats.damage * 2) / 100;
             } else {
                 lanes[lane].aiTanks++;
             }
@@ -427,7 +427,7 @@ class AIController {
                     deployed = this.deployCounterSpell(card, cardId, counter.handIndex);
                 } else if (card.payload && card.payload.swarm) {
                     deployed = this.deployCounterSwarm(card, cardId, counter.x, counter.y, counter.handIndex);
-                } else if (card.payload && card.payload.tankId) {
+                } else if (card.unitId || (card.payload && card.payload.unitId)) {
                     deployed = this.deployCounterTroop(card, cardId, counter.x, counter.y, counter.handIndex);
                 }
 
@@ -459,7 +459,7 @@ class AIController {
         }
 
         const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
-        const cluster = this.findBestSpellTarget(playerTanks, card.payload.radius, 1);
+        const cluster = this.findBestSpellTarget(playerTanks, card.payload?.radius || 0, 1);
         if (cluster) {
             this.scene.aiCastSpell(card, cluster.x, cluster.y);
             this.aiStrategy.lastSpellTime = this.scene.time.now;
@@ -512,10 +512,10 @@ class AIController {
             }
         }
 
-        const tankId = card.payload.tankId;
-        const tankData = ENTITIES[tankId];
-        if (tankData) {
-            this.scene.deployAITank(tankId, x, y);
+        const unitId = card.unitId || (card.payload && card.payload.unitId);
+        const unitData = ENTITIES[unitId];
+        if (unitData) {
+            this.scene.deployAITank(unitId, x, y);
 
             // Cycle card if hand index provided
             if (handIndex !== undefined) {
@@ -593,7 +593,7 @@ class AIController {
     analyzePlayerBehavior(playerTanks) {
         // Count tank types player uses
         playerTanks.forEach(tank => {
-            const type = tank.tankData.unitType;
+            const type = tank.unitData.unitType;
             this.aiStrategy.playerPatterns.preferredTankTypes[type] =
                 (this.aiStrategy.playerPatterns.preferredTankTypes[type] || 0) + 1;
         });
@@ -607,9 +607,9 @@ class AIController {
             if (tank.y < riverY) {
                 aggressionScore += 0.2;
             }
-            // Fast/light tanks indicate aggressive play
-            if (tank.tankData.type === TANK_TYPES.LIGHT ||
-                tank.tankData.type === TANK_TYPES.FAST_ATTACK) {
+            // Fast/light units indicate aggressive play
+            if (tank.unitData.type === TANK_TYPES.LIGHT ||
+                tank.unitData.type === TANK_TYPES.FAST_ATTACK) {
                 aggressionScore += 0.1;
             }
         });
@@ -714,7 +714,7 @@ class AIController {
         // Count player's current tank composition
         let heavyCount = 0, lightCount = 0, mediumCount = 0, tdCount = 0;
         playerTanks.forEach(t => {
-            switch (t.tankData.type) {
+            switch (t.unitData.type) {
                 case TANK_TYPES.HEAVY: heavyCount++; break;
                 case TANK_TYPES.LIGHT:
                 case TANK_TYPES.FAST_ATTACK: lightCount++; break;
@@ -890,7 +890,7 @@ class AIController {
         if (card.type === CARD_TYPES.SPELL) {
             // Find best spell target
             const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
-            const cluster = this.findBestSpellTarget(playerTanks, card.payload.radius, 1);
+            const cluster = this.findBestSpellTarget(playerTanks, card.payload?.radius || 0, 1);
             if (cluster) {
                 this.scene.aiCastSpell(card, cluster.x, cluster.y);
                 this.scene.aiEnergy -= card.cost;
@@ -915,27 +915,27 @@ class AIController {
             return;
         }
 
-        // TROOP card - get tank data from payload
-        const tankId = card.payload.tankId;
-        const tankData = ENTITIES[tankId];
-        if (!tankData) {
-            console.log('🤖 AI: Invalid tank data for card', cardId);
+        // TROOP card - get unit data from card
+        const unitId = card.unitId || (card.payload && card.payload.unitId);
+        const unitData = ENTITIES[unitId];
+        if (!unitData) {
+            console.log('🤖 AI: Invalid unit data for card', cardId);
             return;
         }
 
         // Choose deployment position based on strategy and lane
-        const deploymentPos = this.chooseAIDeploymentPosition(tankData);
+        const deploymentPos = this.chooseAIDeploymentPosition(unitData);
         if (!deploymentPos) {
             console.log('🤖 AI: No valid deployment position');
             return;
         }
 
         // Check if this is a swarm card
-        if (card.payload.swarm) {
+        if (card.payload?.swarm) {
             this.scene.aiDeploySwarm(card, deploymentPos.x, deploymentPos.y);
         } else {
             // Deploy single unit
-            this.scene.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
+            this.scene.deployAITank(unitId, deploymentPos.x, deploymentPos.y);
         }
 
         // Deduct energy
@@ -945,7 +945,7 @@ class AIController {
         this.scene.cycleAICard(handIndex);
 
         // Consider deploying a combo card if we have energy
-        this.considerComboCardDeployment(cardId, tankData, deploymentPos);
+        this.considerComboCardDeployment(cardId, unitData, deploymentPos);
     }
 
     /**
@@ -1007,8 +1007,8 @@ class AIController {
             const handIndex = this.scene.aiHand.findIndex(id => id === comboCardId);
 
             if (comboCard && handIndex !== -1 && this.scene.aiEnergy >= comboCard.cost) {
-                const comboTankId = comboCard.payload.tankId;
-                const comboData = ENTITIES[comboTankId];
+                const comboUnitId = comboCard.unitId || (comboCard.payload && comboCard.payload.unitId);
+                const comboData = ENTITIES[comboUnitId];
                 if (!comboData) continue;
 
                 // Position combo unit near but not on top of primary
@@ -1017,7 +1017,7 @@ class AIController {
 
                 this.aiStrategy.pendingCounterDeploy = {
                     cardId: comboCardId,
-                    tankId: comboTankId,
+                    unitId: comboUnitId,
                     x: deployPos.x + sideOffset,
                     y: deployPos.y + behindOffset,
                     deployTime: this.scene.time.now + GameHelpers.randomInt(300, 600),
@@ -1058,9 +1058,9 @@ class AIController {
         // Analyze current battlefield situation
         const playerTanks = this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0);
         const aiTanks = this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0);
-        const heavyPlayerTanks = playerTanks.filter(t => t.tankData.type === TANK_TYPES.HEAVY).length;
+        const heavyPlayerTanks = playerTanks.filter(t => t.unitData.type === TANK_TYPES.HEAVY).length;
         const lightPlayerTanks = playerTanks.filter(t =>
-            t.tankData.type === TANK_TYPES.LIGHT || t.tankData.type === TANK_TYPES.FAST_ATTACK
+            t.unitData.type === TANK_TYPES.LIGHT || t.unitData.type === TANK_TYPES.FAST_ATTACK
         ).length;
 
         // PRIORITY 1: Consider placing V1 Launcher if no active one and enough energy
@@ -1101,7 +1101,7 @@ class AIController {
         // PRIORITY 5: Deploy Infantry Platoon as distraction or counter
         const infantryPlatoonInHand = findCardInHand('infantry_platoon');
         if (infantryPlatoonInHand) {
-            if (playerTanks.some(t => t.tankData.stats.damage >= 100) && Math.random() < 0.4) {
+            if (playerTanks.some(t => t.unitData.stats.damage >= 100) && Math.random() < 0.4) {
                 return { cardId: 'infantry_platoon', reason: 'Distraction - high damage enemy detected', handIndex: infantryPlatoonInHand.index };
             }
         }
@@ -1124,8 +1124,9 @@ class AIController {
                 // Prefer high DPS or win conditions
                 const aggressivePicks = troopCards.filter(item => {
                     const card = ENTITIES[item.cardId];
-                    if (!card.payload.tankId) return false;
-                    const data = ENTITIES[card.payload.tankId];
+                    const itemUnitId = card.unitId || (card.payload && card.payload.unitId);
+                    if (!itemUnitId) return false;
+                    const data = ENTITIES[itemUnitId];
                     return data && (data.stats.damage >= 80 || item.cardId === 'tiger');
                 });
                 if (aggressivePicks.length > 0) {
@@ -1138,8 +1139,9 @@ class AIController {
                 // Prefer ranged or high HP units
                 const defensivePicks = troopCards.filter(item => {
                     const card = ENTITIES[item.cardId];
-                    if (!card.payload.tankId) return false;
-                    const data = ENTITIES[card.payload.tankId];
+                    const itemUnitId = card.unitId || (card.payload && card.payload.unitId);
+                    if (!itemUnitId) return false;
+                    const data = ENTITIES[itemUnitId];
                     return data && (data.stats.range >= 200 || data.stats.hp >= 400);
                 });
                 if (defensivePicks.length > 0) {
@@ -1181,10 +1183,10 @@ class AIController {
 
     /**
      * Chooses where to deploy an AI tank
-     * @param {Object} tankData - Data for the tank being deployed
+     * @param {Object} unitData - Data for the unit being deployed
      * @returns {Object|null} Position {x, y} or null if no valid position
      */
-    chooseAIDeploymentPosition(tankData) {
+    chooseAIDeploymentPosition(unitData) {
         const validPositions = [];
         const deploymentZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
         const activeLane = this.aiStrategy.activeLane;
@@ -1223,10 +1225,10 @@ class AIController {
             } else if (this.aiStrategy.mode === 'defensive') {
                 // Deploy further back (rows 2-7)
                 tileY = GameHelpers.randomInt(baseY + 2, baseY + 7);
-            } else if (tankData.type === TANK_TYPES.ARTILLERY) {
+            } else if (unitData.type === TANK_TYPES.ARTILLERY) {
                 // Artillery deploys far back (rows 1-4)
                 tileY = GameHelpers.randomInt(baseY + 1, baseY + 4);
-            } else if (tankData.type === TANK_TYPES.HEAVY) {
+            } else if (unitData.type === TANK_TYPES.HEAVY) {
                 // Heavy tanks deploy mid-range (rows 5-12)
                 tileY = GameHelpers.randomInt(baseY + 5, maxY - 3);
             } else {
@@ -1237,7 +1239,7 @@ class AIController {
             // Check if tile position is valid
             if (GameHelpers.isValidDeploymentTile(tileX, tileY, false, this.scene.expandedDeploymentZones)) {
                 const worldPos = GameHelpers.tileToWorld(tileX, tileY);
-                const position = this.evaluateDeploymentPosition(worldPos, tankData, activeLane);
+                const position = this.evaluateDeploymentPosition(worldPos, unitData, activeLane);
                 if (position) {
                     validPositions.push(position);
                 }
@@ -1277,11 +1279,11 @@ class AIController {
     /**
      * Evaluates the strategic value of a deployment position
      * @param {Object} worldPos - World position {x, y}
-     * @param {Object} tankData - Tank data
+     * @param {Object} unitData - Unit data
      * @param {string} targetLane - The lane we're trying to push
      * @returns {Object|null} Position with strategic value or null
      */
-    evaluateDeploymentPosition(worldPos, tankData, targetLane) {
+    evaluateDeploymentPosition(worldPos, unitData, targetLane) {
         let strategicValue = 0;
         const offsetX = GameHelpers.getBattlefieldOffset();
 
@@ -1344,8 +1346,8 @@ class AIController {
         });
         strategicValue -= nearbyPlayerTanks.length * 15; // Reduced from 25
 
-        // Tank-specific positioning adjustments - reduced impact
-        switch (tankData.type) {
+        // Unit-specific positioning adjustments - reduced impact
+        switch (unitData.type) {
             case TANK_TYPES.HEAVY:
                 // Heavy tanks prefer front lines
                 strategicValue += (posY < 200) ? 10 : 0; // Reduced from 25
@@ -1415,7 +1417,7 @@ class AIController {
 
                 // Store last player deploy for potential counter
                 this.aiStrategy.lastPlayerDeploy = {
-                    tankId: data.tankId,
+                    unitId: data.unitId || (data.payload && data.payload.unitId),
                     type: data.type,
                     cost: data.cost,
                     time: currentTime
@@ -1496,7 +1498,7 @@ class AIController {
                     const spellReactionTime = this.reactionTimeBase + GameHelpers.randomInt(200, this.reactionTimeVariance);
                     this.aiStrategy.pendingCounterDeploy = {
                         cardId: cardId,
-                        tankId: null,
+                        unitId: null,
                         isSpell: true,
                         x: 0, y: 0, // Will be calculated when cast
                         deployTime: this.scene.time.now + spellReactionTime,
@@ -1507,8 +1509,8 @@ class AIController {
                 }
 
                 // For troop cards
-                const tankId = card.payload.tankId;
-                if (!tankId) continue;
+                const unitId = card.unitId || (card.payload && card.payload.unitId);
+                if (!unitId) continue;
 
                 // Find a good deployment position
                 const deployZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
@@ -1522,7 +1524,7 @@ class AIController {
                 const reactionTime = this.reactionTimeBase + GameHelpers.randomInt(0, this.reactionTimeVariance);
                 this.aiStrategy.pendingCounterDeploy = {
                     cardId: cardId,
-                    tankId: tankId,
+                    unitId: unitId,
                     x: worldPos.worldX,
                     y: worldPos.worldY,
                     deployTime: this.scene.time.now + reactionTime,
@@ -1543,7 +1545,7 @@ class AIController {
         if (tank.manualControl) return; // Don't override manual control
 
         const currentTime = this.scene.time.now;
-        const tankRange = tank.tankData.stats.range;
+        const tankRange = tank.unitData.stats.range;
 
         // Target Retention: Check if current target is still valid
         if (tank.target && tank.target.health > 0) {
@@ -1570,7 +1572,7 @@ class AIController {
         let fallbackDistance = Infinity;
 
         const isPlayerTank = tank.isPlayerTank;
-        const canAttackTanks = !tank.tankData?.targetBuildingsOnly;
+        const canAttackTanks = !tank.unitData?.targetBuildingsOnly;
 
         // Get potential targets
         let enemies = [];
@@ -1595,7 +1597,7 @@ class AIController {
 
             // Priority modifiers based on target type
             const isBuilding = enemy.isPlayerOwned !== undefined || enemy.isMainTower !== undefined;
-            const isTank = enemy.tankData !== undefined;
+            const isTank = enemy.unitData !== undefined;
 
             if (isBuilding) {
                 // Building targeting
@@ -1615,7 +1617,7 @@ class AIController {
                 }
             } else if (isTank) {
                 // Tank targeting - prioritize threats
-                const enemyData = enemy.tankData;
+                const enemyData = enemy.unitData;
 
                 // Priority based on threat level
                 if (enemyData.type === TANK_TYPES.HEAVY) {

@@ -1,88 +1,70 @@
-// Unified Entities Data (Cards + Units)
-// Replaces CARDS and TANK_DATA
-// Depends on constants.js for CARD_TYPES and TANK_TYPES
-
-const ENTITIES = {
-    // Units (Cards that are also Tanks)
+// Units: Pure combat actors (Stats, visual data)
+const UNITS = {
     tiger: {
         id: 'tiger',
         name: 'Tiger Tank',
-        type: CARD_TYPES.TROOP,
         unitType: TANK_TYPES.HEAVY,
-        cost: 5,
         tier: 2,
         stats: {
-            hp: 1300,           // Very high HP
-            damage: 70,         // Moderate damage
-            speed: 28,          // Slow
-            range: 40,          // Melee
+            hp: 1300,
+            damage: 70,
+            speed: 28,
+            range: 40,
             armor: { front: 90, side: 70, rear: 50 },
             penetration: 90
         },
-        targetBuildingsOnly: true, // Only targets buildings
+        targetBuildingsOnly: true,
         abilities: [],
-        description: 'German heavy tank optimized for destroying enemy fortifications',
-        payload: { tankId: 'tiger' }
+        description: 'German heavy tank optimized for destroying enemy fortifications'
     },
     panther: {
         id: 'panther',
         name: 'Panther Tank',
-        type: CARD_TYPES.TROOP,
         unitType: TANK_TYPES.MEDIUM,
-        cost: 3,
         tier: 2,
         stats: {
             hp: 320,
-            damage: 110,       // High single-target DPS
+            damage: 110,
             speed: 60,
             range: 170,
             armor: { front: 30, side: 20, rear: 15 },
             penetration: 90
         },
         abilities: [],
-        description: 'German medium tank with superior firepower and armor',
-        payload: { tankId: 'panther' }
+        description: 'German medium tank with superior firepower and armor'
     },
     sherman: {
         id: 'sherman',
         name: 'Sherman Tank',
-        type: CARD_TYPES.TROOP,
         unitType: TANK_TYPES.MEDIUM,
-        cost: 4,
         tier: 2,
         stats: {
             hp: 380,
             damage: 80,
             speed: 50,
-            range: 240,        // Long range
+            range: 240,
             armor: { front: 30, side: 22, rear: 15 },
             penetration: 95
         },
         abilities: [],
-        description: 'Versatile American medium tank with long-range gun',
-        payload: { tankId: 'sherman' }
+        description: 'Versatile American medium tank with long-range gun'
     },
     jagdpanzer: {
         id: 'jagdpanzer',
         name: 'Jagdpanzer IV',
-        type: CARD_TYPES.TROOP,
         unitType: TANK_TYPES.TANK_DESTROYER,
-        cost: 4,
         tier: 2,
         stats: {
             hp: 360,
-            damage: 160,       // Very high single-target
+            damage: 160,
             speed: 55,
             range: 40,
             armor: { front: 40, side: 25, rear: 20 },
             penetration: 140
         },
         abilities: [],
-        description: 'German tank destroyer with high penetration gun',
-        payload: { tankId: 'jagdpanzer' }
+        description: 'German tank destroyer with high penetration gun'
     },
-
-    // Units (Not Cards directly, spawned by cards)
     infantry: {
         id: 'infantry',
         name: 'Infantry Squad',
@@ -98,9 +80,43 @@ const ENTITIES = {
         },
         abilities: [],
         description: 'Light infantry unit for scouting and harassment'
-    },
+    }
+};
 
-    // Spells
+// Cards: Player inventory and spawner logic
+const CARDS = {
+    tiger: {
+        id: 'tiger',
+        name: 'Tiger Tank',
+        type: CARD_TYPES.TROOP,
+        cost: 5,
+        unitId: 'tiger',
+        description: UNITS.tiger.description
+    },
+    panther: {
+        id: 'panther',
+        name: 'Panther Tank',
+        type: CARD_TYPES.TROOP,
+        cost: 3,
+        unitId: 'panther',
+        description: UNITS.panther.description
+    },
+    sherman: {
+        id: 'sherman',
+        name: 'Sherman Tank',
+        type: CARD_TYPES.TROOP,
+        cost: 4,
+        unitId: 'sherman',
+        description: UNITS.sherman.description
+    },
+    jagdpanzer: {
+        id: 'jagdpanzer',
+        name: 'Jagdpanzer IV',
+        type: CARD_TYPES.TROOP,
+        cost: 4,
+        unitId: 'jagdpanzer',
+        description: UNITS.jagdpanzer.description
+    },
     smoke_barrage: {
         id: 'smoke_barrage',
         name: 'Smoke Barrage',
@@ -123,8 +139,6 @@ const ENTITIES = {
             knockback: 20
         }
     },
-
-    // Buildings
     v1_launcher: {
         id: 'v1_launcher',
         name: 'V1 Launcher',
@@ -139,8 +153,6 @@ const ENTITIES = {
             blastRadius: 60
         }
     },
-
-    // Special Cards (Spawners)
     infantry_platoon: {
         id: 'infantry_platoon',
         name: 'Infantry Platoon',
@@ -149,10 +161,22 @@ const ENTITIES = {
         payload: {
             swarm: true,
             count: 10,
-            tankId: 'infantry'
+            unitId: 'infantry'
         }
     }
 };
+
+// Unified Export for backward compatibility (Deprecated)
+// Unified Export - Correctly merge UNITS and CARDS to avoid naming collisions
+const ENTITIES = { ...UNITS };
+for (const [id, card] of Object.entries(CARDS)) {
+    if (ENTITIES[id]) {
+        // Merge card info into existing unit info
+        ENTITIES[id] = { ...ENTITIES[id], ...card };
+    } else {
+        ENTITIES[id] = card;
+    }
+}
 
 // Default player deck order (8 cards)
 const DEFAULT_PLAYER_DECK = [

@@ -142,7 +142,7 @@ class BattleScene extends Phaser.Scene {
         // Deployment preview state - initialize before UI creation
         this.deploymentPreview = {
             active: false,
-            tankType: null,
+            unitType: null,
             previewTank: null,
             previewRangeCircle: null,
             validPosition: false,
@@ -468,8 +468,8 @@ class BattleScene extends Phaser.Scene {
         for (let index = 0; index < 4; index++) {
             const cardId = this.hand[index];
             const cardDef = ENTITIES[cardId];
-            const tankData = cardDef.type === CARD_TYPES.TROOP
-                ? ENTITIES[cardDef.payload.tankId]
+            const unitData = cardDef.type === CARD_TYPES.TROOP
+                ? ENTITIES[cardDef.unitId || (cardDef.payload && cardDef.payload.unitId)]
                 : null;
             const cardX = startX + index * cardSpacing;
 
@@ -526,8 +526,8 @@ class BattleScene extends Phaser.Scene {
             card.cardId = cardId;
             card.cardDef = cardDef;
             card.cardType = cardDef.type;
-            card.tankId = cardDef.type === CARD_TYPES.TROOP ? cardDef.payload.tankId : null;
-            card.tankData = tankData;
+            card.unitId = cardDef.type === CARD_TYPES.TROOP ? (cardDef.unitId || (cardDef.payload && cardDef.payload.unitId)) : null;
+            card.unitData = unitData;
             card.costText = costText;
             card.nameText = nameText;
             card.selectionBorder = selectionBorder;
@@ -750,7 +750,7 @@ class BattleScene extends Phaser.Scene {
         this.hideCardTooltip();
         const cardRef = this.tankCards[cardIndex];
         const isTroop = cardRef.cardType === CARD_TYPES.TROOP;
-        const tankData = isTroop ? cardRef.tankData : null;
+        const unitData = isTroop ? cardRef.unitData : null;
 
         // Dynamic positioning to avoid edge clipping
         const tooltipWidth = 280;
@@ -791,7 +791,7 @@ class BattleScene extends Phaser.Scene {
             [TANK_TYPES.ARTILLERY]: 0xffff00,
             [TANK_TYPES.FAST_ATTACK]: 0x00ccff
         };
-        const headerColor = isTroop ? (typeColors[tankData.unitType] || 0x4a90e2) : 0x4a90e2;
+        const headerColor = isTroop ? (typeColors[unitData.unitType] || 0x4a90e2) : 0x4a90e2;
         tooltipBg.fillStyle(headerColor, 0.3);
         tooltipBg.fillRoundedRect(2, 2, tooltipWidth - 4, 35, 6);
 
@@ -802,14 +802,14 @@ class BattleScene extends Phaser.Scene {
             fontFamily: 'Arial',
             fontStyle: 'bold'
         });
-        const tierText = this.add.text(tooltipWidth - 15, 12, isTroop ? `Tier ${tankData.tier}` : `${cardRef.cardDef.type.toUpperCase()}`, {
+        const tierText = this.add.text(tooltipWidth - 15, 12, isTroop ? `Tier ${unitData.tier}` : `${cardRef.cardDef.type.toUpperCase()}`, {
             fontSize: '12px',
             fill: '#cccccc',
             fontFamily: 'Arial'
         }).setOrigin(1, 0);
 
         // Tank type indicator
-        const typeText = this.add.text(15, 28, isTroop ? tankData.unitType.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
+        const typeText = this.add.text(15, 28, isTroop ? unitData.unitType.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
             fontSize: '10px',
             fill: '#aaaaaa',
             fontFamily: 'Arial'
@@ -854,10 +854,10 @@ class BattleScene extends Phaser.Scene {
         });
 
         const combatStats = this.add.text(leftColumnX, statsY + 15,
-            `Health: ${tankData.stats.hp}\n` +
-            `Damage: ${tankData.stats.damage}\n` +
-            `Range: ${tankData.stats.range}\n` +
-            `Penetration: ${tankData.stats.penetration}`, {
+            `Health: ${unitData.stats.hp}\n` +
+            `Damage: ${unitData.stats.damage}\n` +
+            `Range: ${unitData.stats.range}\n` +
+            `Penetration: ${unitData.stats.penetration}`, {
             fontSize: '11px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -873,10 +873,10 @@ class BattleScene extends Phaser.Scene {
         });
 
         const mobilityStats = this.add.text(rightColumnX, statsY + 15,
-            `Speed: ${tankData.stats.speed}\n` +
-            `Front Armor: ${tankData.stats.armor.front}\n` +
-            `Side Armor: ${tankData.stats.armor.side}\n` +
-            `Rear Armor: ${tankData.stats.armor.rear}`, {
+            `Speed: ${unitData.stats.speed}\n` +
+            `Front Armor: ${unitData.stats.armor.front}\n` +
+            `Side Armor: ${unitData.stats.armor.side}\n` +
+            `Rear Armor: ${unitData.stats.armor.rear}`, {
             fontSize: '11px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -885,7 +885,7 @@ class BattleScene extends Phaser.Scene {
 
         // Abilities section
         const abilitiesY = 120;
-        if (tankData.abilities && tankData.abilities.length > 0) {
+        if (unitData.abilities && unitData.abilities.length > 0) {
             const abilitiesTitle = this.add.text(leftColumnX, abilitiesY, 'ABILITIES', {
                 fontSize: '11px',
                 fill: '#ff6699',
@@ -893,7 +893,7 @@ class BattleScene extends Phaser.Scene {
                 fontStyle: 'bold'
             });
 
-            const abilitiesText = tankData.abilities.map(ability => {
+            const abilitiesText = unitData.abilities.map(ability => {
                 // Convert ability names to readable format
                 return ability.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
             }).join(', ');
@@ -909,8 +909,8 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Description at bottom
-        const descY = abilitiesY + (tankData.abilities && tankData.abilities.length > 0 ? 35 : 15);
-        const descText = this.add.text(leftColumnX, descY, tankData.description, {
+        const descY = abilitiesY + (unitData.abilities && unitData.abilities.length > 0 ? 35 : 15);
+        const descText = this.add.text(leftColumnX, descY, unitData.description, {
             fontSize: '10px',
             fill: '#cccccc',
             fontFamily: 'Arial',
@@ -1597,15 +1597,15 @@ class BattleScene extends Phaser.Scene {
 
         if (card.id === 'smoke_barrage') {
             // Enhanced visual effect for smoke barrage
-            this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.smoke_barrage, 'SMOKE BARRAGE', isPlayerCast);
+            this.createEnhancedSpellEffect(x, y, card.payload?.radius || 0, colors.smoke_barrage, 'SMOKE BARRAGE', isPlayerCast);
 
-            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+            this.applyAreaEffect(x, y, card.payload?.radius || 0, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
                 }
-                target.health = Math.max(0, target.health - card.payload.damage);
-                target.stunnedUntil = this.time.now + (card.payload.stunMs || 0);
+                target.health = Math.max(0, target.health - (card.payload?.damage || 0));
+                target.stunnedUntil = this.time.now + (card.payload?.stunMs || 0);
                 this.combatSystem.updateHealthDisplay(target);
                 if (target.health <= 0) {
                     this.combatSystem.handleTargetDestruction(target, null);
@@ -1615,14 +1615,14 @@ class BattleScene extends Phaser.Scene {
             if (!isPlayerCast) console.log('🤖 AI: Cast Smoke Barrage at', Math.round(x), Math.round(y));
         } else if (card.id === 'artillery_strike') {
             // Enhanced visual effect for artillery strike
-            this.createEnhancedSpellEffect(x, y, card.payload.radius, colors.artillery_strike, 'ARTILLERY STRIKE', isPlayerCast);
+            this.createEnhancedSpellEffect(x, y, card.payload?.radius || 0, colors.artillery_strike, 'ARTILLERY STRIKE', isPlayerCast);
 
-            this.applyAreaEffect(x, y, card.payload.radius, (target) => {
+            this.applyAreaEffect(x, y, card.payload?.radius || 0, (target) => {
                 if (!shouldAffect(target)) return;
                 if (target.isMainTower && !target.activated) {
                     target.activated = true;
                 }
-                target.health = Math.max(0, target.health - card.payload.damage);
+                target.health = Math.max(0, target.health - (card.payload?.damage || 0));
                 this.combatSystem.updateHealthDisplay(target);
                 if (target.health <= 0) {
                     this.combatSystem.handleTargetDestruction(target, null);
@@ -1671,7 +1671,7 @@ class BattleScene extends Phaser.Scene {
         this.createBuildingHealthBar(building);
 
         // For buildings with lifetime (like V1 launcher), set up destruction timer
-        if (card.payload.lifetimeMs) {
+        if (card.payload?.lifetimeMs) {
             this.time.delayedCall(card.payload.lifetimeMs, () => {
                 const idx = this.buildings.indexOf(building);
                 if (idx >= 0) this.buildings.splice(idx, 1);
@@ -1683,13 +1683,13 @@ class BattleScene extends Phaser.Scene {
         }
 
         // For buildings that launch missiles automatically (like V1 launcher)
-        if (card.payload.launchIntervalMs) {
+        if (card.payload?.launchIntervalMs) {
             const timer = this.time.addEvent({
                 delay: card.payload.launchIntervalMs,
                 loop: true,
                 callback: () => {
                     if (!building.scene || building.health <= 0) { timer.remove(); return; }
-                    for (let i = 0; i < (card.payload.missileCount || 1); i++) {
+                    for (let i = 0; i < (card.payload?.missileCount || 1); i++) {
                         this.launchBuildingMissile(building, card.payload);
                     }
                 }
@@ -1934,7 +1934,7 @@ class BattleScene extends Phaser.Scene {
                 target.health = Math.max(0, target.health - finalDamage);
 
                 // Update health display
-                if (target.tankData) {
+                if (target.unitData) {
                     this.updateTankHealth(target);
                 } else {
                     this.updateBuildingHealth(target);
@@ -1948,8 +1948,8 @@ class BattleScene extends Phaser.Scene {
                 if (
                     target.health <= 0 &&
                     (
-                        (target.tankData && this.tanks.includes(target)) ||
-                        (!target.tankData && this.buildings.includes(target))
+                        (target.unitData && this.tanks.includes(target)) ||
+                        (!target.unitData && this.buildings.includes(target))
                     )
                 ) {
                     this.combatSystem.handleTargetDestruction(target, null);
@@ -2144,7 +2144,7 @@ class BattleScene extends Phaser.Scene {
 
             this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
                 snappedPos.worldX, snappedPos.worldY,
-                selectedCard.tankData.unitType, true, selectedCard.tankData.id
+                selectedCard.unitData.unitType, true, selectedCard.unitId
             );
             this.deploymentPreview.previewTank.setAlpha(0.5);
             this.deploymentPreview.previewTank.setDepth(15);
@@ -2152,7 +2152,7 @@ class BattleScene extends Phaser.Scene {
             this.deploymentPreview.previewTank.setRotation(-Math.PI / 2);
 
             // Create range circle if tank has range
-            const range = selectedCard.tankData.stats.range;
+            const range = selectedCard.unitData?.stats?.range || 0;
             if (range > 0) {
                 this.deploymentPreview.previewRangeCircle = this.add.graphics();
                 this.deploymentPreview.previewRangeCircle.setDepth(25);
@@ -2221,7 +2221,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         const selectedCardData = this.tankCards[this.selectedCard];
-        const range = selectedCardData.tankData?.stats?.range || 0; // Only for troops
+        const range = selectedCardData?.unitData?.stats?.range || 0; // Only for troops
 
         this.deploymentPreview.previewRangeCircle.clear();
 
@@ -2287,7 +2287,7 @@ class BattleScene extends Phaser.Scene {
         this.endSpellPreview();
 
         this.deploymentPreview.active = true;
-        this.deploymentPreview.tankType = selectedCard.tankData.unitType;
+        this.deploymentPreview.unitType = selectedCard.unitData.unitType;
         this.deploymentPreview.selectedCard = selectedCard; // Store for later
 
         // Don't create preview graphics yet - wait for mouse to move over battlefield
@@ -2420,26 +2420,31 @@ class BattleScene extends Phaser.Scene {
      * 
      * Used by both player and AI deployment systems.
      * 
-     * @param {string} tankId - The unique tank identifier from ENTITIES.
-     * @param {number} x - The world X coordinate (in pixels) for tank deployment.
-     * @param {number} y - The world Y coordinate (in pixels) for tank deployment.
+     * @param {string} unitId - The unique unit identifier from ENTITIES.
+     * @param {number} x - The world X coordinate (in pixels) for unit deployment.
+     * @param {number} y - The world Y coordinate (in pixels) for unit deployment.
      * @param {boolean} isPlayerTank - True if deploying for player, false for AI.
      * 
      * @returns {void}
      */
-    deployTank(tankId, x, y) {
-        this._deployTankInternal(tankId, x, y, true);
+    deployTank(unitId, x, y) {
+        this._deployTankInternal(unitId, x, y, true);
     }
 
-    _deployTankInternal(tankId, x, y, isPlayerTank) {
-        const tankData = ENTITIES[tankId];
-        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.unitType, isPlayerTank, tankData.id);
+    _deployTankInternal(unitId, x, y, isPlayerTank) {
+        const unitData = ENTITIES[unitId];
+        if (!unitData) {
+            console.error(`Unit data not found for ID: ${unitId}`);
+            return;
+        }
+
+        const tank = this.graphicsManager.createTankGraphics(x, y, unitData.unitType, isPlayerTank, unitData.id);
 
         // Tank properties
-        tank.tankId = tankId;
-        tank.tankData = tankData;
-        tank.health = tankData.stats.hp;
-        tank.maxHealth = tankData.stats.hp;
+        tank.unitId = unitId;
+        tank.unitData = unitData;
+        tank.health = unitData.stats.hp;
+        tank.maxHealth = unitData.stats.hp;
         tank.isPlayerTank = isPlayerTank;
         tank.target = null;
         tank.lastShotTime = 0;
@@ -2470,7 +2475,7 @@ class BattleScene extends Phaser.Scene {
         // Update statistics
         const stats = isPlayerTank ? this.battleStats.player : this.battleStats.ai;
         stats.tanksDeployed++;
-        stats.energySpent += (tankData.cost || 0);
+        stats.energySpent += (unitData.cost || 0);
 
         if (isPlayerTank) {
             this.playUISound('deploy');
@@ -2578,7 +2583,7 @@ class BattleScene extends Phaser.Scene {
 
         const targetPos = tank.target;
         const distance = GameHelpers.distance(tank.x, tank.y, targetPos.x, targetPos.y);
-        const range = tank.tankData.stats.range;
+        const range = tank.unitData.stats.range;
 
         // If target is in attack range, stop moving and attack
         if (distance <= range) {
@@ -2674,7 +2679,7 @@ class BattleScene extends Phaser.Scene {
 
                 // Calculate movement direction towards waypoint
                 const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
-                const baseSpeed = tank.tankData.stats.speed / 60; // Convert to pixels per frame
+                const baseSpeed = tank.unitData.stats.speed / 60; // Convert to pixels per frame
                 const speedFactor = this.simulationSpeed || 1;
 
                 // Apply movement with avoidance, scaled by simulation speed factor for slow motion
@@ -2715,7 +2720,7 @@ class BattleScene extends Phaser.Scene {
         if (tank.rangeCircle) {
             tank.rangeCircle.clear();
             tank.rangeCircle.lineStyle(2, 0x00ff00, 0.3);
-            tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+            tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.unitData.stats.range);
         }
 
         // Update debug attack range circle position
@@ -2896,103 +2901,103 @@ class BattleScene extends Phaser.Scene {
     }
 
     aiDeployTankStrategically() {
-        // Choose tank based on current strategy
-        const tankId = this.chooseAITank();
+        // Choose unit based on current strategy
+        const unitId = this.chooseAITank();
 
-        // Check if we got a valid tank ID
-        if (!tankId) {
-            console.warn('AI could not choose a tank to deploy');
+        // Check if we got a valid unit ID
+        if (!unitId) {
+            console.warn('AI could not choose a unit to deploy');
             return;
         }
 
-        const tankData = ENTITIES[tankId];
+        const unitData = ENTITIES[unitId];
 
-        // Check if tank data exists
-        if (!tankData) {
-            console.warn('Tank data not found for ID:', tankId);
+        // Check if unit data exists
+        if (!unitData) {
+            console.warn('Unit data not found for ID:', unitId);
             return;
         }
 
-        if (this.aiEnergy < tankData.cost) return; // Not enough energy
+        if (this.aiEnergy < unitData.cost) return; // Not enough energy
 
         // Strategic deployment positioning
-        const deploymentPos = this.chooseAIDeploymentPosition(tankData);
+        const deploymentPos = this.chooseAIDeploymentPosition(unitData);
 
-        // Create AI tank
-        this.deployAITank(tankId, deploymentPos.x, deploymentPos.y);
-        this.aiEnergy -= tankData.cost;
+        // Create AI unit
+        this.deployAITank(unitId, deploymentPos.x, deploymentPos.y);
+        this.aiEnergy -= unitData.cost;
     }
 
     chooseAITank() {
         // Filter deck by preferred types for current strategy
-        let availableTanks = this.aiDeck.filter(tankId => {
-            const tankData = ENTITIES[tankId];
-            return tankData && this.aiEnergy >= tankData.cost;
+        let availableTanks = this.aiDeck.filter(unitId => {
+            const unitData = ENTITIES[unitId];
+            return unitData && this.aiEnergy >= unitData.cost;
         });
 
         if (availableTanks.length === 0) {
-            // Fallback to cheapest available tank
-            availableTanks = this.aiDeck.filter(tankId => {
-                const tankData = ENTITIES[tankId];
-                return tankData && tankData.cost <= this.aiEnergy;
+            // Fallback to cheapest available unit
+            availableTanks = this.aiDeck.filter(unitId => {
+                const unitData = ENTITIES[unitId];
+                return unitData && unitData.cost <= this.aiEnergy;
             });
         }
 
-        // If still no tanks available, find the absolute cheapest tank
+        // If still no units available, find the absolute cheapest unit
         if (availableTanks.length === 0) {
-            // Get all valid tank IDs and find the cheapest one
-            const allValidTanks = this.aiDeck.filter(tankId => ENTITIES[tankId]);
+            // Get all valid unit IDs and find the cheapest one
+            const allValidTanks = this.aiDeck.filter(unitId => ENTITIES[unitId]);
             if (allValidTanks.length > 0) {
-                const cheapestTank = allValidTanks.reduce((cheapest, tankId) => {
-                    const tankData = ENTITIES[tankId];
+                const cheapestTank = allValidTanks.reduce((cheapest, unitId) => {
+                    const unitData = ENTITIES[unitId];
                     const cheapestData = ENTITIES[cheapest];
-                    return tankData.cost < cheapestData.cost ? tankId : cheapest;
+                    return unitData.cost < cheapestData.cost ? unitId : cheapest;
                 });
 
-                // If we can afford the cheapest tank, use it
+                // If we can afford the cheapest unit, use it
                 if (ENTITIES[cheapestTank] && this.aiEnergy >= ENTITIES[cheapestTank].cost) {
                     availableTanks = [cheapestTank];
                 }
             }
         }
 
-        // If we still have no available tanks, return null
+        // If we still have no available units, return null
         if (availableTanks.length === 0) {
             return null;
         }
 
-        // Prefer strategy-appropriate tanks
-        const preferredTanks = availableTanks.filter(tankId =>
-            this.aiStrategy.preferredTankTypes.includes(tankId)
+        // Prefer strategy-appropriate units
+        const preferredTanks = availableTanks.filter(unitId =>
+            this.aiStrategy.preferredTankTypes.includes(unitId)
         );
 
         if (preferredTanks.length > 0) {
-            // 70% chance to use preferred tank
+            // 70% chance to use preferred unit
             if (Math.random() < 0.7) {
                 return preferredTanks[Math.floor(Math.random() * preferredTanks.length)];
             }
         }
 
-        // Strategic tank selection based on situation
+        // Strategic unit selection based on situation
         const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
-        const heavyPlayerTanks = playerTanks.filter(t => t.tankData.type === TANK_TYPES.HEAVY);
+        const heavyPlayerTanks = playerTanks.filter(t => t.unitData.type === TANK_TYPES.HEAVY);
 
         if (heavyPlayerTanks.length > 0 && this.aiEnergy >= 4) {
-            // Counter heavy tanks with medium/heavy tanks
-            const counterTanks = availableTanks.filter(tankId => {
-                const tankData = ENTITIES[tankId];
-                return tankData && (tankData.type === TANK_TYPES.MEDIUM || tankData.type === TANK_TYPES.HEAVY);
+            // Counter heavy units with medium/heavy units
+            const counterTanks = availableTanks.filter(unitId => {
+                const unitData = ENTITIES[unitId];
+                return unitData && (unitData.type === TANK_TYPES.MEDIUM || unitData.type === TANK_TYPES.HEAVY);
             });
             if (counterTanks.length > 0) {
                 return counterTanks[Math.floor(Math.random() * counterTanks.length)];
             }
         }
 
-        // Default random selection from available tanks
+        // Default random selection from available units
         return availableTanks[Math.floor(Math.random() * availableTanks.length)];
     }
 
-    chooseAIDeploymentPosition(tankData) {
+    chooseAIDeploymentPosition(unitData) {
         const enemyZoneCoords = GameHelpers.getDeploymentZoneWorldCoords(false); // false = enemy zone
         const playerBase = this.buildings.find(b => b.isPlayerOwned);
         const aiBase = this.buildings.find(b => !b.isPlayerOwned);
@@ -3101,8 +3106,9 @@ class BattleScene extends Phaser.Scene {
      * @param {number} y - World Y position
      */
     aiDeploySwarm(card, x, y) {
-        const tankData = ENTITIES[card.payload.tankId];
-        const count = card.payload.count || 1;
+        const unitId = card.unitId || (card.payload && card.payload.unitId);
+        const unitData = ENTITIES[unitId];
+        const count = card.payload?.count || 1;
 
         // Spread units in a formation
         const spreadRadius = 25;
@@ -3113,15 +3119,15 @@ class BattleScene extends Phaser.Scene {
 
             // Small delay between spawns for visual effect
             this.time.delayedCall(i * 50, () => {
-                this.deployAITank(card.payload.tankId, x + offsetX, y + offsetY);
+                this.deployAITank(unitId, x + offsetX, y + offsetY);
             });
         }
 
-        console.log('🤖 AI: Deployed', count, tankData.name, 'at', Math.round(x), Math.round(y));
+        console.log('🤖 AI: Deployed', count, unitData.name, 'at', Math.round(x), Math.round(y));
     }
 
-    deployAITank(tankId, x, y) {
-        this._deployTankInternal(tankId, x, y, false);
+    deployAITank(unitId, x, y) {
+        this._deployTankInternal(unitId, x, y, false);
     }
 
     update() {
@@ -3382,7 +3388,7 @@ class BattleScene extends Phaser.Scene {
         const card = this.tankCards[cardIndex];
         const cardId = this.hand[cardIndex];
         const def = ENTITIES[cardId];
-        const tankData = def.type === CARD_TYPES.TROOP ? ENTITIES[def.payload.tankId] : null;
+        const unitData = def.type === CARD_TYPES.TROOP ? ENTITIES[def.unitId || (def.payload && def.payload.unitId)] : null;
 
         // Destroy old tank icon and create new one
         if (card.tankIcon) {
@@ -3410,8 +3416,8 @@ class BattleScene extends Phaser.Scene {
         card.cardId = cardId;
         card.cardDef = def;
         card.cardType = def.type;
-        card.tankId = def.type === CARD_TYPES.TROOP ? def.payload.tankId : null;
-        card.tankData = tankData;
+        card.unitId = def.unitId || (def.payload && def.payload.unitId);
+        card.unitData = unitData;
 
         // Brief highlight animation to show card changed
         this.tweens.add({
@@ -3608,16 +3614,16 @@ class BattleScene extends Phaser.Scene {
 
         // Deploy the tank(s) - handle swarm units
         const payload = selectedCard.cardDef.payload || {};
-        if (payload.swarm && payload.count && selectedCard.tankId) {
+        if (payload.swarm && payload.count && selectedCard.unitId) {
             // Deploy multiple units in a spread pattern
             for (let i = 0; i < payload.count; i++) {
                 const ox = GameHelpers.randomInt(-15, 15);
                 const oy = GameHelpers.randomInt(-10, 10);
-                this.deployTank(selectedCard.tankId, worldPoint.x + ox, worldPoint.y + oy);
+                this.deployTank(selectedCard.unitId, worldPoint.x + ox, worldPoint.y + oy);
             }
-        } else {
+        } else if (selectedCard.unitId) {
             // Deploy single unit
-            this.deployTank(selectedCard.tankId, worldPoint.x, worldPoint.y);
+            this.deployTank(selectedCard.unitId, worldPoint.x, worldPoint.y);
         }
 
         // Spend energy
@@ -3722,13 +3728,13 @@ class BattleScene extends Phaser.Scene {
         this.createBuildingHealthBar(building);
 
         // Set up missile launching timer for buildings like V1 launcher
-        if (buildingDef.payload.launchIntervalMs) {
+        if (buildingDef.payload?.launchIntervalMs) {
             const timer = this.time.addEvent({
                 delay: buildingDef.payload.launchIntervalMs,
                 loop: true,
                 callback: () => {
                     if (!building.scene || building.health <= 0) { timer.remove(); return; }
-                    for (let i = 0; i < (buildingDef.payload.missileCount || 1); i++) {
+                    for (let i = 0; i < (buildingDef.payload?.missileCount || 1); i++) {
                         this.launchBuildingMissile(building, buildingDef.payload);
                     }
                 }
@@ -3867,9 +3873,9 @@ class BattleScene extends Phaser.Scene {
         this.playUISound('explosion'); // Temporary, should be missile sound
     }
 
-    playShootSound(tankType) {
+    playShootSound(unitType) {
         // Enhanced shooting sounds based on tank type
-        switch (tankType) {
+        switch (unitType) {
             case 'light':
                 console.log('🔊 Playing: Light Tank Fire');
                 // this.sound.play('lightTankFire', { volume: 0.4 });
@@ -4041,8 +4047,8 @@ class BattleScene extends Phaser.Scene {
 
         // Show brief selection info (troop vs non-troop)
         const isTroop = card.cardType === CARD_TYPES.TROOP;
-        const displayName = isTroop ? card.tankData?.name : card.cardDef?.name;
-        const costVal = isTroop ? card.tankData?.cost : card.cardDef?.cost;
+        const displayName = isTroop ? card.unitData?.name : card.cardDef?.name;
+        const costVal = isTroop ? card.cardDef?.cost : card.cardDef?.cost; // Fixed to use cardDef for cost
         const canAfford = typeof costVal === 'number' ? (this.energy >= costVal) : true;
         let infoText;
         let actionIcon;
@@ -4656,7 +4662,7 @@ class BattleScene extends Phaser.Scene {
             circleColor,
             UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
         );
-        rangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+        rangeCircle.strokeCircle(tank.x, tank.y, tank.unitData.stats.range);
 
         // Store reference on the tank and in our list
         tank.debugRangeCircle = rangeCircle;
@@ -4694,7 +4700,7 @@ class BattleScene extends Phaser.Scene {
                 circleColor,
                 UI_CONFIG.DEBUG.ATTACK_RANGE_CIRCLES.ALPHA
             );
-            tank.debugRangeCircle.strokeCircle(tank.x, tank.y, tank.tankData.stats.range);
+            tank.debugRangeCircle.strokeCircle(tank.x, tank.y, tank.unitData.stats.range);
         }
     }
 
