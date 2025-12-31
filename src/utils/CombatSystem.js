@@ -80,11 +80,11 @@ class CombatSystem {
         let bulletSpeed = 250; // pixels per second - slower for visibility
         let bulletColor = 0xffff00;
 
-        if (attacker.tankData.type === TANK_TYPES.HEAVY) {
+        if (attacker.tankData.unitType === TANK_TYPES.HEAVY) {
             bulletTexture = 'shell';
             bulletSpeed = 200;
             bulletColor = 0xff8800;
-        } else if (attacker.tankData.type === TANK_TYPES.MEDIUM) {
+        } else if (attacker.tankData.unitType === TANK_TYPES.MEDIUM) {
             bulletSpeed = 225;
             bulletColor = 0xffffff;
         }

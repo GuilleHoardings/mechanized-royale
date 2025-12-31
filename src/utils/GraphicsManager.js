@@ -90,13 +90,13 @@ class GraphicsManager {
      * Creates a mini card graphic for cards (troops, spells, buildings)
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} cardId - The card ID from CARDS
+     * @param {string} cardId - The card ID from ENTITIES
      * @returns {Phaser.GameObjects.Container} The mini card graphic container
      */
     createMiniCardGraphics(x, y, cardId) {
-        const cardDef = CARDS[cardId];
+        const cardDef = ENTITIES[cardId];
         if (!cardDef) {
-            console.error(`Card ${cardId} not found in CARDS`);
+            console.error(`Card ${cardId} not found in ENTITIES`);
             return this.scene.add.container(x, y);
         }
 
@@ -127,11 +127,11 @@ class GraphicsManager {
      * Creates building graphics for the battlefield
      * @param {number} x - X position
      * @param {number} y - Y position
-     * @param {string} buildingId - The building ID from CARDS
+     * @param {string} buildingId - The building ID from ENTITIES
      * @returns {Phaser.GameObjects.Container} The building container
      */
     createBuildingGraphics(x, y, buildingId) {
-        const buildingDef = CARDS[buildingId];
+        const buildingDef = ENTITIES[buildingId];
         if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
             console.error(`Invalid building: ${buildingId}`);
             return this.scene.add.container(x, y);
@@ -156,7 +156,7 @@ class GraphicsManager {
     /**
      * Draws graphics for a specific unit by ID
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
-     * @param {string} unitId - The unit ID (e.g., 'tank_tiger', 'tank_sherman')
+     * @param {string} unitId - The unit ID (e.g., 'tiger', 'sherman')
      * @param {Object} options - Options: isPlayer, scale, showTracks
      */
     drawUnitGraphics(graphics, unitId, options = {}) {
@@ -167,8 +167,8 @@ class GraphicsManager {
         const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayer);
 
         // Get tank data if available to determine type/accent
-        const tankData = TANK_DATA[unitId];
-        const tankType = tankData ? tankData.type : null;
+        const tankData = ENTITIES[unitId];
+        const tankType = tankData ? tankData.unitType : null;
         const typeAccentColor = tankType ? this.getTypeAccentColor(tankType, isPlayer) : accentColor;
 
         // Apply scale
@@ -176,21 +176,20 @@ class GraphicsManager {
             graphics.setScale(scale);
         }
 
-        // Draw specific unit
         switch (unitId) {
-            case 'tank_infantry':
+            case 'infantry':
                 this._drawInfantry(graphics, baseColor, accentColor);
                 return; // Infantry has no tracks
-            case 'tank_tiger':
+            case 'tiger':
                 this._drawTigerTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
-            case 'tank_panther':
+            case 'panther':
                 this._drawPantherTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
-            case 'tank_sherman':
+            case 'sherman':
                 this._drawShermanTank(graphics, baseColor, darkColor, typeAccentColor);
                 break;
-            case 'tank_jagdpanzer':
+            case 'jagdpanzer':
                 this._drawJagdpanzer(graphics, baseColor, darkColor, typeAccentColor);
                 break;
             // Fallbacks for types if specific ID not found
@@ -232,7 +231,7 @@ class GraphicsManager {
      */
     _drawMiniTroopGraphics(graphics, cardDef) {
         const tankId = cardDef.payload.tankId;
-        const tankData = TANK_DATA[tankId];
+        const tankData = ENTITIES[tankId];
 
         if (!tankData) {
             console.error(`Tank data not found for ${tankId}`);

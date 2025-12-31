@@ -467,14 +467,15 @@ class BattleScene extends Phaser.Scene {
         // Create 4 cards from hand
         for (let index = 0; index < 4; index++) {
             const cardId = this.hand[index];
-            const cardDef = CARDS[cardId];
+            const cardDef = ENTITIES[cardId];
             const tankData = cardDef.type === CARD_TYPES.TROOP
-                ? TANK_DATA[cardDef.payload.tankId]
+                ? ENTITIES[cardDef.payload.tankId]
                 : null;
             const cardX = startX + index * cardSpacing;
 
             // Card background
             const card = this.add.image(cardX, cardsY, 'card_bg')
+
                 .setDisplaySize(cardWidth, cardHeight)
                 .setInteractive()
                 .setOrigin(0);
@@ -776,7 +777,7 @@ class BattleScene extends Phaser.Scene {
         tooltipBg.fillRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
 
         // Determine cost (troop vs non-troop) and draw border with energy accent
-        const costVal = isTroop ? tankData.cost : cardRef.cardDef.cost;
+        const costVal = cardRef.cardDef.cost;
         const borderColor = costVal <= this.energy ? 0x4a90e2 : 0x666666;
         tooltipBg.lineStyle(3, borderColor, 0.8);
         tooltipBg.strokeRoundedRect(0, 0, tooltipWidth, tooltipHeight, 8);
@@ -790,12 +791,12 @@ class BattleScene extends Phaser.Scene {
             [TANK_TYPES.ARTILLERY]: 0xffff00,
             [TANK_TYPES.FAST_ATTACK]: 0x00ccff
         };
-        const headerColor = isTroop ? (typeColors[tankData.type] || 0x4a90e2) : 0x4a90e2;
+        const headerColor = isTroop ? (typeColors[tankData.unitType] || 0x4a90e2) : 0x4a90e2;
         tooltipBg.fillStyle(headerColor, 0.3);
         tooltipBg.fillRoundedRect(2, 2, tooltipWidth - 4, 35, 6);
 
         // Tank name and tier
-        const nameText = this.add.text(15, 12, isTroop ? `${tankData.name}` : `${cardRef.cardDef.name}`, {
+        const nameText = this.add.text(15, 12, `${cardRef.cardDef.name}`, {
             fontSize: '16px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -808,7 +809,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(1, 0);
 
         // Tank type indicator
-        const typeText = this.add.text(15, 28, isTroop ? tankData.type.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
+        const typeText = this.add.text(15, 28, isTroop ? tankData.unitType.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
             fontSize: '10px',
             fill: '#aaaaaa',
             fontFamily: 'Arial'
@@ -2143,7 +2144,7 @@ class BattleScene extends Phaser.Scene {
 
             this.deploymentPreview.previewTank = this.graphicsManager.createTankGraphics(
                 snappedPos.worldX, snappedPos.worldY,
-                selectedCard.tankData.type, true, selectedCard.tankData.id
+                selectedCard.tankData.unitType, true, selectedCard.tankData.id
             );
             this.deploymentPreview.previewTank.setAlpha(0.5);
             this.deploymentPreview.previewTank.setDepth(15);
@@ -2167,7 +2168,7 @@ class BattleScene extends Phaser.Scene {
 
         // Check if there's enough energy
         const selectedCardData = this.tankCards[this.selectedCard];
-        const cost = selectedCardData.cardType === CARD_TYPES.TROOP ? selectedCardData.tankData.cost : selectedCardData.cardDef.cost;
+        const cost = selectedCardData.cardDef.cost;
         const hasEnoughEnergy = this.energy >= cost;
 
         this.deploymentPreview.validPosition = isValid && hasEnoughEnergy;
@@ -2286,7 +2287,7 @@ class BattleScene extends Phaser.Scene {
         this.endSpellPreview();
 
         this.deploymentPreview.active = true;
-        this.deploymentPreview.tankType = selectedCard.tankData.type;
+        this.deploymentPreview.tankType = selectedCard.tankData.unitType;
         this.deploymentPreview.selectedCard = selectedCard; // Store for later
 
         // Don't create preview graphics yet - wait for mouse to move over battlefield
@@ -2419,7 +2420,7 @@ class BattleScene extends Phaser.Scene {
      * 
      * Used by both player and AI deployment systems.
      * 
-     * @param {string} tankId - The unique tank identifier from TANK_DATA.
+     * @param {string} tankId - The unique tank identifier from ENTITIES.
      * @param {number} x - The world X coordinate (in pixels) for tank deployment.
      * @param {number} y - The world Y coordinate (in pixels) for tank deployment.
      * @param {boolean} isPlayerTank - True if deploying for player, false for AI.
@@ -2431,8 +2432,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     _deployTankInternal(tankId, x, y, isPlayerTank) {
-        const tankData = TANK_DATA[tankId];
-        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.type, isPlayerTank, tankData.id);
+        const tankData = ENTITIES[tankId];
+        const tank = this.graphicsManager.createTankGraphics(x, y, tankData.unitType, isPlayerTank, tankData.id);
 
         // Tank properties
         tank.tankId = tankId;
@@ -2469,7 +2470,7 @@ class BattleScene extends Phaser.Scene {
         // Update statistics
         const stats = isPlayerTank ? this.battleStats.player : this.battleStats.ai;
         stats.tanksDeployed++;
-        stats.energySpent += tankData.cost;
+        stats.energySpent += (tankData.cost || 0);
 
         if (isPlayerTank) {
             this.playUISound('deploy');
@@ -2751,7 +2752,7 @@ class BattleScene extends Phaser.Scene {
             mode: 'balanced',
             rushMode: false,
             defensiveMode: false,
-            preferredTankTypes: ['tank_sherman', 'tank_panther']
+            preferredTankTypes: ['sherman', 'panther']
         };
 
         // AI energy regeneration
@@ -2904,7 +2905,7 @@ class BattleScene extends Phaser.Scene {
             return;
         }
 
-        const tankData = TANK_DATA[tankId];
+        const tankData = ENTITIES[tankId];
 
         // Check if tank data exists
         if (!tankData) {
@@ -2925,14 +2926,14 @@ class BattleScene extends Phaser.Scene {
     chooseAITank() {
         // Filter deck by preferred types for current strategy
         let availableTanks = this.aiDeck.filter(tankId => {
-            const tankData = TANK_DATA[tankId];
+            const tankData = ENTITIES[tankId];
             return tankData && this.aiEnergy >= tankData.cost;
         });
 
         if (availableTanks.length === 0) {
             // Fallback to cheapest available tank
             availableTanks = this.aiDeck.filter(tankId => {
-                const tankData = TANK_DATA[tankId];
+                const tankData = ENTITIES[tankId];
                 return tankData && tankData.cost <= this.aiEnergy;
             });
         }
@@ -2940,16 +2941,16 @@ class BattleScene extends Phaser.Scene {
         // If still no tanks available, find the absolute cheapest tank
         if (availableTanks.length === 0) {
             // Get all valid tank IDs and find the cheapest one
-            const allValidTanks = this.aiDeck.filter(tankId => TANK_DATA[tankId]);
+            const allValidTanks = this.aiDeck.filter(tankId => ENTITIES[tankId]);
             if (allValidTanks.length > 0) {
                 const cheapestTank = allValidTanks.reduce((cheapest, tankId) => {
-                    const tankData = TANK_DATA[tankId];
-                    const cheapestData = TANK_DATA[cheapest];
+                    const tankData = ENTITIES[tankId];
+                    const cheapestData = ENTITIES[cheapest];
                     return tankData.cost < cheapestData.cost ? tankId : cheapest;
                 });
 
                 // If we can afford the cheapest tank, use it
-                if (TANK_DATA[cheapestTank] && this.aiEnergy >= TANK_DATA[cheapestTank].cost) {
+                if (ENTITIES[cheapestTank] && this.aiEnergy >= ENTITIES[cheapestTank].cost) {
                     availableTanks = [cheapestTank];
                 }
             }
@@ -2979,7 +2980,7 @@ class BattleScene extends Phaser.Scene {
         if (heavyPlayerTanks.length > 0 && this.aiEnergy >= 4) {
             // Counter heavy tanks with medium/heavy tanks
             const counterTanks = availableTanks.filter(tankId => {
-                const tankData = TANK_DATA[tankId];
+                const tankData = ENTITIES[tankId];
                 return tankData && (tankData.type === TANK_TYPES.MEDIUM || tankData.type === TANK_TYPES.HEAVY);
             });
             if (counterTanks.length > 0) {
@@ -3061,10 +3062,10 @@ class BattleScene extends Phaser.Scene {
                 this.aiNextDeployment = Math.min(this.aiNextDeployment, currentTime + nextDeploymentDelay);
 
                 // Prioritize medium/heavy tanks to counter
-                this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_tiger'];
+                this.aiStrategy.preferredTankTypes = ['sherman', 'tiger'];
             } else if (data.cost <= 2 && this.aiEnergy >= 4) {
                 // Player deployed cheap unit - might be rushing
-                this.aiStrategy.preferredTankTypes = ['tank_sherman', 'tank_panther'];
+                this.aiStrategy.preferredTankTypes = ['sherman', 'panther'];
 
                 // Deploy sooner to match aggression
                 const nextDeploymentDelay = GameHelpers.randomInt(1500, 3000);
@@ -3075,7 +3076,7 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI casts a spell at the specified position
-     * @param {Object} card - Card definition from CARDS
+     * @param {Object} card - Card definition from ENTITIES
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
@@ -3085,7 +3086,7 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI places a building at the specified position
-     * @param {Object} card - Card definition from CARDS
+     * @param {Object} card - Card definition from ENTITIES
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
@@ -3095,12 +3096,12 @@ class BattleScene extends Phaser.Scene {
 
     /**
      * AI deploys a swarm of units
-     * @param {Object} card - Card definition from CARDS
+     * @param {Object} card - Card definition from ENTITIES
      * @param {number} x - World X position
      * @param {number} y - World Y position
      */
     aiDeploySwarm(card, x, y) {
-        const tankData = TANK_DATA[card.payload.tankId];
+        const tankData = ENTITIES[card.payload.tankId];
         const count = card.payload.count || 1;
 
         // Spread units in a formation
@@ -3243,7 +3244,7 @@ class BattleScene extends Phaser.Scene {
             const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
             window.debugPanel.updateValue('debug-player-tanks', playerTanks.length);
             const handNames = this.hand && Array.isArray(this.hand)
-                ? this.hand.map(id => CARDS?.[id]?.name || id).join(', ')
+                ? this.hand.map(id => ENTITIES?.[id]?.name || id).join(', ')
                 : '-';
             window.debugPanel.updateValue('debug-player-hand', handNames);
 
@@ -3380,8 +3381,8 @@ class BattleScene extends Phaser.Scene {
         if (!this.tankCards[cardIndex]) return;
         const card = this.tankCards[cardIndex];
         const cardId = this.hand[cardIndex];
-        const def = CARDS[cardId];
-        const tankData = def.type === CARD_TYPES.TROOP ? TANK_DATA[def.payload.tankId] : null;
+        const def = ENTITIES[cardId];
+        const tankData = def.type === CARD_TYPES.TROOP ? ENTITIES[def.payload.tankId] : null;
 
         // Destroy old tank icon and create new one
         if (card.tankIcon) {
@@ -3425,8 +3426,8 @@ class BattleScene extends Phaser.Scene {
 
     showInsufficientEnergyFeedback() {
         const selectedCard = this.tankCards[this.selectedCard];
-        const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
-        const displayName = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.name : selectedCard.cardDef.name;
+        const cost = selectedCard.cardDef.cost;
+        const displayName = selectedCard.cardDef.name;
         const energyNeeded = cost - this.energy;
 
         // Flash the energy bar red
@@ -3556,7 +3557,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Check if we have enough energy
-        const cost = selectedCard.cardType === CARD_TYPES.TROOP ? selectedCard.tankData.cost : selectedCard.cardDef.cost;
+        const cost = selectedCard.cardDef.cost;
         if (this.energy < cost) {
             this.showInsufficientEnergyFeedback();
             return;
@@ -3620,7 +3621,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Spend energy
-        this.energy -= selectedCard.tankData.cost;
+        this.energy -= selectedCard.cardDef.cost;
         this.updateEnergyBar();
 
         // Cycle the card
@@ -3693,7 +3694,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     deployBuilding(buildingId, x, y) {
-        const buildingDef = CARDS[buildingId];
+        const buildingDef = ENTITIES[buildingId];
         if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
             console.error(`Invalid building: ${buildingId}`);
             return;

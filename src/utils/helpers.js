@@ -46,12 +46,12 @@ const GameHelpers = {
     },
 
     // Tile-based coordinate conversion functions
-    
+
     // Get the horizontal offset for centering the battlefield
     getBattlefieldOffset() {
         return (GAME_CONFIG.WIDTH - GAME_CONFIG.WORLD_WIDTH) / 2;
     },
-    
+
     // Convert world coordinates to tile coordinates
     worldToTile(worldX, worldY) {
         const offsetX = this.getBattlefieldOffset();
@@ -103,13 +103,13 @@ const GameHelpers = {
      */
     isValidDeploymentTile(tileX, tileY, isPlayer = true, expandedZones = null) {
         const originalZone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
-        
+
         // First check if tile is within the original deployment zone
-        let inOriginalZone = (tileX >= originalZone.tileX && 
-                             tileX < originalZone.tileX + originalZone.tilesWidth &&
-                             tileY >= originalZone.tileY && 
-                             tileY < originalZone.tileY + originalZone.tilesHeight);
-        
+        let inOriginalZone = (tileX >= originalZone.tileX &&
+            tileX < originalZone.tileX + originalZone.tilesWidth &&
+            tileY >= originalZone.tileY &&
+            tileY < originalZone.tileY + originalZone.tilesHeight);
+
         // Check if tile is in any expanded areas
         let inExpandedArea = false;
         const zone = isPlayer ? 'player' : 'enemy';
@@ -117,9 +117,9 @@ const GameHelpers = {
             const teamExpansion = expandedZones[zone];
             if (teamExpansion.expandedAreas) {
                 for (const expandedArea of teamExpansion.expandedAreas) {
-                    if (tileX >= expandedArea.tileX && 
+                    if (tileX >= expandedArea.tileX &&
                         tileX < expandedArea.tileX + expandedArea.tilesWidth &&
-                        tileY >= expandedArea.tileY && 
+                        tileY >= expandedArea.tileY &&
                         tileY < expandedArea.tileY + expandedArea.tilesHeight) {
                         inExpandedArea = true;
                         break;
@@ -127,22 +127,22 @@ const GameHelpers = {
                 }
             }
         }
-        
+
         // Must be in either original zone or expanded area
         if (!inOriginalZone && !inExpandedArea) {
             return false;
         }
-        
+
         // Get tower positions for the appropriate team
         const towers = isPlayer ? BATTLE_CONFIG.TOWERS.POSITIONS.PLAYER : BATTLE_CONFIG.TOWERS.POSITIONS.ENEMY;
-        
+
         // Check if tile overlaps with any tower (towers are 3x3 or 3x4/4x3)
         const towerList = [towers.LEFT, towers.RIGHT, towers.MAIN];
-        
+
         for (const tower of towerList) {
             // Calculate tower bounds
             let towerWidth, towerHeight;
-            
+
             if (tower === towers.MAIN) {
                 // Main towers are 4x3 for both players
                 towerWidth = 4; towerHeight = 3;
@@ -150,20 +150,20 @@ const GameHelpers = {
                 // Side towers are 3x3
                 towerWidth = 3; towerHeight = 3;
             }
-            
+
             // Calculate tower bounds (tower position is center, so offset by half)
             const towerLeft = tower.tileX - Math.floor(towerWidth / 2);
             const towerTop = tower.tileY - Math.floor(towerHeight / 2);
             const towerRight = towerLeft + towerWidth - 1;
             const towerBottom = towerTop + towerHeight - 1;
-            
+
             // Check if deployment tile overlaps with tower area
-            if (tileX >= towerLeft && tileX <= towerRight && 
+            if (tileX >= towerLeft && tileX <= towerRight &&
                 tileY >= towerTop && tileY <= towerBottom) {
                 return false;
             }
         }
-        
+
         return true;
     },
 
@@ -171,7 +171,7 @@ const GameHelpers = {
     getDeploymentZoneWorldCoords(isPlayer = true) {
         const zone = isPlayer ? BATTLE_CONFIG.DEPLOYMENT_ZONES.PLAYER : BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
         const offsetX = this.getBattlefieldOffset();
-        
+
         return {
             x: offsetX + zone.tileX * GAME_CONFIG.TILE_SIZE,
             y: zone.tileY * GAME_CONFIG.TILE_SIZE,
@@ -217,8 +217,8 @@ const GameHelpers = {
         return {
             player: {
                 tanks: [
-                    'tank_infantry', 'tank_panther', 'tank_sherman', 'tank_jagdpanzer',
-                    'tank_tiger', 'tank_infantry', 'tank_panther', 'tank_sherman'
+                    'infantry', 'panther', 'sherman', 'jagdpanzer',
+                    'tiger', 'infantry', 'panther', 'sherman'
                 ], // Starting 8-card deck
                 resources: { credits: 1000, research: 0 },
                 progress: { level: 1, xp: 0 },
@@ -245,22 +245,22 @@ const GameHelpers = {
     determineBattleResult(buildings) {
         // Filter for actual towers only, exclude V1 Launchers and other buildings
         const actualTowers = buildings.filter(b => this.isActualTower(b));
-        
+
         // Count towers for each side (each side starts with 3 towers)
         const playerTowersAlive = actualTowers.filter(b => b.isPlayerOwned && b.health > 0).length;
         const enemyTowersAlive = actualTowers.filter(b => !b.isPlayerOwned && b.health > 0).length;
-        
+
         // Calculate destroyed towers
         const playerTowersDestroyed = 3 - playerTowersAlive;
         const enemyTowersDestroyed = 3 - enemyTowersAlive;
-        
+
         console.log('═══════════════════════════════════════════════════════');
         console.log('🏆 BATTLE RESULT DETERMINATION');
         console.log('───────────────────────────────────────────────────────');
         console.log(`📊 Total buildings: ${buildings.length}, Actual towers: ${actualTowers.length}`);
         console.log(`🔵 Player: ${playerTowersAlive} towers alive, ${playerTowersDestroyed} destroyed`);
         console.log(`🔴 Enemy: ${enemyTowersAlive} towers alive, ${enemyTowersDestroyed} destroyed`);
-        
+
         // First priority: Compare tower destruction count
         if (enemyTowersDestroyed > playerTowersDestroyed) {
             console.log(`✅ Result: VICTORY (Player destroyed more towers: ${enemyTowersDestroyed} vs ${playerTowersDestroyed})`);
@@ -271,11 +271,11 @@ const GameHelpers = {
             console.log('═══════════════════════════════════════════════════════');
             return 'defeat'; // Enemy destroyed more player towers
         }
-        
+
         // Same number of towers destroyed - compare lowest tower health (absolute values)
         const playerTowers = actualTowers.filter(b => b.isPlayerOwned && b.health > 0);
         const enemyTowers = actualTowers.filter(b => !b.isPlayerOwned && b.health > 0);
-        
+
         // Find lowest absolute health for each side
         let playerLowestHealth = Infinity;
         for (const tower of playerTowers) {
@@ -283,18 +283,18 @@ const GameHelpers = {
                 playerLowestHealth = tower.health;
             }
         }
-        
+
         let enemyLowestHealth = Infinity;
         for (const tower of enemyTowers) {
             if (tower.health < enemyLowestHealth) {
                 enemyLowestHealth = tower.health;
             }
         }
-        
+
         console.log(`⚖️ Tower destruction tied - comparing lowest health`);
         console.log(`🔵 Player lowest tower HP: ${playerLowestHealth}`);
         console.log(`🔴 Enemy lowest tower HP: ${enemyLowestHealth}`);
-        
+
         // The side with the lower health tower loses
         if (enemyLowestHealth < playerLowestHealth) {
             console.log(`✅ Result: VICTORY (Enemy has weaker tower: ${enemyLowestHealth} < ${playerLowestHealth})`);
