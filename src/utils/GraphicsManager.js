@@ -45,6 +45,19 @@ class GraphicsManager {
     }
 
     /**
+     * Gets the theme colors based on player/enemy status
+     * @param {boolean} isPlayer - Whether this is for the player
+     * @returns {Object} Object containing base, dark, and accent colors
+     */
+    getThemeColors(isPlayer) {
+        return {
+            base: isPlayer ? this.colors.player : this.colors.enemy,
+            dark: isPlayer ? this.colors.playerDark : this.colors.enemyDark,
+            accent: isPlayer ? this.colors.playerAccent : this.colors.enemyAccent
+        };
+    }
+
+    /**
      * Creates a full-size tank graphic for the battlefield
      * @param {number} x - X position
      * @param {number} y - Y position
@@ -151,9 +164,7 @@ class GraphicsManager {
         const scale = options.scale || 1.0;
         const showTracks = options.showTracks !== undefined ? options.showTracks : true;
 
-        const baseColor = isPlayer ? this.colors.player : this.colors.enemy;
-        const darkColor = isPlayer ? this.colors.playerDark : this.colors.enemyDark;
-        const accentColor = isPlayer ? this.colors.playerAccent : this.colors.enemyAccent;
+        const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayer);
 
         // Get tank data if available to determine type/accent
         const tankData = TANK_DATA[unitId];
@@ -207,12 +218,9 @@ class GraphicsManager {
         // Draw tracks if needed
         if (showTracks) {
             // Determine track type based on unit or fallback
-            let trackParam = tankType || TANK_TYPES.MEDIUM;
-            // Map specific units to track types if needed
-            if (unitId === 'tank_tiger') trackParam = TANK_TYPES.HEAVY;
-            if (unitId === 'tank_jagdpanzer') trackParam = TANK_TYPES.TANK_DESTROYER;
-            if (unitId === 'tank_sherman' || unitId === 'tank_panther') trackParam = TANK_TYPES.MEDIUM;
-
+            // Determine track type based on unit or fallback
+            // Most units map directly to their type for track sizing
+            const trackParam = tankType || TANK_TYPES.MEDIUM;
             this._drawTracks(graphics, trackParam);
         }
     }
@@ -775,39 +783,17 @@ class GraphicsManager {
     }
 
     _drawTracks(graphics, tankType) {
-        // Add tracks/treads with proper length and wheel details
-        let trackLength;
-        let trackThickness;
+        const trackSpecs = {
+            [TANK_TYPES.HEAVY]: { length: 38, thickness: 5, yTop: -17, yBot: 12 },
+            [TANK_TYPES.ARTILLERY]: { length: 40, thickness: 4, yTop: -15, yBot: 11 },
+            [TANK_TYPES.TANK_DESTROYER]: { length: 34, thickness: 4, yTop: -14, yBot: 10 },
+            [TANK_TYPES.MEDIUM]: { length: 34, thickness: 4, yTop: -14, yBot: 10 },
+            // Default/Light/Fast fallthrough
+            default: { length: 26, thickness: 3, yTop: -11, yBot: 8 }
+        };
 
-        if (tankType === TANK_TYPES.HEAVY) {
-            trackLength = 38;
-            trackThickness = 5;
-        } else if (tankType === TANK_TYPES.ARTILLERY) {
-            trackLength = 40;
-            trackThickness = 4;
-        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            trackLength = 34;
-            trackThickness = 4;
-        } else { // LIGHT and FAST_ATTACK
-            trackLength = 26;
-            trackThickness = 3;
-        }
-
-        // Calculate offsets to place tracks just outside the hull
-        let yTop, yBot;
-        if (tankType === TANK_TYPES.HEAVY) {
-            yTop = -17;
-            yBot = 12;
-        } else if (tankType === TANK_TYPES.ARTILLERY) {
-            yTop = -15; // Body -10 to 10? No Artillery is -10 to 10ish?
-            yBot = 11;
-        } else if (tankType === TANK_TYPES.MEDIUM || tankType === TANK_TYPES.TANK_DESTROYER) {
-            yTop = -14;
-            yBot = 10;
-        } else {
-            yTop = -11;
-            yBot = 8;
-        }
+        const spec = trackSpecs[tankType] || trackSpecs.default;
+        const { length: trackLength, thickness: trackThickness, yTop, yBot } = spec;
 
         const drawTrack = (y) => {
             const x = -trackLength / 2;
