@@ -1657,8 +1657,8 @@ class BattleScene extends Phaser.Scene {
         building.buildingId = card.id;
         building.buildingDef = card;
         building.type = card.id; // e.g., 'v1_launcher'
-        building.health = 1000; // Default building health
-        building.maxHealth = 1000;
+        building.health = card.stats?.hp || 1000; // Use health from entities.js fallback to default
+        building.maxHealth = card.stats?.hp || 1000;
         building.isPlayerOwned = isPlayerOwned;
         building.lastShotTime = 0;
         building.target = null;
@@ -3713,8 +3713,8 @@ class BattleScene extends Phaser.Scene {
         building.buildingId = buildingId;
         building.buildingDef = buildingDef;
         building.type = buildingId; // e.g., 'v1_launcher'
-        building.health = 1000; // Default building health, could be from payload
-        building.maxHealth = 1000;
+        building.health = buildingDef.stats?.hp || 1000; // Use health from entities.js fallback to default
+        building.maxHealth = buildingDef.stats?.hp || 1000;
         building.isPlayerOwned = true;
         building.lastShotTime = 0;
         building.target = null;

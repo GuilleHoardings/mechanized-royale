@@ -144,6 +144,9 @@ const CARDS = {
         name: 'V1 Launcher',
         type: CARD_TYPES.BUILDING,
         cost: 4,
+        stats: {
+            hp: 1000
+        },
         payload: {
             lifetimeMs: 50000,
             launchIntervalMs: 7000,
