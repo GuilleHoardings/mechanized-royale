@@ -1647,21 +1647,25 @@ class BattleScene extends Phaser.Scene {
      *   Ownership affects team color, targeting, and battle stats.
      */
     _placeBuildingInternal(card, x, y, isPlayerOwned) {
+        // Resolve unit definition if card references a unitId
+        const unitId = card.unitId || card.id;
+        const unitDef = ENTITIES[unitId];
+
         // Create building graphics using GraphicsManager
-        const building = this.graphicsManager.createBuildingGraphics(x, y, card.id);
+        const building = this.graphicsManager.createBuildingGraphics(x, y, unitId);
 
         // Set building properties
-        building.buildingId = card.id;
-        building.buildingDef = card;
-        building.type = card.id; // e.g., 'v1_launcher'
-        building.health = card.stats?.hp || 1000; // Use health from entities.js fallback to default
-        building.maxHealth = card.stats?.hp || 1000;
+        building.buildingId = unitId;
+        building.buildingDef = unitDef || card;
+        building.type = unitId;
+        building.health = (unitDef?.stats?.hp || card.stats?.hp) || 1000;
+        building.maxHealth = (unitDef?.stats?.hp || card.stats?.hp) || 1000;
         building.isPlayerOwned = isPlayerOwned;
         building.lastShotTime = 0;
         building.target = null;
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
-        building.canShoot = !card.payload?.launchIntervalMs; // Disable standard shooting for missile launchers
+        building.canShoot = !(unitDef?.payload?.launchIntervalMs || card.payload?.launchIntervalMs);
 
         // Update statistics
         const stats = isPlayerOwned ? this.battleStats.player : this.battleStats.ai;

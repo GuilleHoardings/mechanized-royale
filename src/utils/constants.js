@@ -47,23 +47,23 @@ const BATTLE_CONFIG = {
     DURATION: 180, // 3 minutes in seconds
     // Tile-based deployment zones (in tile coordinates) - cover full width but avoid towers
     DEPLOYMENT_ZONES: {
-        PLAYER: { 
-            tileX: 0, 
-            tileY: 18, 
-            tilesWidth: 18, 
+        PLAYER: {
+            tileX: 0,
+            tileY: 18,
+            tilesWidth: 18,
             tilesHeight: 16    // Player side: rows 18-33 (full width, but towers will be excluded in logic)
         },
-        ENEMY: { 
-            tileX: 0, 
-            tileY: 0, 
-            tilesWidth: 18, 
+        ENEMY: {
+            tileX: 0,
+            tileY: 0,
+            tilesWidth: 18,
             tilesHeight: 16    // Enemy side: rows 0-15 (full width, but towers will be excluded in logic)
         }
     },
     // Tower system (Clash Royale style)
     TOWERS: {
-        SIDE_TOWER_HEALTH: 600,    // Side towers have less health
-        MAIN_TOWER_HEALTH: 1200,   // Main tower has more health
+        SIDE_TOWER_HEALTH: 600,    // DEPRECATED: Now managed in src/data/entities.js
+        MAIN_TOWER_HEALTH: 1200,   // DEPRECATED: Now managed in src/data/entities.js
         DIMENSIONS: {
             MAIN_TOWER: {
                 TILES_WIDTH: 4,
@@ -95,7 +95,7 @@ const UI_COLORS = {
         OVERLAY_COLOR: 0x0a0f1a,
         CARD_BACKGROUND: 0x1a2744,
         CARD_BORDER: 0x3d5a80,
-        
+
         // Result specific colors
         VICTORY: {
             PRIMARY: '#4ade80',
@@ -104,18 +104,18 @@ const UI_COLORS = {
             GLOW: 0x22c55e
         },
         DEFEAT: {
-            PRIMARY: '#f87171', 
+            PRIMARY: '#f87171',
             ACCENT: '#ef4444',
             BACKGROUND: '#991b1b',
             GLOW: 0xef4444
         },
         DRAW: {
             PRIMARY: '#fbbf24',
-            ACCENT: '#f59e0b', 
+            ACCENT: '#f59e0b',
             BACKGROUND: '#92400e',
             GLOW: 0xf59e0b
         },
-        
+
         // Text colors
         TEXT: {
             PRIMARY: '#f1f5f9',
@@ -125,7 +125,7 @@ const UI_COLORS = {
             HIGHLIGHT: '#60a5fa'
         }
     },
-    
+
     // General UI Colors  
     TEXT: {
         WHITE: '#ffffff',
@@ -133,7 +133,7 @@ const UI_COLORS = {
         SUCCESS: '#4ade80',
         WARNING: '#fbbf24'
     },
-    
+
     // Menu Colors
     MENU: {
         BACKGROUND: 0x1a2744,
@@ -144,7 +144,7 @@ const UI_COLORS = {
         BUTTON_DISABLED: 0x475569,
         ACCENT: 0xf59e0b
     },
-    
+
     // Energy Bar Colors
     ENERGY: {
         FULL: 0x60a5fa,
@@ -152,7 +152,7 @@ const UI_COLORS = {
         GLOW: 0x93c5fd,
         BACKGROUND: 0x1e3a5f
     },
-    
+
     // Card Colors
     CARDS: {
         BACKGROUND: 0x1e3a5f,

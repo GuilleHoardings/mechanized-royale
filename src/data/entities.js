@@ -1,4 +1,4 @@
-// Units: Pure combat actors (Stats, visual data)
+// Units/Entities: Pure combat actors (Stats, visual data, combat physics)
 const UNITS = {
     tiger: {
         id: 'tiger',
@@ -80,10 +80,45 @@ const UNITS = {
         },
         abilities: [],
         description: 'Light infantry unit for scouting and harassment'
+    },
+    v1_launcher: {
+        id: 'v1_launcher',
+        name: 'V1 Launcher',
+        unitType: CARD_TYPES.BUILDING, // Using CARD_TYPES as a proxy for building category
+        stats: {
+            hp: 1000
+        },
+        payload: {
+            lifetimeMs: 50000,
+            launchIntervalMs: 7000,
+            missileCount: 1,
+            missileDamage: 100,
+            missileSpeed: 180,
+            blastRadius: 60
+        },
+        description: 'Static launcher that fires V1 missiles at enemy targets'
+    },
+    main_tower: {
+        id: 'main_tower',
+        name: 'King Tower',
+        stats: {
+            hp: 1200, // From BATTLE_CONFIG.TOWERS.MAIN_TOWER_HEALTH
+            damage: 80,
+            range: 200
+        }
+    },
+    side_tower: {
+        id: 'side_tower',
+        name: 'Princess Tower',
+        stats: {
+            hp: 600, // From BATTLE_CONFIG.TOWERS.SIDE_TOWER_HEALTH
+            damage: 80,
+            range: 200
+        }
     }
 };
 
-// Cards: Player inventory and spawner logic
+// Cards: Player interaction and deployment logic
 const CARDS = {
     tiger: {
         id: 'tiger',
@@ -144,17 +179,8 @@ const CARDS = {
         name: 'V1 Launcher',
         type: CARD_TYPES.BUILDING,
         cost: 4,
-        stats: {
-            hp: 1000
-        },
-        payload: {
-            lifetimeMs: 50000,
-            launchIntervalMs: 7000,
-            missileCount: 1,
-            missileDamage: 100,
-            missileSpeed: 180,
-            blastRadius: 60
-        }
+        unitId: 'v1_launcher',
+        description: UNITS.v1_launcher.description
     },
     infantry_platoon: {
         id: 'infantry_platoon',
