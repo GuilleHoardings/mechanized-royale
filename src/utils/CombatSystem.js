@@ -13,9 +13,9 @@ class CombatSystem {
      * @param {Object} tank - Tank object to check
      */
     checkTankCombat(tank) {
-    // Skip if stunned
-    if (tank.stunnedUntil && this.scene.time.now < tank.stunnedUntil) return;
-    if (!tank.target || tank.moving) return;
+        // Skip if stunned
+        if (tank.stunnedUntil && this.scene.time.now < tank.stunnedUntil) return;
+        if (!tank.target || tank.moving) return;
 
         const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - tank.lastShotTime;
@@ -25,7 +25,7 @@ class CombatSystem {
             // Face the target before shooting
             const angle = GameHelpers.angle(tank.x, tank.y, tank.target.x, tank.target.y);
             tank.setRotation(angle);
-            
+
             this.tankShoot(tank, tank.target);
             tank.lastShotTime = currentTime;
         }
@@ -36,10 +36,10 @@ class CombatSystem {
      * @param {Object} base - Base object to check
      */
     checkBaseCombat(base) {
-    // Skip if stunned or shooting disabled
-    if (base.stunnedUntil && this.scene.time.now < base.stunnedUntil) return;
-    if (base.canShoot === false) return;
-    if (!base.target) return;
+        // Skip if stunned or shooting disabled
+        if (base.stunnedUntil && this.scene.time.now < base.stunnedUntil) return;
+        if (base.canShoot === false) return;
+        if (!base.target) return;
 
         const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - base.lastShotTime;
@@ -79,7 +79,7 @@ class CombatSystem {
         let bulletTexture = 'bullet';
         let bulletSpeed = 250; // pixels per second - slower for visibility
         let bulletColor = 0xffff00;
-        
+
         if (attacker.tankData.type === TANK_TYPES.HEAVY) {
             bulletTexture = 'shell';
             bulletSpeed = 200;
@@ -92,22 +92,22 @@ class CombatSystem {
         // Create bullet sprite
         const bullet = this.scene.add.image(attacker.x, attacker.y, bulletTexture);
         bullet.setTint(bulletColor);
-        
+
         // Calculate angle from attacker to target
         const angle = GameHelpers.angle(attacker.x, attacker.y, target.x, target.y);
         const distance = GameHelpers.distance(attacker.x, attacker.y, target.x, target.y);
         const travelTime = (distance / bulletSpeed) * 1000; // Convert to milliseconds
-        
+
         // Rotate bullet to face direction of travel
         bullet.setRotation(angle);
-        
+
         // Store bullet properties
         bullet.damage = attacker.tankData.stats.damage;
         bullet.penetration = attacker.tankData.stats.penetration;
         bullet.attacker = attacker;
         bullet.target = target;
         bullet.speed = bulletSpeed;
-        
+
         // Track shots fired statistics
         if (attacker.isPlayerTank) {
             this.scene.battleStats.player.shotsFired++;
@@ -115,13 +115,13 @@ class CombatSystem {
             this.scene.battleStats.ai.shotsFired++;
         }
         this.scene.battleStats.battle.totalProjectilesFired++;
-        
+
         // Add to projectiles array
         this.scene.projectiles.push(bullet);
-        
+
         // Show enhanced muzzle flash and projectile trail
         this.showMuzzleFlash(attacker, target.x, target.y);
-        
+
         // Animate bullet movement
         this.scene.tweens.add({
             targets: bullet,
@@ -144,25 +144,25 @@ class CombatSystem {
         // Base projectiles are more powerful
         const bulletSpeed = 300; // Faster than tank bullets
         const bulletColor = base.isPlayerOwned ? 0x0088ff : 0xff0088; // Blue for player, magenta for enemy
-        
+
         // Create bullet sprite
         const bullet = this.scene.add.image(base.x, base.y, 'shell');
         bullet.setTint(bulletColor);
         bullet.setScale(1.2); // Larger bullets
-        
+
         // Create bullet trail
         const trail = this.scene.add.graphics();
         trail.lineStyle(3, bulletColor, 0.8);
         bullet.trail = trail;
-        
+
         // Calculate angle from base to target
         const angle = GameHelpers.angle(base.x, base.y, target.x, target.y);
         const distance = GameHelpers.distance(base.x, base.y, target.x, target.y);
         const travelTime = (distance / bulletSpeed) * 1000;
-        
+
         // Rotate bullet to face direction of travel
         bullet.setRotation(angle);
-        
+
         // Store bullet properties - bases are more powerful
         bullet.damage = 80; // Higher damage than tanks
         bullet.penetration = 100; // High penetration
@@ -170,13 +170,21 @@ class CombatSystem {
         bullet.target = target;
         bullet.speed = bulletSpeed;
         bullet.isBaseProjectile = true; // Mark as base projectile
-        
+
         // Add to projectiles array
         this.scene.projectiles.push(bullet);
-        
+
         // Show enhanced muzzle flash for base
         this.showMuzzleFlash(base, target.x, target.y);
-        
+
+        // Track shots fired statistics for base/tower
+        if (base.isPlayerOwned) {
+            this.scene.battleStats.player.shotsFired++;
+        } else {
+            this.scene.battleStats.ai.shotsFired++;
+        }
+        this.scene.battleStats.battle.totalProjectilesFired++;
+
         // Animate bullet movement
         this.scene.tweens.add({
             targets: bullet,
@@ -208,18 +216,18 @@ class CombatSystem {
         if (index > -1) {
             this.scene.projectiles.splice(index, 1);
         }
-        
+
         // Check if target still exists and has health
         if (bullet.target && bullet.target.health > 0) {
             // Calculate damage with armor penetration
             const damage = this.calculateDamage(bullet);
-            
+
             // Apply damage
             this.applyDamage(bullet.target, damage, bullet.attacker);
-            
+
             // Update statistics
             this.updateCombatStatistics(bullet, damage);
-            
+
             // Update health display
             this.updateHealthDisplay(bullet.target);
 
@@ -230,15 +238,15 @@ class CombatSystem {
                 // Target still alive - show hit effect
                 const isCritical = damage.penetrationRatio >= 0.8;
                 const isArmored = damage.penetrationRatio < 0.5;
-                
+
                 this.showHitEffect(bullet.target.x, bullet.target.y, isArmored);
                 this.showDamageNumber(bullet.target.x, bullet.target.y, damage.finalDamage, isCritical);
             }
         }
-        
+
         // Destroy bullet sprite
         bullet.destroy();
-        
+
         // Destroy trail
         if (bullet.trail) {
             bullet.trail.destroy();
@@ -254,14 +262,14 @@ class CombatSystem {
         const baseDamage = bullet.damage;
         const penetration = bullet.penetration || baseDamage; // Fallback for old bullets
         const targetArmorData = bullet.target.tankData?.stats?.armor;
-        const targetArmor = targetArmorData ? 
+        const targetArmor = targetArmorData ?
             (typeof targetArmorData === 'object' ? targetArmorData.front : targetArmorData) : 0;
-        
+
         // Penetration formula: if penetration >= armor, full damage
         // Otherwise, reduced damage based on armor effectiveness
         let finalDamage;
         let penetrationRatio = 1.0; // Default to full penetration
-        
+
         if (penetration >= targetArmor) {
             finalDamage = baseDamage;
             penetrationRatio = 1.0;
@@ -270,7 +278,7 @@ class CombatSystem {
             penetrationRatio = Math.max(0.1, penetration / targetArmor); // Minimum 10% damage
             finalDamage = Math.floor(baseDamage * penetrationRatio);
         }
-        
+
         return {
             finalDamage,
             penetrationRatio,
@@ -289,16 +297,16 @@ class CombatSystem {
     applyDamage(target, damage, attacker) {
         // Store previous health for destruction check
         const previousHealth = target.health;
-        
+
         // Activate main towers when they are hit for the first time
         if (target.isMainTower && !target.activated) {
             target.activated = true;
             console.log(`Main tower activated! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
         }
-        
+
         // Apply damage
         target.health = Math.max(0, target.health - damage.finalDamage);
-        
+
         return previousHealth;
     }
 
@@ -309,9 +317,12 @@ class CombatSystem {
      */
     updateCombatStatistics(bullet, damage) {
         if (!bullet.attacker) return;
-        
+
         // Track shots hit
-        if (bullet.attacker.isPlayerTank) {
+        // Check both isPlayerTank (tanks) and isPlayerOwned (buildings/towers)
+        const isPlayerAttacker = bullet.attacker.isPlayerTank || bullet.attacker.isPlayerOwned;
+
+        if (isPlayerAttacker) {
             this.scene.battleStats.player.shotsHit++;
             this.scene.battleStats.player.totalDamageDealt += damage.finalDamage;
             if (bullet.target.isPlayerTank !== undefined) {
@@ -324,7 +335,7 @@ class CombatSystem {
                 // Building target
                 this.scene.battleStats.player.buildingDamage += damage.finalDamage;
             }
-            
+
             // Track critical hits (high penetration)
             if (damage.penetrationRatio >= 0.8) {
                 this.scene.battleStats.player.criticalHits++;
@@ -342,13 +353,13 @@ class CombatSystem {
                 // Building target
                 this.scene.battleStats.ai.buildingDamage += damage.finalDamage;
             }
-            
+
             // Track AI critical hits
             if (damage.penetrationRatio >= 0.8) {
                 this.scene.battleStats.ai.criticalHits++;
             }
         }
-        
+
         // Track total battle damage
         this.scene.battleStats.battle.totalDamageDealt += damage.finalDamage;
     }
@@ -362,7 +373,7 @@ class CombatSystem {
         if (!target || !target.active || !target.healthFill) {
             return;
         }
-        
+
         if (this.scene.updateTankHealth && target.tankData) {
             this.scene.updateTankHealth(target);
         } else if (this.scene.updateBuildingHealth) {
@@ -386,10 +397,12 @@ class CombatSystem {
         } else {
             // Tank destroyed - create destruction effect
             this.showExplosionEffect(target.x, target.y, 1.5);
-            
+
             // Track tank destruction in statistics
-            if (attacker && attacker.isPlayerTank !== undefined) {
-                if (attacker.isPlayerTank) {
+            if (attacker) {
+                const isPlayerAttacker = attacker.isPlayerTank || attacker.isPlayerOwned;
+
+                if (isPlayerAttacker) {
                     this.scene.battleStats.player.tanksDestroyed++;
                     this.scene.battleStats.ai.tanksLost++;
                 } else {
@@ -411,7 +424,7 @@ class CombatSystem {
         const color = isCritical ? '#ffff00' : '#ff4444';
         const fontSize = isCritical ? '20px' : '16px';
         const prefix = isCritical ? 'CRIT ' : '';
-        
+
         const damageText = this.scene.add.text(x, y, `${prefix}${Math.ceil(damage)}`, {
             fontSize: fontSize,
             fill: color,
@@ -421,7 +434,7 @@ class CombatSystem {
             strokeThickness: 2
         }).setOrigin(0.5);
         damageText.setDepth(1000);
-        
+
         // Animate damage number
         this.scene.tweens.add({
             targets: damageText,
@@ -444,19 +457,19 @@ class CombatSystem {
         // Create hit spark effect
         const particles = this.scene.add.graphics();
         particles.setDepth(999);
-        
+
         const sparkColor = isArmored ? 0xffffff : 0xff8800;
         const sparkCount = isArmored ? 8 : 5;
-        
+
         for (let i = 0; i < sparkCount; i++) {
             const angle = (i / sparkCount) * Math.PI * 2;
             const speed = GameHelpers.randomInt(20, 40);
             const sparkX = x + Math.cos(angle) * 5;
             const sparkY = y + Math.sin(angle) * 5;
-            
+
             particles.fillStyle(sparkColor);
             particles.fillCircle(sparkX, sparkY, 2);
-            
+
             // Animate sparks
             this.scene.tweens.add({
                 targets: { x: sparkX, y: sparkY },
@@ -472,10 +485,10 @@ class CombatSystem {
                 }
             });
         }
-        
+
         // Remove particles after animation
         this.scene.time.delayedCall(300, () => particles.destroy());
-        
+
         // Play hit sound
         if (this.scene.playUISound) {
             this.scene.playUISound('hit');
@@ -492,7 +505,7 @@ class CombatSystem {
         // Create explosion graphics
         const explosion = this.scene.add.graphics();
         explosion.setDepth(998);
-        
+
         // Multiple explosion rings
         const rings = [
             { radius: 20 * size, color: 0xffff00, alpha: 1 },
@@ -500,11 +513,11 @@ class CombatSystem {
             { radius: 50 * size, color: 0xff4400, alpha: 0.6 },
             { radius: 65 * size, color: 0x880000, alpha: 0.4 }
         ];
-        
+
         rings.forEach((ring, index) => {
             explosion.fillStyle(ring.color, ring.alpha);
             explosion.fillCircle(x, y, ring.radius);
-            
+
             this.scene.tweens.add({
                 targets: ring,
                 radius: ring.radius * 2,
@@ -520,18 +533,18 @@ class CombatSystem {
                 }
             });
         });
-        
+
         // Debris particles
         for (let i = 0; i < 12; i++) {
             const debris = this.scene.add.graphics();
             debris.fillStyle(0x444444);
             debris.fillRect(x - 2, y - 2, 4, 4);
             debris.setDepth(997);
-            
+
             const angle = (i / 12) * Math.PI * 2;
             const speed = GameHelpers.randomInt(30, 60);
             const gravity = 100;
-            
+
             this.scene.tweens.add({
                 targets: debris,
                 x: x + Math.cos(angle) * speed,
@@ -543,10 +556,10 @@ class CombatSystem {
                 onComplete: () => debris.destroy()
             });
         }
-        
+
         // Remove explosion graphics after animation
         this.scene.time.delayedCall(1000, () => explosion.destroy());
-        
+
         // Play explosion sound
         if (this.scene.playUISound) {
             this.scene.playUISound('explosion');
@@ -565,18 +578,18 @@ class CombatSystem {
         const barrelLength = 25; // Approximate barrel length
         const flashX = tank.x + Math.cos(angle) * barrelLength;
         const flashY = tank.y + Math.sin(angle) * barrelLength;
-        
+
         // Create muzzle flash
         const flash = this.scene.add.graphics();
         flash.setDepth(996);
-        
+
         // Draw muzzle flash cone
         flash.fillStyle(0xffff99, 0.8);
         flash.fillCircle(flashX, flashY, 8);
-        
+
         flash.fillStyle(0xffaa00, 0.6);
         flash.fillCircle(flashX, flashY, 12);
-        
+
         // Quick flash animation
         this.scene.tweens.add({
             targets: flash,
@@ -586,10 +599,10 @@ class CombatSystem {
             ease: 'Power2',
             onComplete: () => flash.destroy()
         });
-        
+
         // Create projectile trail
         this.createProjectileTrail(flashX, flashY, targetX, targetY);
-        
+
         // Play shoot sound
         if (this.scene.playUISound) {
             this.scene.playUISound('shoot');
@@ -606,11 +619,11 @@ class CombatSystem {
     createProjectileTrail(startX, startY, endX, endY) {
         const trail = this.scene.add.graphics();
         trail.setDepth(995);
-        
+
         // Draw projectile line
         trail.lineStyle(2, 0xffff00, 0.8);
         trail.lineBetween(startX, startY, endX, endY);
-        
+
         // Fade out trail quickly
         this.scene.tweens.add({
             targets: trail,
@@ -632,11 +645,11 @@ class CombatSystem {
         const flashOffset = 25; // Distance from tank center to barrel tip
         const flashX = x + Math.cos(angle) * flashOffset;
         const flashY = y + Math.sin(angle) * flashOffset;
-        
+
         const flash = this.scene.add.graphics();
         flash.fillStyle(0xffff88, 0.8);
         flash.fillCircle(flashX, flashY, 8);
-        
+
         // Quick flash animation
         this.scene.tweens.add({
             targets: flash,
