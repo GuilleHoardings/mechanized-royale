@@ -2607,12 +2607,12 @@ class BattleScene extends Phaser.Scene {
 
                 // Calculate movement direction towards waypoint
                 const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
-                const baseSpeed = tank.unitData.stats.speed / 60; // Convert to pixels per frame
-                const speedFactor = this.simulationSpeed || 1;
+                const deltaTime = (this.game.loop.delta / 1000) * (this.simulationSpeed || 1); // Time in seconds since last frame, scaled by simulation speed
+                const baseSpeed = tank.unitData.stats.speed; // Assuming speed is in pixels per second
 
-                // Apply movement with avoidance, scaled by simulation speed factor for slow motion
-                const moveX = (Math.cos(targetAngle) * baseSpeed + avoidanceX * 0.1) * speedFactor;
-                const moveY = (Math.sin(targetAngle) * baseSpeed + avoidanceY * 0.1) * speedFactor;
+                // Apply movement with avoidance, scaled by delta time for frame-rate independence
+                const moveX = (Math.cos(targetAngle) * baseSpeed + avoidanceX) * deltaTime;
+                const moveY = (Math.sin(targetAngle) * baseSpeed + avoidanceY) * deltaTime;
 
                 tank.x += moveX;
                 tank.y += moveY;
