@@ -2411,11 +2411,13 @@ class BattleScene extends Phaser.Scene {
         // Use appropriate config based on building type
         const config = building.isMainTower || building.towerType ? UI_CONFIG.HEALTH_BARS.TOWER : UI_CONFIG.HEALTH_BARS.BUILDING;
 
+        const baseOffsetY = this.computeTowerBaseOffsetY(building, config);
+
         const healthBg = this.add.graphics();
         healthBg.fillStyle(config.BACKGROUND_COLOR);
         healthBg.fillRect(
             building.x - config.OFFSET_X,
-            building.y - config.OFFSET_Y,
+            building.y - baseOffsetY,
             config.WIDTH,
             config.HEIGHT
         );
@@ -2427,7 +2429,7 @@ class BattleScene extends Phaser.Scene {
         // Add health text
         const healthText = this.add.text(
             building.x,
-            building.y - config.OFFSET_Y - 10,
+            building.y - baseOffsetY - 10,
             `${building.health}/${building.maxHealth}`, {
             fontSize: '12px',
             fill: '#ffffff',
@@ -2440,9 +2442,18 @@ class BattleScene extends Phaser.Scene {
         this.updateBuildingHealth(building);
     }
 
+    // For the player's tower, the health bar is too close to the top of the building graphic,
+    // so we offset it further up for better visibility.
+    computeTowerBaseOffsetY(building, config) {
+        const offsetYAdjustment = building.isPlayerOwned && building.isMainTower ? 30 : 0;
+        const baseOffsetY = config.OFFSET_Y + offsetYAdjustment;
+        return baseOffsetY;
+    }
+
     updateTankHealth(tank) {
         const config = UI_CONFIG.HEALTH_BARS.TANK;
         const healthPercent = tank.health / tank.maxHealth;
+        const baseOffsetY = this.computeTowerBaseOffsetY(tank, config);
 
         tank.healthFill.clear();
 
@@ -2452,7 +2463,7 @@ class BattleScene extends Phaser.Scene {
         tank.healthFill.fillStyle(healthColor);
         tank.healthFill.fillRect(
             tank.x - config.OFFSET_X,
-            tank.y - config.OFFSET_Y,
+            tank.y - baseOffsetY,
             config.WIDTH * healthPercent,
             config.HEIGHT
         );
@@ -2463,6 +2474,8 @@ class BattleScene extends Phaser.Scene {
         const config = building.isMainTower || building.towerType ? UI_CONFIG.HEALTH_BARS.TOWER : (UI_CONFIG.HEALTH_BARS.BUILDING || UI_CONFIG.HEALTH_BARS.TANK);
         const healthPercent = building.health / building.maxHealth;
 
+        const baseOffsetY = this.computeTowerBaseOffsetY(building, config);
+
         building.healthFill.clear();
 
         // Use team colors: blue for player, red for enemy
@@ -2471,7 +2484,7 @@ class BattleScene extends Phaser.Scene {
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
             building.x - config.OFFSET_X,
-            building.y - config.OFFSET_Y,
+            building.y - baseOffsetY,
             config.WIDTH * healthPercent,
             config.HEIGHT
         );
