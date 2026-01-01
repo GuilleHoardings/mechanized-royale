@@ -13,11 +13,12 @@ class CombatSystem {
      * @param {Object} tank - Tank object to check
      */
     checkTankCombat(tank) {
+        const currentTime = this.scene.time.now;
+
         // Skip if stunned
-        if (tank.stunnedUntil && this.scene.time.now < tank.stunnedUntil) return;
+        if (tank.stunnedUntil && currentTime < tank.stunnedUntil) return;
         if (!tank.target || tank.moving) return;
 
-        const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - tank.lastShotTime;
         const rateOfFire = 2000; // 2 seconds between shots
 
@@ -36,12 +37,13 @@ class CombatSystem {
      * @param {Object} base - Base object to check
      */
     checkBaseCombat(base) {
+        const currentTime = this.scene.time.now;
+
         // Skip if stunned or shooting disabled
-        if (base.stunnedUntil && this.scene.time.now < base.stunnedUntil) return;
+        if (base.stunnedUntil && currentTime < base.stunnedUntil) return;
         if (base.canShoot === false) return;
         if (!base.target) return;
 
-        const currentTime = this.scene.time.now;
         const timeSinceLastShot = currentTime - base.lastShotTime;
         const baseRateOfFire = 1500; // Bases fire faster than tanks
 
