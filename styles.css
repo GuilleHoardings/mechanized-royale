@@ -381,6 +381,10 @@ body {
     animation: glowPulse 2s ease-in-out infinite;
 }
 
+.menu-toggle {
+    display: none;
+}
+
 @media (max-width: 1100px) {
     body {
         flex-direction: column;
@@ -391,30 +395,57 @@ body {
         justify-content: flex-start;
     }
 
+    .menu-toggle {
+        display: block;
+        position: fixed;
+        bottom: 15px;
+        left: 15px;
+        z-index: 1100;
+        background: linear-gradient(135deg, #3d5a80 0%, #293241 100%);
+        color: white;
+        border: 1px solid #98c1d9;
+        padding: 10px 16px;
+        border-radius: 8px;
+        font-weight: bold;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        cursor: pointer;
+    }
+
     #game-container {
         max-width: 100%;
         height: auto;
-        order: 2;
+        order: 1;
     }
 
     .side-controls {
+        display: none;
+        flex-direction: column;
+        position: fixed;
+        bottom: 65px;
+        left: 15px;
+        background: rgba(15, 23, 42, 0.98);
+        padding: 15px;
+        border-radius: 12px;
+        border: 2px solid #3d5a80;
+        width: 180px;
+        gap: 10px;
+        z-index: 1099;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        order: unset;
+    }
+
+    .side-controls.visible {
         display: flex;
-        flex-wrap: wrap;
-        justify-content: center;
-        gap: 8px;
-        width: 100%;
-        position: relative;
-        padding: 10px 0;
-        z-index: 1001;
-        order: 1;
     }
 
     #debug-panel {
         width: 100%;
         max-width: 600px;
         height: auto;
-        max-height: 400px;
-        order: 3;
+        max-height: 300px;
+        order: 2;
+        font-size: 11px;
+        padding: 10px;
     }
 
     .debug-toggle, 
@@ -425,10 +456,11 @@ body {
     .pause-toggle {
         position: static !important;
         margin: 0 !important;
-        flex: 1 1 130px;
-        max-width: 160px;
+        width: 100%;
+        max-width: none;
+        flex: none;
         text-align: center;
-        padding: 10px 5px !important;
-        font-size: 11px !important;
+        padding: 12px 8px !important;
+        font-size: 12px !important;
     }
 }

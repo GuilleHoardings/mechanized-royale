@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="side-controls">
+    <button class="menu-toggle" onclick="toggleMenu()">🛠️ Tools</button>
+    <div class="side-controls" id="side-controls">
         <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
         <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
         <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
@@ -154,6 +155,25 @@
     </div>
 
     <script>
+        function toggleMenu() {
+            const controls = document.getElementById('side-controls');
+            const menuBtn = document.querySelector('.menu-toggle');
+            const isVisible = controls.classList.toggle('visible');
+            menuBtn.textContent = isVisible ? '✖ Close' : '🛠️ Tools';
+        }
+
+        // Auto-close menu on mobile when a button is clicked
+        document.addEventListener('DOMContentLoaded', () => {
+            const controls = document.getElementById('side-controls');
+            const menuBtn = document.querySelector('.menu-toggle');
+            controls.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON' && window.innerWidth <= 1100) {
+                    controls.classList.remove('visible');
+                    menuBtn.textContent = '🛠️ Tools';
+                }
+            });
+        });
+
         function toggleDebugPanel() {
             const panel = document.getElementById('debug-panel');
             panel.classList.toggle('visible');
