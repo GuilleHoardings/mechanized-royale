@@ -7,12 +7,14 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
-    <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
-    <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
-    <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
-    <button class="speed-toggle" id="speed-toggle" onclick="cycleGameSpeed()" disabled>Speed: 1.00x</button>
-    <button class="pause-toggle" id="pause-toggle" onclick="togglePause()" disabled>⏸ Pause</button>
+    <div class="side-controls">
+        <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
+        <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
+        <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
+        <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
+        <button class="speed-toggle" id="speed-toggle" onclick="cycleGameSpeed()" disabled>Speed: 1.00x</button>
+        <button class="pause-toggle" id="pause-toggle" onclick="togglePause()" disabled>⏸ Pause</button>
+    </div>
     
     <div id="game-container">
         <div id="loading">
