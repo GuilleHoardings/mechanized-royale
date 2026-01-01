@@ -454,8 +454,15 @@ class BattleScene extends Phaser.Scene {
 
     createTankCards() {
         // Position cards below the battlefield tiles (outside the game area)
-        // Battlefield height is GAME_CONFIG.WORLD_HEIGHT (44 * 19 = 836px)
-        const cardsY = GAME_CONFIG.WORLD_HEIGHT + UI_CONFIG.CARDS.MARGIN_BELOW_BATTLEFIELD;
+        // Battlefield height is GAME_CONFIG.WORLD_HEIGHT
+        let cardsY = GAME_CONFIG.WORLD_HEIGHT + UI_CONFIG.CARDS.MARGIN_BELOW_BATTLEFIELD;
+        
+        // If we have extra vertical space (tall screens), move cards further down 
+        // to be closer to the energy bar at the bottom
+        if (GAME_CONFIG.HEIGHT > GAME_CONFIG.WORLD_HEIGHT + 180) {
+            cardsY = GAME_CONFIG.HEIGHT - 130;
+        }
+        
         const cardWidth = UI_CONFIG.CARDS.WIDTH;
         const cardHeight = UI_CONFIG.CARDS.HEIGHT;
         const cardSpacing = UI_CONFIG.CARDS.SPACING;
@@ -3467,8 +3474,8 @@ class BattleScene extends Phaser.Scene {
         if (!selectedCard) return;
 
         // Don't deploy if clicking on the card UI area (bottom of screen)
-        // Cards are at GAME_CONFIG.HEIGHT - 110, so check if pointer is in that area
-        const cardsAreaY = GAME_CONFIG.HEIGHT - 120; // A bit above cards to be safe
+        // We check if the pointer is below the battlefield or in the card area
+        const cardsAreaY = Math.min(GAME_CONFIG.WORLD_HEIGHT + 5, GAME_CONFIG.HEIGHT - 140);
         if (pointer.y > cardsAreaY) {
             return; // Click is on card UI, don't deploy
         }

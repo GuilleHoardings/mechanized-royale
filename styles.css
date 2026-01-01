@@ -388,11 +388,11 @@ body {
 @media (max-width: 1100px) {
     body {
         flex-direction: column;
-        height: auto;
+        min-height: 100vh;
         padding: 10px;
         gap: 15px;
         overflow-x: hidden;
-        justify-content: flex-start;
+        justify-content: center;
     }
 
     .menu-toggle {
@@ -414,6 +414,10 @@ body {
     #game-container {
         max-width: 100%;
         height: auto;
+        max-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
         order: 1;
     }
 
