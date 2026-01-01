@@ -2,7 +2,7 @@
 const UNITS = {
     tiger: {
         id: 'tiger',
-        name: 'Tiger Tank',
+        name: 'Tiger',
         unitType: TANK_TYPES.HEAVY,
         tier: 2,
         stats: {
@@ -19,7 +19,7 @@ const UNITS = {
     },
     panther: {
         id: 'panther',
-        name: 'Panther Tank',
+        name: 'Panther',
         unitType: TANK_TYPES.MEDIUM,
         tier: 2,
         stats: {
@@ -35,7 +35,7 @@ const UNITS = {
     },
     sherman: {
         id: 'sherman',
-        name: 'Sherman Tank',
+        name: 'Sherman',
         unitType: TANK_TYPES.MEDIUM,
         tier: 2,
         stats: {
@@ -122,7 +122,7 @@ const UNITS = {
 const CARDS = {
     tiger: {
         id: 'tiger',
-        name: 'Tiger Tank',
+        name: UNITS.tiger.name,
         type: CARD_TYPES.TROOP,
         cost: 5,
         unitId: 'tiger',
@@ -130,7 +130,7 @@ const CARDS = {
     },
     panther: {
         id: 'panther',
-        name: 'Panther Tank',
+        name: UNITS.panther.name,
         type: CARD_TYPES.TROOP,
         cost: 3,
         unitId: 'panther',
@@ -138,7 +138,7 @@ const CARDS = {
     },
     sherman: {
         id: 'sherman',
-        name: 'Sherman Tank',
+        name: UNITS.sherman.name,
         type: CARD_TYPES.TROOP,
         cost: 4,
         unitId: 'sherman',
@@ -146,7 +146,7 @@ const CARDS = {
     },
     jagdpanzer: {
         id: 'jagdpanzer',
-        name: 'Jagdpanzer IV',
+        name: UNITS.jagdpanzer.name,
         type: CARD_TYPES.TROOP,
         cost: 4,
         unitId: 'jagdpanzer',
@@ -176,7 +176,7 @@ const CARDS = {
     },
     v1_launcher: {
         id: 'v1_launcher',
-        name: 'V1 Launcher',
+        name: UNITS.v1_launcher.name,
         type: CARD_TYPES.BUILDING,
         cost: 4,
         unitId: 'v1_launcher',
