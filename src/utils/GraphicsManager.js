@@ -1161,12 +1161,6 @@ class GraphicsManager {
         graphics.fillRect(size / 1.8, -4, 4, 8);
     }
 
-    // Legacy method for backwards compatibility
-    drawTowerGraphics(graphics, isPlayerTeam, isMainTower) {
-        this.drawTowerBase(graphics, isPlayerTeam, isMainTower);
-        // Note: Turret is now drawn separately
-    }
-
     _drawSandbags(graphics, x, y, width) {
         const bagWidth = 12;
         const bagHeight = 6;
