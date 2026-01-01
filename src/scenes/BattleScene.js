@@ -1026,7 +1026,7 @@ class BattleScene extends Phaser.Scene {
         tower.lastTargetUpdate = 0;
 
         // Main towers start deactivated and only activate when hit
-        tower.activated = isMainTower ? false : true;
+        tower.activated = !isMainTower;
 
         // Adjust position for main towers
         if (isMainTower) {
@@ -1081,28 +1081,27 @@ class BattleScene extends Phaser.Scene {
         return tower;
     }
 
-
-
     startEnergyRegeneration() {
         this.energyTimer = this.time.addEvent({
             delay: this.getEnergyRegenDelay(),
-            callback: () => {
-                if (this.energy < this.maxEnergy) {
-                    this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
+            callback: this.handleEnergyTick,
+            callbackScope: this,
+            loop: true
+        });
+    }
 
-                    // Visual feedback for energy gain
-                    this.showEnergyGainEffect();
-                }
-
-                // Reset progress for next cycle
-                this.energyRegenProgress = 0;
-
-                // Update the delay for next tick based on current battle time
-                this.energyTimer.delay = this.getEnergyRegenDelay();
-
-                // Update energy bar after resetting progress
-                this.updateEnergyBar();
-            },
+    handleEnergyTick() {
+        if (this.energy < this.maxEnergy) {
+            this.energy = Math.min(this.energy + ENERGY_CONFIG.REGEN_RATE, this.maxEnergy);
+            this.showEnergyGainEffect();
+        }
+        this.energyRegenProgress = 0;
+        this.updateEnergyBar();
+        // Reschedule next tick with the *new* delay
+        this.energyTimer.reset({
+            delay: this.getEnergyRegenDelay(),
+            callback: this.handleEnergyTick,
+            callbackScope: this,
             loop: true
         });
     }
