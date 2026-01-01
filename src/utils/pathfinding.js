@@ -1,5 +1,5 @@
 
-// Pathfinding utility for Tank Tactics game
+// Pathfinding utility for Mechanized Royale game
 class Pathfinding {
     static needsPathfinding(startPos, endPos) {
         // Check if both positions are on the same side of the river

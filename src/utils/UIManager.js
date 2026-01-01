@@ -1,5 +1,5 @@
 /**
- * UIManager - Handles complex UI components for Tank Tactics
+ * UIManager - Handles complex UI components for Mechanized Royale
  * Extracted from BattleScene to improve code organization
  */
 

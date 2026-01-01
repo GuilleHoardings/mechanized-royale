@@ -1,5 +1,5 @@
 /**
- * AIController - Handles AI strategy, decision-making, and tank behavior for Tank Tactics
+ * AIController - Handles AI strategy, decision-making, and tank behavior for Mechanized Royale
  * Extracted from BattleScene to improve code organization
  * Enhanced with advanced strategic decision-making and full card system support
  */

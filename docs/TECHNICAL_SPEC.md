@@ -1,4 +1,4 @@
-# Technical Specification - Tank Tactics
+# Technical Specification - Mechanized Royale
 
 ## Architecture Overview
 

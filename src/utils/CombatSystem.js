@@ -1,5 +1,5 @@
 /**
- * CombatSystem - Handles all combat mechanics for Tank Tactics
+ * CombatSystem - Handles all combat mechanics for Mechanized Royale
  * Extracted from BattleScene to improve code organization
  */
 

@@ -1,5 +1,5 @@
 /**
- * GraphicsManager - Handles all procedural graphics creation for Tank Tactics
+ * GraphicsManager - Handles all procedural graphics creation for Mechanized Royale
  * Extracted from BattleScene to improve code organization
  */
 
