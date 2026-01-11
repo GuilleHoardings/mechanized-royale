@@ -1613,16 +1613,9 @@ class BattleScene extends Phaser.Scene {
         // Create health bar
         this.createBuildingHealthBar(building);
 
-        // For buildings with lifetime (like V1 launcher), set up destruction timer
+        // For buildings with lifetime (like V1 launcher), calculate health decay rate
         if (payload?.lifetimeMs) {
-            this.time.delayedCall(payload.lifetimeMs, () => {
-                const idx = this.buildings.indexOf(building);
-                if (idx >= 0) this.buildings.splice(idx, 1);
-                if (building.healthBg) building.healthBg.destroy();
-                if (building.healthFill) building.healthFill.destroy();
-                if (building.healthText) building.healthText.destroy();
-                building.destroy();
-            });
+            building.healthDecayPerMs = building.health / payload.lifetimeMs;
         }
 
         // For buildings that launch missiles automatically (like V1 launcher)
@@ -3080,7 +3073,7 @@ class BattleScene extends Phaser.Scene {
         this._deployTankInternal(unitId, x, y, false);
     }
 
-    update() {
+    update(time, delta) {
         // Stop all game updates if battle has ended or game is paused
         if (this.battleEnded || this.gamePaused) {
             return;
@@ -3109,6 +3102,12 @@ class BattleScene extends Phaser.Scene {
         // Update base defenses and deployed buildings
         this.buildings.forEach(building => {
             if (building.health > 0) {
+                // Apply health decay for buildings with lifetime
+                if (building.healthDecayPerMs) {
+                    building.health -= building.healthDecayPerMs * delta;
+                    this.updateBuildingHealth(building);
+                }
+
                 if (building.isMainTower || building.towerType) {
                     // Base towers use tower AI
                     this.updateBaseDefense(building);
@@ -3121,6 +3120,28 @@ class BattleScene extends Phaser.Scene {
                     }
                 }
             }
+        });
+
+        // Remove destroyed buildings
+        this.buildings = this.buildings.filter(building => {
+            if (building.health <= 0) {
+                // If it's a tower, handle tower destruction system
+                if (GameHelpers.isActualTower(building)) {
+                    this.destroyTower(building);
+                } else {
+                    // For regular buildings (like V1 Launcher), handle visual destruction
+                    this.combatSystem.showExplosionEffect(building.x, building.y, 1.5);
+                    this.playUISound('explosion');
+
+                    // Clean up UI elements
+                    if (building.healthBg) building.healthBg.destroy();
+                    if (building.healthFill) building.healthFill.destroy();
+                    if (building.healthText) building.healthText.destroy();
+                    building.destroy();
+                }
+                return false;
+            }
+            return true;
         });
 
         // Remove destroyed tanks
