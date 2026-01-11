@@ -73,7 +73,7 @@ const UNITS = {
         stats: {
             hp: 60,
             damage: 25,
-            speed: 95,
+            speed: 65,
             range: 40,
             armor: { front: 5, side: 5, rear: 5 },
             penetration: 30
