@@ -1045,24 +1045,38 @@ class BattleScene extends Phaser.Scene {
         // Create a container for the tower
         const tower = this.add.container(x, y);
 
-        // Create graphics object for the base (static)
-        const baseGraphics = this.add.graphics();
-        this.graphicsManager.drawTowerBase(baseGraphics, isPlayerTeam, isMainTower);
-        tower.add(baseGraphics);
+        const teamTint = isPlayerTeam ? 0x3b82f6 : 0xef4444; // Blue or Red
+        const towerType = isMainTower ? 'tower_main' : 'tower_side';
+        const baseSize = isMainTower ? 80 : 60;
+        const turretSize = isMainTower ? 80 : 60;
+
+        // Create base image
+        const baseImage = this.add.image(0, 0, `${towerType}_base`);
+        baseImage.setDisplaySize(baseSize, baseSize);
+        baseImage.setTint(teamTint);
+        tower.add(baseImage);
 
         // Create a separate container for the turret (rotatable)
         // Position the turret at the front of the tower (toward the enemy)
         // Player: front is top (negative Y), Enemy: front is bottom (positive Y)
         let turretOffsetY = 0;
-        if (isMainTower) {
-            turretOffsetY = isPlayerTeam ? -20 : 20;
-        }
+        // if (isMainTower) {
+        //     turretOffsetY = isPlayerTeam ? -10 : 10;
+        // }
         const turretContainer = this.add.container(0, turretOffsetY);
 
-        // Create graphics for the turret
-        const turretGraphics = this.add.graphics();
-        this.graphicsManager.drawTowerTurret(turretGraphics, isPlayerTeam, isMainTower);
-        turretContainer.add(turretGraphics);
+        // Create turret image
+        const turretImage = this.add.image(0, 0, `${towerType}_turret`);
+        turretImage.setDisplaySize(turretSize, turretSize);
+        turretImage.setTint(teamTint);
+
+        // Correct rotation: The procedural assets face UP (negative Y in Phaser, but effectively UP).
+        // Standard Phaser angle 0 is RIGHT. If drawing is UP, that is -90 deg.
+        // We want the 'front' of the turret (barrel) to align with rotation 0 being Right.
+        // If the texture is drawn facing UP, we need to rotate it +90 to make it face RIGHT.
+        turretImage.setAngle(90);
+
+        turretContainer.add(turretImage);
 
         // Set initial rotation to point toward the enemy
         // Player towers point up (toward top of screen), enemy towers point down
@@ -2425,16 +2439,21 @@ class BattleScene extends Phaser.Scene {
         const healthFill = this.add.graphics();
         building.healthFill = healthFill;
 
-        // Add health text
+        // Add health text (Simplified: just current health)
+        // Overlapping with the bar (vertically centered on the bar)
+        // Bar checks: y - baseOffsetY (top), height config.HEIGHT
+        const barCenterY = building.y - baseOffsetY + (config.HEIGHT / 2);
+
         const healthText = this.add.text(
             building.x,
-            building.y - baseOffsetY - 10,
-            `${building.health}/${building.maxHealth}`, {
-            fontSize: '12px',
+            barCenterY,
+            `${Math.ceil(building.health)}`, {
+            fontSize: '11px',
             fill: '#ffffff',
             fontFamily: 'Arial',
             stroke: '#000000',
-            strokeThickness: 2
+            strokeThickness: 2,
+            fontStyle: 'bold'
         }).setOrigin(0.5);
         building.healthText = healthText;
 
@@ -2444,7 +2463,10 @@ class BattleScene extends Phaser.Scene {
     // For the player's tower, the health bar is too close to the top of the building graphic,
     // so we offset it further up for better visibility.
     computeTowerBaseOffsetY(building, config) {
-        const offsetYAdjustment = building.isPlayerOwned && building.isMainTower ? 30 : 0;
+        // With the new identical assets, we should use the same offset for both teams.
+        // Previously Player was 30 (too high) and Enemy was 0 (too low/overlap).
+        // Let's try an intermediate value.
+        const offsetYAdjustment = building.isMainTower ? 20 : 0;
         const baseOffsetY = config.OFFSET_Y + offsetYAdjustment;
         return baseOffsetY;
     }
@@ -2490,7 +2512,7 @@ class BattleScene extends Phaser.Scene {
 
         // Update health text
         if (building.healthText) {
-            building.healthText.setText(`${Math.ceil(building.health)}/${building.maxHealth}`);
+            building.healthText.setText(`${Math.ceil(building.health)}`);
             building.healthText.setFill('#ffffff');
         }
     }
