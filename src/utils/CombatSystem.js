@@ -478,13 +478,13 @@ class CombatSystem {
         particles.setDepth(999);
 
         const sparkColor = isArmored ? 0xffffff : 0xff8800;
-        const sparkCount = isArmored ? 8 : 5;
+        const sparkCount = isArmored ? 4 : 3; // Reduced from 8/5
 
         for (let i = 0; i < sparkCount; i++) {
             const angle = (i / sparkCount) * Math.PI * 2;
-            const speed = GameHelpers.randomInt(20, 40);
-            const sparkX = x + Math.cos(angle) * 5;
-            const sparkY = y + Math.sin(angle) * 5;
+            const speed = GameHelpers.randomInt(10, 25); // Reduced from 20-40
+            const sparkX = x + Math.cos(angle) * 3; // Reduced from 5
+            const sparkY = y + Math.sin(angle) * 3;
 
             particles.fillStyle(sparkColor);
             particles.fillCircle(sparkX, sparkY, 2);
@@ -494,19 +494,19 @@ class CombatSystem {
                 targets: { x: sparkX, y: sparkY },
                 x: sparkX + Math.cos(angle) * speed,
                 y: sparkY + Math.sin(angle) * speed,
-                duration: 300,
+                duration: 200, // Reduced from 300
                 ease: 'Power2',
                 onUpdate: (tween) => {
                     const obj = tween.targets[0];
                     particles.clear();
                     particles.fillStyle(sparkColor, 1 - tween.progress);
-                    particles.fillCircle(obj.x, obj.y, 2);
+                    particles.fillCircle(obj.x, obj.y, 1.5); // Slightly smaller
                 }
             });
         }
 
         // Remove particles after animation
-        this.scene.time.delayedCall(300, () => particles.destroy());
+        this.scene.time.delayedCall(200, () => particles.destroy());
 
         // Play hit sound
         if (this.scene.playUISound) {
@@ -525,12 +525,10 @@ class CombatSystem {
         const explosion = this.scene.add.graphics();
         explosion.setDepth(998);
 
-        // Multiple explosion rings
+        // Reduced rings from 4 to 2 for less noise
         const rings = [
-            { radius: 20 * size, color: 0xffff00, alpha: 1 },
-            { radius: 35 * size, color: 0xff8800, alpha: 0.8 },
-            { radius: 50 * size, color: 0xff4400, alpha: 0.6 },
-            { radius: 65 * size, color: 0x880000, alpha: 0.4 }
+            { radius: 15 * size, color: 0xffff00, alpha: 0.8 },
+            { radius: 30 * size, color: 0xff8800, alpha: 0.6 }
         ];
 
         rings.forEach((ring, index) => {
@@ -539,9 +537,9 @@ class CombatSystem {
 
             this.scene.tweens.add({
                 targets: ring,
-                radius: ring.radius * 2,
+                radius: ring.radius * 1.5,
                 alpha: 0,
-                duration: 600 + (index * 100),
+                duration: 400 + (index * 100), // Reduced duration
                 ease: 'Power2',
                 onUpdate: () => {
                     explosion.clear();
@@ -553,15 +551,15 @@ class CombatSystem {
             });
         });
 
-        // Debris particles
-        for (let i = 0; i < 12; i++) {
+        // Debris particles - reduced from 12 to 6
+        for (let i = 0; i < 6; i++) {
             const debris = this.scene.add.graphics();
             debris.fillStyle(0x444444);
-            debris.fillRect(x - 2, y - 2, 4, 4);
+            debris.fillRect(x - 1, y - 1, 2, 2); // Smaller debris
             debris.setDepth(997);
 
-            const angle = (i / 12) * Math.PI * 2;
-            const speed = GameHelpers.randomInt(30, 60);
+            const angle = (i / 6) * Math.PI * 2;
+            const speed = GameHelpers.randomInt(20, 40);
             const gravity = 100;
 
             this.scene.tweens.add({
@@ -570,14 +568,14 @@ class CombatSystem {
                 y: y + Math.sin(angle) * speed + gravity,
                 rotation: Math.PI * 2,
                 alpha: 0,
-                duration: 800,
+                duration: 500, // Faster
                 ease: 'Power2',
                 onComplete: () => debris.destroy()
             });
         }
 
         // Remove explosion graphics after animation
-        this.scene.time.delayedCall(1000, () => explosion.destroy());
+        this.scene.time.delayedCall(600, () => explosion.destroy());
 
         // Play explosion sound
         if (this.scene.playUISound) {
@@ -602,12 +600,12 @@ class CombatSystem {
         const flash = this.scene.add.graphics();
         flash.setDepth(996);
 
-        // Draw muzzle flash cone
-        flash.fillStyle(0xffff99, 0.8);
-        flash.fillCircle(flashX, flashY, 8);
+        // Draw smaller muzzle flash
+        flash.fillStyle(0xffff99, 0.7);
+        flash.fillCircle(flashX, flashY, 5); // Reduced from 8
 
-        flash.fillStyle(0xffaa00, 0.6);
-        flash.fillCircle(flashX, flashY, 12);
+        flash.fillStyle(0xffaa00, 0.5);
+        flash.fillCircle(flashX, flashY, 8); // Reduced from 12
 
         // Quick flash animation
         this.scene.tweens.add({
@@ -647,7 +645,7 @@ class CombatSystem {
         this.scene.tweens.add({
             targets: trail,
             alpha: 0,
-            duration: 150,
+            duration: 100, // Faster
             ease: 'Power2',
             onComplete: () => trail.destroy()
         });

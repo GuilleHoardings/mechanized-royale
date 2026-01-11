@@ -4226,24 +4226,24 @@ class BattleScene extends Phaser.Scene {
         const x = building.x;
         const y = building.y;
 
-        // Multiple large explosions
-        for (let i = 0; i < 5; i++) {
+        // Multiple large explosions - reduced from 5 to 3
+        for (let i = 0; i < 3; i++) {
             this.time.delayedCall(i * 200, () => {
-                const offsetX = GameHelpers.randomInt(-30, 30);
-                const offsetY = GameHelpers.randomInt(-30, 30);
+                const offsetX = GameHelpers.randomInt(-20, 20); // Reduced spread
+                const offsetY = GameHelpers.randomInt(-20, 20);
 
                 const explosion = this.add.graphics();
-                explosion.fillStyle(0xff3300, 0.9);
-                explosion.fillCircle(x + offsetX, y + offsetY, 40);
-                explosion.lineStyle(6, 0xffaa00);
-                explosion.strokeCircle(x + offsetX, y + offsetY, 40);
+                explosion.fillStyle(0xff3300, 0.8);
+                explosion.fillCircle(x + offsetX, y + offsetY, 30); // Reduced from 40
+                explosion.lineStyle(4, 0xffaa00);
+                explosion.strokeCircle(x + offsetX, y + offsetY, 30);
 
                 this.tweens.add({
                     targets: explosion,
                     alpha: 0,
-                    scaleX: 5,
-                    scaleY: 5,
-                    duration: 800,
+                    scaleX: 3, // Reduced from 5
+                    scaleY: 3,
+                    duration: 600, // Faster
                     ease: 'Power2',
                     onComplete: () => explosion.destroy()
                 });
