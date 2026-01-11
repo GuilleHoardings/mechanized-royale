@@ -456,13 +456,13 @@ class BattleScene extends Phaser.Scene {
         // Position cards below the battlefield tiles (outside the game area)
         // Battlefield height is GAME_CONFIG.WORLD_HEIGHT
         let cardsY = GAME_CONFIG.WORLD_HEIGHT + UI_CONFIG.CARDS.MARGIN_BELOW_BATTLEFIELD;
-        
+
         // If we have extra vertical space (tall screens), move cards further down 
         // to be closer to the energy bar at the bottom
         if (GAME_CONFIG.HEIGHT > GAME_CONFIG.WORLD_HEIGHT + 180) {
             cardsY = GAME_CONFIG.HEIGHT - 130;
         }
-        
+
         const cardWidth = UI_CONFIG.CARDS.WIDTH;
         const cardHeight = UI_CONFIG.CARDS.HEIGHT;
         const cardSpacing = UI_CONFIG.CARDS.SPACING;
@@ -4143,11 +4143,11 @@ class BattleScene extends Phaser.Scene {
     checkTowerVictoryConditions() {
         // Main tower destroyed = immediate victory/defeat
         if (this.towerStats.player.mainTowerDestroyed) {
-            this.endBattle('victory'); // Player destroyed enemy main tower
+            this.endBattle('victory', 'Enemy Main Tower Destroyed!'); // Player destroyed enemy main tower
             return;
         }
         if (this.towerStats.enemy.mainTowerDestroyed) {
-            this.endBattle('defeat'); // Enemy destroyed player main tower
+            this.endBattle('defeat', 'Your Main Tower Destroyed!'); // Enemy destroyed player main tower
             return;
         }
 
@@ -4157,10 +4157,10 @@ class BattleScene extends Phaser.Scene {
             const enemyTowersDestroyed = this.towerStats.enemy.towersDestroyed;
 
             if (playerTowersDestroyed > enemyTowersDestroyed) {
-                this.endBattle('victory');
+                this.endBattle('victory', 'Sudden Death Victory!');
                 return;
             } else if (enemyTowersDestroyed > playerTowersDestroyed) {
-                this.endBattle('defeat');
+                this.endBattle('defeat', 'Sudden Death Defeat!');
                 return;
             }
         }
@@ -4191,11 +4191,11 @@ class BattleScene extends Phaser.Scene {
         if (playerTowersDestroyed > enemyTowersDestroyed) {
             console.log(`✅ Result: VICTORY (Player destroyed more: ${playerTowersDestroyed} > ${enemyTowersDestroyed})`);
             console.log('═══════════════════════════════════════════════════════');
-            this.endBattle('victory');
+            this.endBattle('victory', 'Time Limit: You destroyed more towers!');
         } else {
             console.log(`❌ Result: DEFEAT (Enemy destroyed more: ${enemyTowersDestroyed} > ${playerTowersDestroyed})`);
             console.log('═══════════════════════════════════════════════════════');
-            this.endBattle('defeat');
+            this.endBattle('defeat', 'Time Limit: Enemy destroyed more towers!');
         }
     }
 
@@ -4251,13 +4251,14 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    endBattle(result) {
+    endBattle(result, reason = '') {
         // Prevent multiple calls to endBattle
         if (this.battleEnded) return;
         this.battleEnded = true;
 
         console.log('═══════════════════════════════════════════════════════');
         console.log(`🏁 END BATTLE: ${result.toUpperCase()}`);
+        console.log(`📝 REASON: ${reason}`);
         console.log('───────────────────────────────────────────────────────');
         console.log(`📊 towerStats.player: destroyed=${this.towerStats.player.towersDestroyed}, mainDestroyed=${this.towerStats.player.mainTowerDestroyed}`);
         console.log(`📊 towerStats.enemy: destroyed=${this.towerStats.enemy.towersDestroyed}, mainDestroyed=${this.towerStats.enemy.mainTowerDestroyed}`);
@@ -4291,7 +4292,8 @@ class BattleScene extends Phaser.Scene {
             this.battleStats,
             this.gameState,
             this.overtimeActive,
-            this.buildings
+            this.buildings,
+            reason
         );
     }
 

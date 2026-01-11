@@ -16,14 +16,23 @@ class UIManager {
      * @param {boolean} overtimeActive - Whether overtime was activated
      * @param {Array} buildings - Array of building objects to check health
      */
-    createEnhancedBattleResultScreen(result, battleStats, gameState, overtimeActive, buildings) {
+    /**
+     * Creates the enhanced battle result screen with statistics
+     * @param {string} result - 'victory', 'defeat', or 'time'
+     * @param {Object} battleStats - Battle statistics object
+     * @param {Object} gameState - Current game state
+     * @param {boolean} overtimeActive - Whether overtime was activated
+     * @param {Array} buildings - Array of building objects to check health
+     * @param {string} reason - The specific reason for the game end
+     */
+    createEnhancedBattleResultScreen(result, battleStats, gameState, overtimeActive, buildings, reason = '') {
         // Modern dark overlay with gradient effect
         const overlay = this.scene.add.graphics();
         overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.1);
         overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         overlay.setScrollFactor(0);
         overlay.setDepth(1100);
-        
+
         // Add subtle vignette effect
         const vignette = this.scene.add.graphics();
         vignette.setScrollFactor(0);
@@ -48,34 +57,34 @@ class UIManager {
             duration: 600,
             ease: 'Cubic.easeOut'
         });
-        
+
         // Result container - positioned slightly higher to prevent bottom overflow
         const container = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20);
         container.setScrollFactor(0);
         container.setDepth(1101);
-        
+
         // Determine final result and colors
         const finalResult = this._determineFinalResult(result, buildings);
         const { accentColor, resultTitleColor, titleText } = this._getResultColors(finalResult);
-        
+
         // Create the result card background
         this._createResultCard(container);
-        
-        // Add title
-        this._createTitle(container, titleText, resultTitleColor);
-        
+
+        // Add title and reason
+        this._createTitle(container, titleText, resultTitleColor, reason);
+
         // Add statistics
         this._createStatistics(container, battleStats);
-        
+
         // Add bottom section (duration, rewards, overtime)
         this._createBottomSection(container, battleStats, finalResult, resultTitleColor, overtimeActive);
-        
+
         // Add continue button
         const continueButton = this._createContinueButton(container, resultTitleColor, accentColor);
-        
+
         // Animate container entrance
         this._animateContainerEntrance(container);
-        
+
         // Add wait message and setup click handling
         this._setupClickHandling(overlay, container, finalResult, gameState, battleStats, continueButton);
     }
@@ -88,13 +97,13 @@ class UIManager {
         if (result === 'victory' || result === 'defeat') {
             return result;
         }
-        
+
         if (result === 'time') {
             // Use shared helper with no threshold (exact comparison for time-based ending)
             const battleResult = GameHelpers.determineBattleResult(buildings);
             return battleResult || 'draw';
         }
-        
+
         return result;
     }
 
@@ -103,7 +112,7 @@ class UIManager {
      */
     _getResultColors(result) {
         let accentColor, resultTitleColor, titleText;
-        
+
         if (result === 'victory') {
             accentColor = UI_COLORS.GAME_OVER.VICTORY.ACCENT;
             resultTitleColor = UI_COLORS.GAME_OVER.VICTORY.PRIMARY;
@@ -117,7 +126,7 @@ class UIManager {
             resultTitleColor = UI_COLORS.GAME_OVER.DRAW.PRIMARY;
             titleText = 'Draw';
         }
-        
+
         return { accentColor, resultTitleColor, titleText };
     }
 
@@ -126,30 +135,30 @@ class UIManager {
      */
     _createResultCard(container) {
         const resultCard = this.scene.add.graphics();
-        
+
         // Outer glow effect
         resultCard.fillStyle(0x3d5a80, 0.3);
         resultCard.fillRoundedRect(-290, -270, 580, 520, 24);
-        
+
         // Main card background with gradient effect
         resultCard.fillStyle(UI_COLORS.GAME_OVER.CARD_BACKGROUND, 0.98);
         resultCard.fillRoundedRect(-280, -260, 560, 500, 20);
-        
+
         // Inner highlight for depth
         resultCard.fillStyle(0xffffff, 0.02);
         resultCard.fillRoundedRect(-278, -258, 556, 250, 18);
-        
+
         // Modern border with glow
         resultCard.lineStyle(2, UI_COLORS.GAME_OVER.CARD_BORDER, 0.6);
         resultCard.strokeRoundedRect(-280, -260, 560, 500, 20);
-        
+
         container.add(resultCard);
     }
 
     /**
-     * Creates the title text
+     * Creates the title text and reason
      */
-    _createTitle(container, titleText, titleColor) {
+    _createTitle(container, titleText, titleColor, reason) {
         // Glow effect behind title
         const titleGlow = this.scene.add.text(0, -200, titleText, {
             fontSize: '48px',
@@ -160,7 +169,7 @@ class UIManager {
         titleGlow.setAlpha(0.3);
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
         container.add(titleGlow);
-        
+
         // Main title
         const title = this.scene.add.text(0, -200, titleText, {
             fontSize: '48px',
@@ -169,7 +178,19 @@ class UIManager {
             fontWeight: '700'
         }).setOrigin(0.5);
         container.add(title);
-        
+
+        // Reason text
+        if (reason) {
+            const reasonText = this.scene.add.text(0, -155, reason, {
+                fontSize: '18px',
+                fill: '#e2e8f0', // Secondary text color
+                fontFamily: 'Arial',
+                fontWeight: '500',
+                fontStyle: 'italic'
+            }).setOrigin(0.5);
+            container.add(reasonText);
+        }
+
         // Subtle pulsing animation on the glow
         this.scene.tweens.add({
             targets: titleGlow,
@@ -188,15 +209,15 @@ class UIManager {
      */
     _createStatistics(container, battleStats) {
         // Calculate battle statistics
-        const playerAccuracy = battleStats.player.shotsFired > 0 ? 
+        const playerAccuracy = battleStats.player.shotsFired > 0 ?
             ((battleStats.player.shotsHit / battleStats.player.shotsFired) * 100).toFixed(1) : 0;
-        const aiAccuracy = battleStats.ai.shotsFired > 0 ? 
+        const aiAccuracy = battleStats.ai.shotsFired > 0 ?
             ((battleStats.ai.shotsHit / battleStats.ai.shotsFired) * 100).toFixed(1) : 0;
-        
+
         // Modern statistics section with much more space
         const statsContainer = this.scene.add.container(0, -80);
         container.add(statsContainer);
-        
+
         // Define stats arrays
         const playerStats = [
             { label: 'Deployed', value: battleStats.player.tanksDeployed },
@@ -204,17 +225,17 @@ class UIManager {
             { label: 'Lost', value: battleStats.player.tanksLost },
             { label: 'Accuracy', value: `${playerAccuracy}%` }
         ];
-        
+
         const aiStats = [
             { label: 'Deployed', value: battleStats.ai.tanksDeployed },
             { label: 'Destroyed', value: battleStats.ai.tanksDestroyed },
             { label: 'Lost', value: battleStats.ai.tanksLost },
             { label: 'Accuracy', value: `${aiAccuracy}%` }
         ];
-        
+
         // Add section headers
         this._addSectionHeaders(statsContainer);
-        
+
         // Display stats
         this._displayStats(statsContainer, playerStats, -200);
         this._displayStats(statsContainer, aiStats, 40);
@@ -229,7 +250,7 @@ class UIManager {
         playerLine.lineStyle(2, 0x60a5fa, 0.5);
         playerLine.lineBetween(-200, -55, -40, -55);
         statsContainer.add(playerLine);
-        
+
         const playerHeader = this.scene.add.text(-120, -40, '⚔ PLAYER', {
             fontSize: '16px',
             fill: '#60a5fa',
@@ -238,13 +259,13 @@ class UIManager {
             letterSpacing: 2
         }).setOrigin(0.5);
         statsContainer.add(playerHeader);
-        
+
         // Decorative line above AI stats
         const aiLine = this.scene.add.graphics();
         aiLine.lineStyle(2, 0xf87171, 0.5);
         aiLine.lineBetween(40, -55, 200, -55);
         statsContainer.add(aiLine);
-        
+
         const aiHeader = this.scene.add.text(120, -40, '🤖 OPPONENT', {
             fontSize: '16px',
             fill: '#f87171',
@@ -264,13 +285,13 @@ class UIManager {
             const col = index % 2;
             const x = baseX + (col * 100);
             const y = 0 + (row * 45);
-            
+
             // Background card for each stat
             const statBg = this.scene.add.graphics();
             statBg.fillStyle(0xffffff, 0.03);
             statBg.fillRoundedRect(x - 5, y - 8, 90, 38, 6);
             statsContainer.add(statBg);
-            
+
             const label = this.scene.add.text(x, y, stat.label, {
                 fontSize: '11px',
                 fill: '#94a3b8',
@@ -278,7 +299,7 @@ class UIManager {
                 fontWeight: '500'
             }).setOrigin(0, 0.5);
             statsContainer.add(label);
-            
+
             const value = this.scene.add.text(x, y + 18, stat.value.toString(), {
                 fontSize: '18px',
                 fill: '#f1f5f9',
@@ -295,17 +316,17 @@ class UIManager {
     _createBottomSection(container, battleStats, result, resultTitleColor, overtimeActive) {
         const bottomContainer = this.scene.add.container(0, 100);
         container.add(bottomContainer);
-        
+
         // Battle duration with icon
         const battleDuration = (battleStats.battle.endTime - battleStats.battle.startTime) / 1000;
         const durationText = `${Math.floor(battleDuration / 60)}:${(battleDuration % 60).toFixed(0).padStart(2, '0')}`;
-        
+
         // Duration background
         const durationBg = this.scene.add.graphics();
         durationBg.fillStyle(0xffffff, 0.05);
         durationBg.fillRoundedRect(-60, -12, 120, 30, 6);
         bottomContainer.add(durationBg);
-        
+
         const duration = this.scene.add.text(0, 3, `⏱ ${durationText}`, {
             fontSize: '20px',
             fill: '#e2e8f0',
@@ -313,17 +334,17 @@ class UIManager {
             fontWeight: '600'
         }).setOrigin(0.5);
         bottomContainer.add(duration);
-        
+
         // Rewards with enhanced styling
         this._addRewards(bottomContainer, result, resultTitleColor);
-        
+
         // Overtime indicator with glow
         if (overtimeActive) {
             const overtimeBg = this.scene.add.graphics();
             overtimeBg.fillStyle(0xfb923c, 0.2);
             overtimeBg.fillRoundedRect(-50, 50, 100, 28, 6);
             bottomContainer.add(overtimeBg);
-            
+
             const overtimeText = this.scene.add.text(0, 64, '⚡ OVERTIME', {
                 fontSize: '14px',
                 fill: '#fb923c',
@@ -332,7 +353,7 @@ class UIManager {
                 letterSpacing: 1
             }).setOrigin(0.5);
             bottomContainer.add(overtimeText);
-            
+
             // Pulse animation for overtime
             this.scene.tweens.add({
                 targets: [overtimeBg, overtimeText],
@@ -355,7 +376,7 @@ class UIManager {
             rewardsBg.fillStyle(0x4ade80, 0.15);
             rewardsBg.fillRoundedRect(-100, 25, 200, 32, 8);
             bottomContainer.add(rewardsBg);
-            
+
             const rewardsText = this.scene.add.text(0, 41, '🏆 +100 XP  •  💰 +50 Credits', {
                 fontSize: '14px',
                 fill: '#4ade80',
@@ -368,7 +389,7 @@ class UIManager {
             consolationBg.fillStyle(0x94a3b8, 0.1);
             consolationBg.fillRoundedRect(-50, 25, 100, 32, 8);
             bottomContainer.add(consolationBg);
-            
+
             const consolationText = this.scene.add.text(0, 41, '📖 +25 XP', {
                 fontSize: '14px',
                 fill: '#94a3b8',
@@ -384,11 +405,11 @@ class UIManager {
      */
     _createContinueButton(container, resultTitleColor, accentColor) {
         const bottomContainer = container.list.find(child => child.y === 100);
-        
+
         const continueButton = this.scene.add.container(0, 90);
         continueButton.setAlpha(0.3);
         bottomContainer.add(continueButton);
-        
+
         // Button background with gradient effect
         const buttonBg = this.scene.add.graphics();
         buttonBg.fillStyle(accentColor, 0.2);
@@ -396,7 +417,7 @@ class UIManager {
         buttonBg.lineStyle(2, accentColor, 0.6);
         buttonBg.strokeRoundedRect(-70, -18, 140, 36, 18);
         continueButton.add(buttonBg);
-        
+
         // Button text
         const buttonText = this.scene.add.text(0, 0, '▶ Continue', {
             fontSize: '16px',
@@ -405,7 +426,7 @@ class UIManager {
             fontWeight: '600'
         }).setOrigin(0.5);
         continueButton.add(buttonText);
-        
+
         // Gentle pulse animation
         this.scene.tweens.add({
             targets: continueButton,
@@ -416,7 +437,7 @@ class UIManager {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
-        
+
         return continueButton;
     }
 
@@ -426,7 +447,7 @@ class UIManager {
     _animateContainerEntrance(container) {
         container.setScale(0.9);
         container.setAlpha(0);
-        
+
         this.scene.tweens.add({
             targets: container,
             scaleX: 1,
@@ -450,7 +471,7 @@ class UIManager {
         }).setOrigin(0.5);
         waitMessage.setScrollFactor(0);
         waitMessage.setDepth(1102);
-        
+
         // Make interactive areas
         overlay.setInteractive();
         // Use card size constants for interactive area
@@ -460,12 +481,12 @@ class UIManager {
             new Phaser.Geom.Rectangle(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight),
             Phaser.Geom.Rectangle.Contains
         );
-        
+
         // Click handler function
         const clickHandler = () => {
             this._handleResultScreenExit(container, overlay, result, gameState, battleStats);
         };
-        
+
         // Add delayed click handling
         this.scene.time.delayedCall(UI_CONFIG.GAME_OVER.CLICK_DELAY, () => {
             this._enableClickHandling(waitMessage, overlay, container, clickHandler, continueButton);
@@ -483,7 +504,7 @@ class UIManager {
             duration: 300,
             onComplete: () => waitMessage.destroy()
         });
-        
+
         // Show ready message briefly
         const readyMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'Click anywhere to continue', {
             fontSize: '14px',
@@ -493,7 +514,7 @@ class UIManager {
         }).setOrigin(0.5);
         readyMessage.setScrollFactor(0);
         readyMessage.setDepth(1102);
-        
+
         this.scene.tweens.add({
             targets: readyMessage,
             alpha: 0.9,
@@ -510,13 +531,13 @@ class UIManager {
                 });
             }
         });
-        
+
         // Add click listeners
         overlay.once('pointerdown', clickHandler);
         container.once('pointerdown', clickHandler);
         this.scene.input.once('pointerdown', clickHandler);
         this.scene.input.keyboard.once('keydown', clickHandler);
-        
+
         // Show button as clickable
         this.scene.tweens.add({
             targets: continueButton,
@@ -547,14 +568,14 @@ class UIManager {
                     gameState.player.experience += 25;
                     gameState.player.losses++;
                 }
-                
+
                 // Save battle statistics to game state for potential future features
                 gameState.lastBattleStats = battleStats;
-                
+
                 this.scene.scene.start('MenuScene', { gameState: gameState });
             }
         });
-        
+
         this.scene.tweens.add({
             targets: overlay,
             alpha: 0,
