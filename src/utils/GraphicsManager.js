@@ -848,26 +848,35 @@ class GraphicsManager {
     // ========================================
 
     _drawMiniSmokeBarrage(graphics, baseColor, accentColor) {
-        // Smoke barrage - grenade with smoke effect
-        // Grenade body
+        // Smoke barrage - billowy smoke clouds
+        const smokeGrey = 0xd1d5db; // Slate 300
+        const smokeWhite = 0xf9fafb; // Slate 50
+        const smokeDark = 0x9ca3af; // Slate 400
+
+        // Grenade body (small and subtle in center)
         graphics.fillStyle(this.colors.gunmetal);
-        graphics.fillRoundedRect(-2, -4, 4, 8, 1);
-        graphics.fillTriangle(-2, -4, 2, -4, 0, -8); // Pin
+        graphics.fillRoundedRect(-1, -2, 2, 4, 1);
 
-        // Smoke clouds
-        graphics.fillStyle(baseColor);
-        graphics.fillEllipse(-6, -2, 6, 4);
-        graphics.fillEllipse(0, -3, 8, 5);
-        graphics.fillEllipse(6, -1, 5, 3);
+        // Billowy smoke clouds - overlapping circles of varying sizes and colors
+        // Background/Shadow layer
+        graphics.fillStyle(smokeDark, 0.6);
+        graphics.fillCircle(-8, -4, 6);
+        graphics.fillCircle(8, -2, 5);
+        graphics.fillCircle(0, 6, 7);
 
-        // Smoke trails
-        graphics.lineStyle(1, accentColor);
-        graphics.moveTo(-4, 2);
-        graphics.lineTo(-4, 6);
-        graphics.moveTo(0, 2);
-        graphics.lineTo(0, 6);
-        graphics.moveTo(4, 2);
-        graphics.lineTo(4, 6);
+        // Main cloud bodies
+        graphics.fillStyle(smokeGrey);
+        graphics.fillCircle(-4, -2, 8);
+        graphics.fillCircle(4, -3, 9);
+        graphics.fillCircle(0, 4, 10);
+        graphics.fillCircle(7, 3, 6);
+        graphics.fillCircle(-7, 2, 7);
+
+        // Highlights
+        graphics.fillStyle(smokeWhite, 0.4);
+        graphics.fillCircle(-2, -5, 4);
+        graphics.fillCircle(3, -6, 5);
+        graphics.fillCircle(-5, 1, 3);
     }
 
     _drawMiniArtilleryStrike(graphics, baseColor, accentColor) {
