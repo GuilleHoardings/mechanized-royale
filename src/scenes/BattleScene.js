@@ -1436,65 +1436,6 @@ class BattleScene extends Phaser.Scene {
 
 
 
-
-    // Use a non-troop card (spell or building) at world position
-    useNonTroopCardAt(selectedCard, worldX, worldY) {
-        const card = selectedCard.cardDef;
-        if (!card) return;
-        if (this.energy < card.cost) {
-            this.showInsufficientEnergyFeedback();
-            return;
-        }
-        // Basic placement validation
-        if (!GameHelpers.isWithinBattlefieldWorld(worldX, worldY)) {
-            this.showInvalidPlacementFeedback('Place inside the battlefield');
-            return;
-        }
-        const { tileX, tileY } = GameHelpers.worldToTile(worldX, worldY);
-        if (card.type === CARD_TYPES.BUILDING) {
-            // Buildings must be placed in player's current deployment zones (including expansions)
-            if (!GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones)) {
-                this.showInvalidPlacementFeedback('Place building on your side');
-                return;
-            }
-        }
-        if (card.type === CARD_TYPES.SPELL) {
-            // Spells can be cast anywhere on battlefield, but we'll bias toward targeting enemies
-            // If no enemies in radius, warn once and still allow
-            const radius = card.payload?.radius || 0;
-            const anyEnemyInRadius = this.tanks.concat(this.buildings).some(o => {
-                if (!o || o.health <= 0) return false;
-                const isEnemy = (o.isPlayerTank === false) || (!o.isPlayerTank && o.isPlayerOwned === false);
-                const d = GameHelpers.distance(worldX, worldY, o.x, o.y);
-                return isEnemy && d <= radius;
-            });
-            if (radius > 0 && !anyEnemyInRadius) {
-                this.showInvalidPlacementFeedback('No enemies in spell radius');
-                // Still allow casting for flexibility; comment next line to block
-                // return;
-            }
-        }
-        if (card.type === CARD_TYPES.SPELL) {
-            this.castSpell(card, worldX, worldY);
-        } else if (card.type === CARD_TYPES.BUILDING) {
-            this._placeBuildingInternal(card, worldX, worldY, true);
-        }
-
-        // Notify AI of player card deployment (spells and buildings)
-        this.aiController.notifyAIOfPlayerAction('deploy', {
-            cardId: card.id,
-            cardName: card.name,
-            type: card.type,
-            cost: card.cost,
-            isSwarm: false,
-            count: 1
-        });
-
-        this.energy -= card.cost;
-        this.updateEnergyBar();
-        this.cycleCard(this.selectedCard);
-    }
-
     castSpell(card, x, y) {
         this._castSpellInternal(card, x, y, true);
     }
