@@ -111,6 +111,7 @@ class CombatSystem {
         // Create bullet sprite
         const bullet = this.scene.add.image(attacker.x, attacker.y, bulletTexture);
         bullet.setTint(bulletColor);
+        bullet.setDepth(1100); // Above battlefield units
 
         // Calculate angle from attacker to target
         const angle = GameHelpers.angle(attacker.x, attacker.y, target.x, target.y);
@@ -168,10 +169,12 @@ class CombatSystem {
         const bullet = this.scene.add.image(base.x, base.y, 'shell');
         bullet.setTint(bulletColor);
         bullet.setScale(1.2); // Larger bullets
+        bullet.setDepth(1100); // Above battlefield units
 
         // Create bullet trail
         const trail = this.scene.add.graphics();
         trail.lineStyle(3, bulletColor, 0.8);
+        trail.setDepth(1099); // Slightly below bullet but above tanks
         bullet.trail = trail;
 
         // Calculate angle from base to target

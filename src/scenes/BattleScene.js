@@ -774,7 +774,7 @@ class BattleScene extends Phaser.Scene {
 
         this.cardTooltip = this.add.container(tooltipX, tooltipY);
         this.cardTooltip.setScrollFactor(0);
-        this.cardTooltip.setDepth(100); // Ensure tooltip is on top
+        this.cardTooltip.setDepth(2000); // Ensure tooltip is on top of everything including tanks
 
         // Enhanced tooltip background with gradient effect
         const tooltipBg = this.add.graphics();
@@ -1089,8 +1089,8 @@ class BattleScene extends Phaser.Scene {
         // Store reference to turret for rotation animation
         tower.turret = turretContainer;
 
-        // Add depth and visual appeal
-        tower.setDepth(10);
+        // Add depth and visual appeal based on Y position
+        tower.setDepth(y);
 
         return tower;
     }
@@ -1613,6 +1613,9 @@ class BattleScene extends Phaser.Scene {
         // Create health bar
         this.createBuildingHealthBar(building);
 
+        // Set initial depth based on Y position
+        building.setDepth(y);
+
         // For buildings with lifetime (like V1 launcher), calculate health decay rate
         if (payload?.lifetimeMs) {
             building.healthDecayPerMs = building.health / payload.lifetimeMs;
@@ -2030,7 +2033,7 @@ class BattleScene extends Phaser.Scene {
             strokeThickness: 2
         }).setOrigin(0.5);
         text.setScrollFactor(0);
-        text.setDepth(60);
+        text.setDepth(2000);
         this.tweens.add({
             targets: text,
             alpha: 0,
@@ -2065,7 +2068,7 @@ class BattleScene extends Phaser.Scene {
                 selectedCard.unitData.unitType, true, selectedCard.unitId
             );
             this.deploymentPreview.previewTank.setAlpha(0.5);
-            this.deploymentPreview.previewTank.setDepth(15);
+            this.deploymentPreview.previewTank.setDepth(1000); // Higher than battlefield units
             // Face upward (toward enemy field)
             this.deploymentPreview.previewTank.setRotation(-Math.PI / 2);
 
@@ -2073,7 +2076,7 @@ class BattleScene extends Phaser.Scene {
             const range = selectedCard.unitData?.stats?.range || 0;
             if (range > 0) {
                 this.deploymentPreview.previewRangeCircle = this.add.graphics();
-                this.deploymentPreview.previewRangeCircle.setDepth(25);
+                this.deploymentPreview.previewRangeCircle.setDepth(1001);
             }
         }
 
@@ -2228,7 +2231,7 @@ class BattleScene extends Phaser.Scene {
 
         // Create the radius preview circle
         this.spellPreview.radiusCircle = this.add.graphics();
-        this.spellPreview.radiusCircle.setDepth(25);
+        this.spellPreview.radiusCircle.setDepth(1002);
 
         this.updateSpellPreview(worldX, worldY);
     }
@@ -2373,6 +2376,10 @@ class BattleScene extends Phaser.Scene {
 
         this.aiController.updateTankAI(tank);
         this.tanks.push(tank);
+
+        // Set initial depth based on Y position
+        tank.setDepth(y);
+
         this.createTankHealthBar(tank);
 
         if (this.attackRangesVisible) {
@@ -2410,6 +2417,11 @@ class BattleScene extends Phaser.Scene {
 
         const healthFill = this.add.graphics();
         tank.healthFill = healthFill;
+
+        // Set higher depth so health bars are above tanks
+        healthBg.setDepth(1500);
+        healthFill.setDepth(1501);
+
         this.updateTankHealth(tank);
     }
 
@@ -2449,6 +2461,11 @@ class BattleScene extends Phaser.Scene {
             fontStyle: 'bold'
         }).setOrigin(0.5);
         building.healthText = healthText;
+
+        // Set higher depth so health bars are above buildings
+        healthBg.setDepth(1500);
+        healthFill.setDepth(1501);
+        healthText.setDepth(1502);
 
         this.updateBuildingHealth(building);
     }
@@ -2650,6 +2667,9 @@ class BattleScene extends Phaser.Scene {
             tank.healthBg.fillStyle(0x333333);
             tank.healthBg.fillRect(tank.x - 20, tank.y - 30, 40, 4);
             this.updateTankHealth(tank);
+
+            // Update tank depth to match its Y position for correct layering
+            tank.setDepth(tank.y);
         }
 
         // Update selection circle position
@@ -2662,6 +2682,7 @@ class BattleScene extends Phaser.Scene {
         // Update range circle position
         if (tank.rangeCircle) {
             tank.rangeCircle.clear();
+            tank.rangeCircle.setDepth(1200); // Above tanks
             tank.rangeCircle.lineStyle(2, 0x00ff00, 0.3);
             tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.unitData.stats.range);
         }
