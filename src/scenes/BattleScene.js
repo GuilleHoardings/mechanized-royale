@@ -3400,6 +3400,11 @@ class BattleScene extends Phaser.Scene {
         );
         card.tankIcon.setScale(1.0); // Use larger scale for better visibility
 
+        // Rotate troop cards to face upward (enemy field direction)
+        if (def.type === CARD_TYPES.TROOP) {
+            card.tankIcon.setRotation(-Math.PI / 2); // -90 degrees = upward
+        }
+
         // Update cost
         card.costText.setText(def.cost);
 
