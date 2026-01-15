@@ -610,12 +610,12 @@ class BattleScene extends Phaser.Scene {
         this.energyBarFill = this.add.graphics();
         this.energyBarFill.setScrollFactor(0);
 
-        // Energy text
-        this.energyText = this.add.text(GAME_CONFIG.WIDTH / 2, energyY - 8, `${this.energy}/${this.maxEnergy}`, {
+        // Energy text - positioned to the left of the bar
+        this.energyText = this.add.text(barX - 8, energyY + 10, `${this.energy}/${this.maxEnergy}`, {
             fontSize: '14px',
             fill: '#ffffff',
             fontFamily: 'Arial'
-        }).setOrigin(0.5, 1);
+        }).setOrigin(1, 0.5); // Right-align the text so it sits left of the bar
         this.energyText.setScrollFactor(0);
 
         // Update energy bar after creating
