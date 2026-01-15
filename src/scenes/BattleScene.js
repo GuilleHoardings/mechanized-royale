@@ -4075,22 +4075,28 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Create the expanded area for this side
+        // Clash Royale style: the "pocket" - includes bridge and extends to near the destroyed tower
+        // River/bridge is at rows 16-17
+        // Enemy side towers are at tileY=6, Player side towers are at tileY=27
         let expandedArea;
         if (isPlayer) {
-            // Player zone expansion: 3 tiles after the river (river is 16-17, so expansion is 13-15)
+            // Player destroyed an enemy tower → Player gets the "pocket" on enemy side
+            // Extends from row 8 (near enemy tower at row 6) through the bridge (rows 16-17)
+            // This creates a deployment zone from enemy territory through the bridge
             expandedArea = {
                 tileX: sideStartCol,
-                tileY: 13, // 3 tiles before river start (16 - 3 = 13)
+                tileY: 8, // Start near enemy side tower (which is at row 6)
                 tilesWidth: sideEndCol - sideStartCol + 1,
-                tilesHeight: 3 // Just 3 rows (13, 14, 15)
+                tilesHeight: 10 // Rows 8-17 (includes territory up to and including the bridge)
             };
         } else {
-            // AI zone expansion: 3 tiles after the river (river is 16-17, so expansion is 18-20)  
+            // AI destroyed a player tower → AI gets the "pocket" on player side
+            // Extends from bridge (rows 16-17) down to row 25 (near player tower at row 27)
             expandedArea = {
                 tileX: sideStartCol,
-                tileY: 18, // 1 tile after river end (17 + 1 = 18)
+                tileY: 16, // Start at the bridge
                 tilesWidth: sideEndCol - sideStartCol + 1,
-                tilesHeight: 3 // Just 3 rows (18, 19, 20)
+                tilesHeight: 10 // Rows 16-25 (includes bridge and toward player tower)
             };
         }
 
