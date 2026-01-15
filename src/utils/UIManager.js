@@ -31,12 +31,12 @@ class UIManager {
         overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.1);
         overlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
         overlay.setScrollFactor(0);
-        overlay.setDepth(1100);
+        overlay.setDepth(2000);
 
         // Add subtle vignette effect
         const vignette = this.scene.add.graphics();
         vignette.setScrollFactor(0);
-        vignette.setDepth(1100);
+        vignette.setDepth(2000);
         // Draw concentric ellipses for vignette effect
         const centerX = GAME_CONFIG.WIDTH / 2;
         const centerY = GAME_CONFIG.HEIGHT / 2;
@@ -61,7 +61,7 @@ class UIManager {
         // Result container - positioned slightly higher to prevent bottom overflow
         const container = this.scene.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20);
         container.setScrollFactor(0);
-        container.setDepth(1101);
+        container.setDepth(2001);
 
         // Determine final result and colors
         const finalResult = this._determineFinalResult(result, buildings);
@@ -470,7 +470,7 @@ class UIManager {
             alpha: 0.8
         }).setOrigin(0.5);
         waitMessage.setScrollFactor(0);
-        waitMessage.setDepth(1102);
+        waitMessage.setDepth(2002);
 
         // Make interactive areas
         overlay.setInteractive();
@@ -513,7 +513,7 @@ class UIManager {
             alpha: 0
         }).setOrigin(0.5);
         readyMessage.setScrollFactor(0);
-        readyMessage.setDepth(1102);
+        readyMessage.setDepth(2002);
 
         this.scene.tweens.add({
             targets: readyMessage,

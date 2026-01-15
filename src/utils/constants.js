@@ -3,9 +3,9 @@ const GAME_CONFIG = {
     WIDTH: 600,
     HEIGHT: 800,  // Reduced from 850 to fit better in 1080p displays
     BACKGROUND_COLOR: '#2c5234',
-    // Tile system (Clash Royale style) - calculate tile size to fit everything in viewport
+    // Tile system - calculate tile size to fit everything in viewport
     TILES_X: 18,
-    TILES_Y: 34,  // Updated to match new layout: 0-15 (Enemy), 16-17 (river), 18-33 (Player)
+    TILES_Y: 34,  // 0-15 (Enemy), 16-17 (river), 18-33 (Player)
     TILE_SIZE: Math.floor(710 / 34),  // ~21px per tile to leave room for UI (cards + energy bar)
     get WORLD_WIDTH() { return this.TILES_X * this.TILE_SIZE; },  // Calculate width based on tile size
     get WORLD_HEIGHT() { return this.TILES_Y * this.TILE_SIZE; }  // Calculate height based on tile size
