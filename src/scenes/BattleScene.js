@@ -495,7 +495,8 @@ class BattleScene extends Phaser.Scene {
             );
             tankIcon.setScale(1.0); // Increased from 0.6 to 1.0 for bigger icons
             // Rotate troop cards to face upward (enemy field direction)
-            if (cardDef.type === CARD_TYPES.TROOP) {
+            // Skip rotation for image-based cards which are already oriented for the UI
+            if (cardDef.type === CARD_TYPES.TROOP && !tankIcon.isImageCard) {
                 tankIcon.setRotation(-Math.PI / 2); // -90 degrees = upward
             }
             card.tankIcon = tankIcon;
@@ -3342,7 +3343,8 @@ class BattleScene extends Phaser.Scene {
         card.tankIcon.setScale(1.0); // Use larger scale for better visibility
 
         // Rotate troop cards to face upward (enemy field direction)
-        if (def.type === CARD_TYPES.TROOP) {
+        // Skip rotation for image-based cards which are already oriented for the UI
+        if (def.type === CARD_TYPES.TROOP && !card.tankIcon.isImageCard) {
             card.tankIcon.setRotation(-Math.PI / 2); // -90 degrees = upward
         }
 

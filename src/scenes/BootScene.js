@@ -13,6 +13,10 @@ class BootScene extends Phaser.Scene {
         // Load battlefield texture
         this.load.image('battlefield', 'assets/textures/battlefield.png');
 
+        // Load card textures
+        this.load.image('arty_card', 'assets/tanks/arty_card.png');
+        this.load.image('tiger_card', 'assets/tanks/tiger_card.png');
+
         // Note: Tower assets are currently being generated procedurally in createPlaceholderAssets
         // due to rate limiting on asset generation. 
         // Once assets are available, uncomment the following:

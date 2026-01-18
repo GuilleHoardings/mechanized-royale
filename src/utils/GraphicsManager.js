@@ -101,24 +101,40 @@ class GraphicsManager {
         }
 
         const container = this.scene.add.container(x, y);
-        const graphics = this.scene.add.graphics();
 
-        switch (cardDef.type) {
-            case CARD_TYPES.TROOP:
-                this._drawMiniTroopGraphics(graphics, cardDef);
-                break;
-            case CARD_TYPES.SPELL:
-                this._drawMiniSpellGraphics(graphics, cardDef);
-                break;
-            case CARD_TYPES.BUILDING:
-                this._drawMiniBuildingGraphics(graphics, cardDef);
-                break;
-            default:
-                console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
-                break;
+        // Texture override for cards
+        let textureKey = null;
+        if (cardId === 'tiger') textureKey = 'tiger_card';
+        if (cardId === 'artillery_strike') textureKey = 'arty_card';
+
+        if (textureKey && this.scene.textures.exists(textureKey)) {
+            const image = this.scene.add.image(0, 0, textureKey);
+            // Size the image to fit the card icon area (approx 80x60 or similar)
+            // The container is centered at (x, y)
+            image.setDisplaySize(80, 60); 
+            container.add(image);
+            container.isImageCard = true;
+        } else {
+            const graphics = this.scene.add.graphics();
+
+            switch (cardDef.type) {
+                case CARD_TYPES.TROOP:
+                    this._drawMiniTroopGraphics(graphics, cardDef);
+                    break;
+                case CARD_TYPES.SPELL:
+                    this._drawMiniSpellGraphics(graphics, cardDef);
+                    break;
+                case CARD_TYPES.BUILDING:
+                    this._drawMiniBuildingGraphics(graphics, cardDef);
+                    break;
+                default:
+                    console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
+                    break;
+            }
+
+            container.add(graphics);
         }
 
-        container.add(graphics);
         container.setScrollFactor(0);
         return container;
     }
