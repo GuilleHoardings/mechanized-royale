@@ -102,12 +102,10 @@ class GraphicsManager {
 
         const container = this.scene.add.container(x, y);
 
-        // Texture override for cards
-        let textureKey = null;
-        if (cardId === 'tiger') textureKey = 'tiger_card';
-        if (cardId === 'artillery_strike') textureKey = 'arty_card';
+        // Auto-detect custom card texture (convention: card_<cardId>)
+        const textureKey = `card_${cardId}`;
 
-        if (textureKey && this.scene.textures.exists(textureKey)) {
+        if (this.scene.textures.exists(textureKey)) {
             const image = this.scene.add.image(0, 0, textureKey);
             // Size the image to fit the card icon area (approx 80x60 or similar)
             // The container is centered at (x, y)
