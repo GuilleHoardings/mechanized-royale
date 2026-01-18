@@ -69,19 +69,44 @@ class GraphicsManager {
     createTankGraphics(x, y, unitType, isPlayerTank, unitId = null) {
         // Create a container for the tank
         const tank = this.scene.add.container(x, y);
+        const id = unitId || unitType;
 
-        // Create graphics object for drawing
-        const graphics = this.scene.add.graphics();
+        // Auto-detect custom unit texture (convention: unit_<id>)
+        const textureKey = `unit_${id}`;
 
-        // Use unified drawing method
-        this.drawUnitGraphics(graphics, unitId || unitType, {
-            isPlayer: isPlayerTank,
-            scale: 1.0,
-            showTracks: true
-        });
+        if (this.scene.textures.exists(textureKey)) {
+            // Use sprite if texture exists
+            const sprite = this.scene.add.sprite(0, 0, textureKey);
+            
+            // Scaled down huge 1024x1024 textures to battlefield size
+            // Default size depends on unit type
+            let targetSize = 48; // Default size (total bounding box)
+            if (unitType === TANK_TYPES.HEAVY) targetSize = 64;
+            else if (unitType === TANK_TYPES.MEDIUM) targetSize = 54;
+            else if (unitType === TANK_TYPES.LIGHT) targetSize = 44;
+            
+            sprite.setDisplaySize(targetSize, targetSize);
+            
+            // Assets point Up (North) by default, but system expects 0 to be East. 
+            // So we rotate +90 degrees so container.rotation=0 points the sprite East.
+            sprite.setRotation(Math.PI / 2);
+            
+            tank.add(sprite);
+            tank.isSpriteBase = true;
+        } else {
+            // Create graphics object for drawing
+            const graphics = this.scene.add.graphics();
 
-        // Add the graphics to the container
-        tank.add(graphics);
+            // Use unified drawing method
+            this.drawUnitGraphics(graphics, id, {
+                isPlayer: isPlayerTank,
+                scale: 1.0,
+                showTracks: true
+            });
+
+            // Add the graphics to the container
+            tank.add(graphics);
+        }
 
         return tank;
     }

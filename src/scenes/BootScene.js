@@ -18,6 +18,8 @@ class BootScene extends Phaser.Scene {
         if (typeof CARDS !== 'undefined') {
             Object.keys(CARDS).forEach(cardId => {
                 this.load.image(`card_${cardId}`, `assets/tanks/card_${cardId}.png`);
+                // Attempt to load battlefield unit sprites: unit_<cardId>.png
+                this.load.image(`unit_${cardId}`, `assets/tanks/unit_${cardId}.png`);
             });
         }
 
