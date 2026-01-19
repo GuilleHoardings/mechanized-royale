@@ -79,11 +79,7 @@ class GraphicsManager {
             const sprite = this.scene.add.sprite(0, 0, textureKey);
             
             // Scaled down huge 1024x1024 textures to battlefield size
-            // Default size depends on unit type
-            let targetSize = 48; // Default size (total bounding box)
-            if (unitType === TANK_TYPES.HEAVY) targetSize = 64;
-            else if (unitType === TANK_TYPES.MEDIUM) targetSize = 54;
-            else if (unitType === TANK_TYPES.LIGHT) targetSize = 44;
+            let targetSize = 48;
             
             sprite.setDisplaySize(targetSize, targetSize);
             
