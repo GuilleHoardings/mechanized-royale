@@ -348,12 +348,6 @@ class BattleScene extends Phaser.Scene {
         this.deploymentZoneGraphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
         this.deploymentZoneGraphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
 
-        // Enemy zone (top) - coordinates already include offset
-        this.deploymentZoneGraphics.lineStyle(3, 0xd22d2d, 0.6);
-        this.deploymentZoneGraphics.fillStyle(0xd22d2d, 0.1);
-        this.deploymentZoneGraphics.fillRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
-        this.deploymentZoneGraphics.strokeRect(enemyZone.x, enemyZone.y, enemyZone.width, enemyZone.height);
-
         // Draw expanded zones if they exist
         this.drawExpandedZones(offsetX);
     }
@@ -375,21 +369,6 @@ class BattleScene extends Phaser.Scene {
             });
         }
 
-        // Draw AI expanded zones
-        if (this.expandedDeploymentZones.enemy && this.expandedDeploymentZones.enemy.expandedAreas) {
-            this.expandedDeploymentZones.enemy.expandedAreas.forEach(area => {
-                const areaX = offsetX + area.tileX * GAME_CONFIG.TILE_SIZE;
-                const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
-                const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
-                const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
-
-                // AI expanded zones - brighter red with dashed border
-                this.deploymentZoneGraphics.lineStyle(3, 0xff6b6b, 0.8);
-                this.deploymentZoneGraphics.fillStyle(0xff6b6b, 0.2);
-                this.deploymentZoneGraphics.fillRect(areaX, areaY, areaWidth, areaHeight);
-                this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
-            });
-        }
     }
 
     createUI() {
@@ -4077,7 +4056,7 @@ class BattleScene extends Phaser.Scene {
         }
 
         // Create the expanded area for this side
-        // Clash Royale style: the "pocket" - includes bridge and extends to near the destroyed tower
+        // The "pocket" - includes bridge and extends to near the destroyed tower
         // River/bridge is at rows 16-17
         // Enemy side towers are at tileY=6, Player side towers are at tileY=27
         let expandedArea;
@@ -4108,8 +4087,10 @@ class BattleScene extends Phaser.Scene {
         // Redraw deployment zones to show the expansion
         this.drawDeploymentZones();
 
-        // Update deployment area visual indicator
-        this.highlightExpandedDeploymentArea(team, expandedArea);
+        // Update deployment area visual indicator only for player
+        if (isPlayer) {
+            this.highlightExpandedDeploymentArea(team, expandedArea);
+        }
     }
 
     highlightExpandedDeploymentArea(team, expandedArea) {
