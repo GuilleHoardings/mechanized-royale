@@ -158,7 +158,7 @@ const CARDS = {
         type: CARD_TYPES.SPELL,
         cost: 2,
         payload: {
-            radius: 70,
+            radius: 80,
             damage: 120,
             stunMs: 400
         }
@@ -169,7 +169,7 @@ const CARDS = {
         type: CARD_TYPES.SPELL,
         cost: 4,
         payload: {
-            radius: 120,
+            radius: 40,
             damage: 280,
             knockback: 20
         }
