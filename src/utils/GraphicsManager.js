@@ -167,9 +167,10 @@ class GraphicsManager {
      * @param {number} x - X position
      * @param {number} y - Y position
      * @param {string} buildingId - The building ID from CARDS
+     * @param {boolean} isPlayer - Whether this is a player building
      * @returns {Phaser.GameObjects.Container} The building container
      */
-    createBuildingGraphics(x, y, buildingId) {
+    createBuildingGraphics(x, y, buildingId, isPlayer = true) {
         const buildingDef = CARDS[buildingId];
         if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
             console.error(`Invalid building: ${buildingId}`);
@@ -177,18 +178,45 @@ class GraphicsManager {
         }
 
         const container = this.scene.add.container(x, y);
-        const graphics = this.scene.add.graphics();
 
-        switch (buildingId) {
-            case 'v1_launcher':
-                this._drawV1LauncherBuilding(graphics);
-                break;
-            default:
-                this._drawGenericBuilding(graphics);
-                break;
+        // Auto-detect custom building texture (convention: unit_<id>)
+        const textureKey = `unit_${buildingId}`;
+
+        if (this.scene.textures.exists(textureKey)) {
+            const sprite = this.scene.add.sprite(0, 0, textureKey);
+            
+            // Size suitably for building (larger than tanks)
+            const targetSize = 64; 
+            sprite.setDisplaySize(targetSize, targetSize);
+            
+            // If it's an enemy building, rotate it 180 degrees (Math.PI)
+            // Player buildings face North (default for assets)
+            if (!isPlayer) {
+                sprite.setRotation(Math.PI);
+            }
+           
+            container.add(sprite);
+            container.isSpriteBase = true;
+        } else {
+            const graphics = this.scene.add.graphics();
+
+            // If it's an enemy building, rotate the graphics 180 degrees
+            if (!isPlayer) {
+                graphics.setRotation(Math.PI);
+            }
+
+            switch (buildingId) {
+                case 'v1_launcher':
+                    this._drawV1LauncherBuilding(graphics);
+                    break;
+                default:
+                    this._drawGenericBuilding(graphics);
+                    break;
+            }
+
+            container.add(graphics);
         }
 
-        container.add(graphics);
         return container;
     }
 

@@ -1530,7 +1530,7 @@ class BattleScene extends Phaser.Scene {
         const payload = card.payload || unitDef?.payload;
 
         // Create building graphics using GraphicsManager
-        const building = this.graphicsManager.createBuildingGraphics(x, y, unitId);
+        const building = this.graphicsManager.createBuildingGraphics(x, y, unitId, isPlayerOwned);
 
         // Set building properties
         building.buildingId = unitId;
