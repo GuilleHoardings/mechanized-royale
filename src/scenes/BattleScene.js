@@ -1444,11 +1444,6 @@ class BattleScene extends Phaser.Scene {
             }
         };
 
-        const colors = {
-            smoke_barrage: isPlayerCast ? 0x66ccff : 0xff6666,
-            artillery_strike: isPlayerCast ? 0xff7733 : 0xff4400
-        };
-
         if (card.id === 'smoke_barrage') {
             // Specialized visual effect for smoke barrage
             this.createSmokeBarrageEffect(x, y, card.payload?.radius || 0, isPlayerCast);
@@ -1468,22 +1463,24 @@ class BattleScene extends Phaser.Scene {
             this.playUISound('shoot');
             if (!isPlayerCast) console.log('🤖 AI: Cast Smoke Barrage at', Math.round(x), Math.round(y));
         } else if (card.id === 'artillery_strike') {
-            // Enhanced visual effect for artillery strike
-            this.createEnhancedSpellEffect(x, y, card.payload?.radius || 0, colors.artillery_strike, 'ARTILLERY STRIKE', isPlayerCast);
+            const radius = card.payload?.radius || 0;
+            const totalDamage = card.payload?.damage || 0;
+            const shellCount = 8;
+            const damagePerShell = totalDamage / shellCount;
 
-            this.applyAreaEffect(x, y, card.payload?.radius || 0, (target) => {
-                if (!shouldAffect(target)) return;
-                if (target.isMainTower && !target.activated) {
-                    target.activated = true;
-                }
-                target.health = Math.max(0, target.health - (card.payload?.damage || 0));
-                this.combatSystem.updateHealthDisplay(target);
-                if (target.health <= 0) {
-                    this.combatSystem.handleTargetDestruction(target, null);
-                }
+            // Specialized visual effect for artillery strike
+            // We pass a callback to apply damage exactly when and where shells land
+            this.createArtilleryStrikeEffect(x, y, radius, isPlayerCast, (impactX, impactY) => {
+                this.applyAreaEffect(impactX, impactY, radius * 0.75, (target) => {
+                    if (!shouldAffect(target)) return;
+                    if (target.isMainTower && !target.activated) {
+                        target.activated = true;
+                    }
+                    target.health = Math.max(0, target.health - damagePerShell);
+                    this.combatSystem.updateHealthDisplay(target);
+                });
             });
-            this.combatSystem.showExplosionEffect(x, y, 1.2);
-            this.playUISound('explosion');
+
             if (!isPlayerCast) console.log('🤖 AI: Cast Artillery Strike at', Math.round(x), Math.round(y));
         }
     }
@@ -1812,129 +1809,6 @@ class BattleScene extends Phaser.Scene {
     }
 
     /**
-     * Create an enhanced visual effect for spell deployment with label and animations
-     * @param {number} x - World X coordinate
-     * @param {number} y - World Y coordinate
-     * @param {number} radius - Effect radius
-     * @param {number} color - Effect color
-     * @param {string} spellName - Name of the spell to display
-     * @param {boolean} isPlayerCast - Whether cast by player (affects positioning)
-     */
-    createEnhancedSpellEffect(x, y, radius, color, spellName, isPlayerCast) {
-        console.log('🎯 Enhanced spell effect:', spellName, 'at', x, y, 'radius:', radius);
-
-        // Create VERY BRIGHT initial flash
-        const flash = this.add.graphics();
-        flash.fillStyle(0xffffff, 1.0);
-        flash.fillCircle(x, y, radius * 1.2);
-        flash.setDepth(1001);
-
-        this.tweens.add({
-            targets: flash,
-            alpha: 0,
-            duration: 150,
-            ease: 'Power2',
-            onComplete: () => flash.destroy()
-        });
-
-        // Create large filled circle background
-        const bgCircle = this.add.graphics();
-        bgCircle.fillStyle(color, 0.6);
-        bgCircle.fillCircle(x, y, radius);
-        bgCircle.setDepth(998);
-
-        this.tweens.add({
-            targets: bgCircle,
-            alpha: 0,
-            duration: 1200,
-            ease: 'Power2',
-            onComplete: () => bgCircle.destroy()
-        });
-
-        // Create multiple expanding rings for dramatic effect
-        for (let i = 0; i < 4; i++) {
-            const ring = this.add.graphics();
-            ring.lineStyle(6, color, 1);
-            ring.strokeCircle(x, y, 10);
-            ring.setDepth(999 + i);
-
-            this.tweens.add({
-                targets: ring,
-                alpha: 0,
-                duration: 800,
-                delay: i * 150,
-                ease: 'Power2',
-                onComplete: () => ring.destroy()
-            });
-
-            this.tweens.add({
-                targets: ring,
-                scaleX: radius / 10,
-                scaleY: radius / 10,
-                duration: 800,
-                delay: i * 150,
-                ease: 'Cubic.Out'
-            });
-        }
-
-        // Add LARGE spell name label in center
-        const labelColor = isPlayerCast ? '#66ccff' : '#ff6666';
-        const label = this.add.text(x, y - 10, spellName, {
-            fontSize: '20px',
-            fill: labelColor,
-            fontFamily: 'Arial Black',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 6
-        }).setOrigin(0.5);
-        label.setDepth(1002);
-        label.setScale(0);
-
-        // Animate label with bounce
-        this.tweens.add({
-            targets: label,
-            scale: 1.2,
-            duration: 300,
-            ease: 'Back.out',
-            onComplete: () => {
-                this.tweens.add({
-                    targets: label,
-                    scale: 0,
-                    alpha: 0,
-                    duration: 300,
-                    delay: 1000,
-                    ease: 'Back.in',
-                    onComplete: () => label.destroy()
-                });
-            }
-        });
-
-        // Add MANY particles for extra visual flair
-        for (let i = 0; i < 16; i++) {
-            const angle = (Math.PI * 2 * i) / 16;
-            const particle = this.add.graphics();
-            particle.fillStyle(color, 1);
-            particle.fillCircle(0, 0, 6);
-            particle.setPosition(x, y);
-            particle.setDepth(1000);
-
-            const targetX = x + Math.cos(angle) * radius * 1.2;
-            const targetY = y + Math.sin(angle) * radius * 1.2;
-
-            this.tweens.add({
-                targets: particle,
-                x: targetX,
-                y: targetY,
-                alpha: 0,
-                duration: 700,
-                delay: i * 30,
-                ease: 'Power2',
-                onComplete: () => particle.destroy()
-            });
-        }
-    }
-
-    /**
      * Creates a specialized smoke barrage visual effect with billowy clouds.
      */
     createSmokeBarrageEffect(x, y, radius, isPlayerCast) {
@@ -2039,6 +1913,210 @@ class BattleScene extends Phaser.Scene {
                 });
             }
         });
+    }
+
+    /**
+     * Creates a specialized artillery strike visual effect with incoming shells and a massive explosion.
+     * Synchronizes damage with impact using the onImpact callback.
+     */
+    createArtilleryStrikeEffect(x, y, radius, isPlayerCast, onImpact) {
+        console.log('💥 Artillery Strike effect at', x, y, 'radius:', radius);
+
+        // 1. Create incoming shells (staggered barrage) - Increased count and speed
+        const shellCount = 8;
+
+        // Find the central tower of the attacker
+        const attackerMainTower = this.buildings.find(b => b.isMainTower && b.isPlayerOwned === isPlayerCast);
+
+        for (let i = 0; i < shellCount; i++) {
+            // Uniform distribution within the FULL radius
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.sqrt(Math.random()) * radius;
+            
+            // Ensure at least one shell (the last/biggest) hits near center
+            const finalDist = (i === shellCount - 1) ? dist * 0.3 : dist;
+            
+            const dropX = x + Math.cos(angle) * finalDist;
+            const dropY = y + Math.sin(angle) * finalDist;
+
+            // Start from the central tower of the attacker
+            let startX, startY;
+            if (attackerMainTower) {
+                startX = attackerMainTower.x;
+                startY = attackerMainTower.y;
+            } else {
+                // Fallback to off-screen based on who is casting
+                startY = isPlayerCast ? 900 : -100;
+                startX = isPlayerCast ? dropX - 50 : dropX + 50;
+            }
+            
+            const shell = this.add.graphics();
+            // Draw a proper shell shape: pointed cylinder
+            shell.fillStyle(0x222222, 1);
+            shell.beginPath();
+            shell.moveTo(-3, 0);
+            shell.lineTo(3, 0);
+            shell.lineTo(0, -10); // Pointed tip
+            shell.closePath();
+            shell.fill();
+            shell.fillRect(-3, 0, 6, 8); // Body
+            
+            shell.setPosition(startX, startY);
+            // Rotate to face the direction of travel
+            const travelAngle = Math.atan2(dropY - startY, dropX - startX);
+            shell.setRotation(travelAngle + Math.PI/2);
+            shell.setDepth(2000); 
+            
+            const trail = this.add.graphics();
+            trail.setDepth(1999);
+
+            // FASTER timing: 80ms stagger, 350ms flight
+            const delay = i * 80;
+
+            this.tweens.add({
+                targets: shell,
+                x: dropX,
+                y: dropY,
+                duration: 350,
+                delay: delay,
+                ease: 'Cubic.In',
+                onUpdate: () => {
+                    trail.clear();
+                    // Fade trail over time
+                    const progress = (shell.y - startY) / (dropY - startY);
+                    trail.lineStyle(2, 0xffcc33, 0.5 * (1 - Math.abs(progress)));
+                    trail.lineBetween(startX, startY, shell.x, shell.y);
+                },
+                onComplete: () => {
+                    shell.destroy();
+                    trail.destroy();
+                    // Each shell landing triggers its portion of the damage
+                    if (onImpact) onImpact(dropX, dropY);
+                    
+                    // Small impact for each shell, big one for the center/last
+                    const isLast = (i === shellCount - 1);
+                    this.executeArtilleryImpact(dropX, dropY, radius * 0.5, isLast);
+                }
+            });
+        }
+    }
+
+    /**
+     * Executes the visual impact of an artillery shell.
+     */
+    executeArtilleryImpact(x, y, radius, isLarge = false) {
+        // Impact sound - play for all, but maybe vary?
+        // Actually play explosion for all shells as it's a barrage
+        this.playUISound('explosion');
+
+        // Massive flash
+        const flash = this.add.graphics();
+        flash.fillStyle(0xffffff, isLarge ? 1.0 : 0.6);
+        flash.fillCircle(x, y, radius * (isLarge ? 1.5 : 1.0));
+        flash.setDepth(1015);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scale: 1.5,
+            duration: 200,
+            onComplete: () => flash.destroy()
+        });
+
+        // Shockwave rings
+        const ringCount = isLarge ? 3 : 1;
+        for (let i = 0; i < ringCount; i++) {
+            const ring = this.add.graphics();
+            ring.lineStyle(isLarge ? 8 : 4, 0xffffff, 0.8);
+            ring.strokeCircle(x, y, 10);
+            ring.setDepth(1012);
+            this.tweens.add({
+                targets: ring,
+                scaleX: (radius * 2) / 10,
+                scaleY: (radius * 2) / 10,
+                alpha: 0,
+                duration: 600,
+                delay: i * 100,
+                ease: 'Expo.Out',
+                onComplete: () => ring.destroy()
+            });
+        }
+
+        // Fireballs
+        const fireColors = [0xff4400, 0xff8800, 0xffcc00];
+        const puffCount = isLarge ? 12 : 5;
+        for (let i = 0; i < puffCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * radius * 0.8;
+            const fx = x + Math.cos(angle) * dist;
+            const fy = y + Math.sin(angle) * dist;
+            
+            const puff = this.add.graphics();
+            puff.fillStyle(fireColors[Math.floor(Math.random() * fireColors.length)], 0.9);
+            const pSize = (isLarge ? 15 : 8) + Math.random() * (isLarge ? 25 : 12);
+            puff.fillCircle(0, 0, pSize);
+            puff.setPosition(x, y);
+            puff.setDepth(1011);
+            
+            this.tweens.add({
+                targets: puff,
+                x: fx,
+                y: fy,
+                scale: 0.2,
+                alpha: 0,
+                duration: 800 + Math.random() * 400,
+                ease: 'Quad.Out',
+                onComplete: () => puff.destroy()
+            });
+        }
+
+        // Debris particles
+        const debrisCount = isLarge ? 20 : 8;
+        for (let i = 0; i < debrisCount; i++) {
+            const debris = this.add.graphics();
+            debris.fillStyle(0x222222, 1);
+            debris.fillRect(-2, -2, 4, 4);
+            debris.setPosition(x, y);
+            debris.setDepth(1013);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const dist = radius * (1.0 + Math.random() * 1.5);
+            
+            this.tweens.add({
+                targets: debris,
+                x: x + Math.cos(angle) * dist,
+                y: y + Math.sin(angle) * dist,
+                rotation: Math.PI * 4,
+                alpha: 0,
+                duration: 600 + Math.random() * 600,
+                ease: 'Cubic.Out',
+                onComplete: () => debris.destroy()
+            });
+        }
+
+        // Lingering smoke for the final big blast
+        if (isLarge) {
+            const smoke = this.add.graphics();
+            smoke.fillStyle(0x333333, 0.5);
+            smoke.fillCircle(x, y, radius * 2);
+            smoke.setDepth(1008);
+            smoke.alpha = 0;
+            this.tweens.add({
+                targets: smoke,
+                alpha: 0.7,
+                duration: 250,
+                onComplete: () => {
+                    this.tweens.add({
+                        targets: smoke,
+                        scale: 1.4,
+                        alpha: 0,
+                        duration: 3000,
+                        delay: 500,
+                        ease: 'Sine.In',
+                        onComplete: () => smoke.destroy()
+                    });
+                }
+            });
+        }
     }
 
     applyAreaEffect(x, y, radius, fn) {
