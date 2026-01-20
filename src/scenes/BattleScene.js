@@ -1450,8 +1450,8 @@ class BattleScene extends Phaser.Scene {
         };
 
         if (card.id === 'smoke_barrage') {
-            // Enhanced visual effect for smoke barrage
-            this.createEnhancedSpellEffect(x, y, card.payload?.radius || 0, colors.smoke_barrage, 'SMOKE BARRAGE', isPlayerCast);
+            // Specialized visual effect for smoke barrage
+            this.createSmokeBarrageEffect(x, y, card.payload?.radius || 0, isPlayerCast);
 
             this.applyAreaEffect(x, y, card.payload?.radius || 0, (target) => {
                 if (!shouldAffect(target)) return;
@@ -1932,6 +1932,113 @@ class BattleScene extends Phaser.Scene {
                 onComplete: () => particle.destroy()
             });
         }
+    }
+
+    /**
+     * Creates a specialized smoke barrage visual effect with billowy clouds.
+     */
+    createSmokeBarrageEffect(x, y, radius, isPlayerCast) {
+        console.log('💨 Smoke Barrage effect at', x, y, 'radius:', radius);
+
+        const smokeColors = [0xd1d5db, 0xf9fafb, 0x9ca3af, 0xe5e7eb];
+        const puffCount = 18;
+
+        // Initial flash
+        const flash = this.add.graphics();
+        flash.fillStyle(0xffffff, 0.8);
+        flash.fillCircle(x, y, radius * 0.5);
+        flash.setDepth(1010);
+        this.tweens.add({
+            targets: flash,
+            alpha: 0,
+            scale: 2,
+            duration: 250,
+            ease: 'Cubic.Out',
+            onComplete: () => flash.destroy()
+        });
+
+        // Create smoke puffs
+        for (let i = 0; i < puffCount; i++) {
+            const angle = Math.random() * Math.PI * 2;
+            const dist = Math.random() * radius * 0.7;
+            const px = x + Math.cos(angle) * dist;
+            const py = y + Math.sin(angle) * dist;
+            
+            const color = smokeColors[Math.floor(Math.random() * smokeColors.length)];
+            const puffRadius = 12 + Math.random() * 10;
+            
+            const puff = this.add.graphics();
+            puff.fillStyle(color, 0.7);
+            puff.fillCircle(0, 0, puffRadius);
+            puff.setPosition(px, py);
+            puff.setDepth(1000 + Math.floor(Math.random() * 5));
+            puff.setScale(0.1);
+            
+            // Random movement for the puff
+            const moveX = (Math.random() - 0.5) * 60;
+            const moveY = (Math.random() - 0.5) * 60;
+
+            this.tweens.add({
+                targets: puff,
+                x: px + moveX,
+                y: py + moveY,
+                scale: 2.5,
+                alpha: 0,
+                duration: 1500 + Math.random() * 1500,
+                delay: Math.random() * 300,
+                ease: 'Cubic.Out',
+                onComplete: () => puff.destroy()
+            });
+        }
+
+        // Add small debris particles for a bit of "pop"
+        for (let i = 0; i < 12; i++) {
+            const debris = this.add.graphics();
+            debris.fillStyle(0x444444, 1);
+            debris.fillRect(-2, -2, 4, 4);
+            debris.setPosition(x, y);
+            debris.setDepth(1006);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const dist = radius * (0.6 + Math.random() * 0.6);
+            
+            this.tweens.add({
+                targets: debris,
+                x: x + Math.cos(angle) * dist,
+                y: y + Math.sin(angle) * dist,
+                rotation: Math.PI * 2,
+                alpha: 0,
+                duration: 500 + Math.random() * 500,
+                ease: 'Cubic.Out',
+                onComplete: () => debris.destroy()
+            });
+        }
+        
+        // Add a central lingering cloud for area persistent feel
+        const centralCloud = this.add.graphics();
+        centralCloud.fillStyle(0xd1d5db, 0.4);
+        centralCloud.fillCircle(x, y, radius);
+        centralCloud.setDepth(999);
+        centralCloud.setScale(0.5);
+        centralCloud.alpha = 0;
+        
+        this.tweens.add({
+            targets: centralCloud,
+            scale: 1.1,
+            alpha: 0.6,
+            duration: 500,
+            ease: 'Sine.Out',
+            onComplete: () => {
+                this.tweens.add({
+                    targets: centralCloud,
+                    scale: 1.3,
+                    alpha: 0,
+                    duration: 2500,
+                    ease: 'Sine.In',
+                    onComplete: () => centralCloud.destroy()
+                });
+            }
+        });
     }
 
     applyAreaEffect(x, y, radius, fn) {
