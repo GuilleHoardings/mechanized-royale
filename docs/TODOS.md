@@ -1,0 +1,7 @@
+- Use a texture for the towers
+- Use a texture for thee infantry units
+- Add an indication that the central tower is activated
+- Make the lanes work like in Clash Royale
+- Rework the attack ranges
+- Improve the units: right now, the scaling is too obvious
+- Change the way the indication of where you deploy: instead of indicating valid deployment zones, indicate invalid ones
