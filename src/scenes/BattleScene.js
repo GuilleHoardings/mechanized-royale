@@ -33,6 +33,7 @@ class BattleScene extends Phaser.Scene {
             player: null, // Will be set when enemy side towers are destroyed
             enemy: null   // Will be set when player side towers are destroyed
         };
+        this.zoneExpansionTransitions = []; // Track active expansion animations
 
         // Enhanced battle statistics
         this.battleStats = {
@@ -337,20 +338,85 @@ class BattleScene extends Phaser.Scene {
         }
 
         const offsetX = GameHelpers.getBattlefieldOffset();
+        const tileSize = GAME_CONFIG.TILE_SIZE;
 
-        // Instead of highlighting valid zones in blue, we highlight INVALID zones in light red
-        // This covers the enemy side, the river, and where towers stand.
-        this.deploymentZoneGraphics.fillStyle(0xff4444, 0.35); // Light red highlight
+        // Configuration for invalid zone visuals
+        const overlayColor = 0xff4444;
+        const overlayAlpha = 0.35; // User requested 0.35
+        const borderColor = 0xff6666;
+        const borderAlpha = 0.8;
+        const borderWidth = 2;
 
-        // Loop through all tiles in the battlefield to accurately highlight only invalid tiles
+        this.deploymentZoneGraphics.fillStyle(overlayColor, overlayAlpha);
+        this.deploymentZoneGraphics.lineStyle(borderWidth, borderColor, borderAlpha);
+
+        // Function to check if a specific tile IS INVALID right now, considering animations
+        const isCurrentlyInvalid = (tx, ty) => {
+            // First check base validity
+            const isBaseValid = GameHelpers.isValidDeploymentTile(tx, ty, true, this.expandedDeploymentZones);
+
+            // If it's naturally invalid (enemy side, towers, etc.), it stays invalid
+            if (!isBaseValid) return true;
+
+            // If it's valid, it might still be "becoming valid" (animating retraction)
+            // Check active transitions
+            for (const transition of this.zoneExpansionTransitions) {
+                const area = transition.area;
+                if (tx >= area.tileX && tx < area.tileX + area.tilesWidth &&
+                    ty >= area.tileY && ty < area.tileY + area.tilesHeight) {
+
+                    // Calculation for shrinking: 
+                    // For player expansion, we usually expand from rows 16-17 (river) into row 8.
+                    // So at progress 0, rows 8-17 are invalid. At progress 1, all are valid.
+                    // We shrink from the valid side (player side) towards the enemy side.
+                    // Player side is down (high Y), Enemy side is up (low Y).
+
+                    // normalizedY goes from 0 (enemy end of expansion) to 1 (bridge/player end)
+                    const normalizedY = (ty - area.tileY) / (area.tilesHeight - 1);
+
+                    // If progress is less than the position in the area, it's still invalid
+                    // We want it to clear from the player side (high Y) towards the enemy side (low Y)
+                    // So we compare (1 - progress) with normalizedY
+                    if (normalizedY < (1 - transition.progress)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        };
+
+        // Draw the invalid zones and their borders
         for (let tileY = 0; tileY < GAME_CONFIG.TILES_Y; tileY++) {
             for (let tileX = 0; tileX < GAME_CONFIG.TILES_X; tileX++) {
-                // Check if this tile is INVALID for player deployment
-                if (!GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones)) {
-                    const x = offsetX + tileX * GAME_CONFIG.TILE_SIZE;
-                    const y = tileY * GAME_CONFIG.TILE_SIZE;
+                const currentInvalid = isCurrentlyInvalid(tileX, tileY);
 
-                    this.deploymentZoneGraphics.fillRect(x, y, GAME_CONFIG.TILE_SIZE, GAME_CONFIG.TILE_SIZE);
+                if (currentInvalid) {
+                    const x = offsetX + tileX * tileSize;
+                    const y = tileY * tileSize;
+
+                    // Fill the invalid tile
+                    this.deploymentZoneGraphics.fillRect(x, y, tileSize, tileSize);
+
+                    // Draw borders at the edges of invalid zones
+                    // Check neighbors to decide where to draw lines
+
+                    // Top edge
+                    if (tileY === 0 || !isCurrentlyInvalid(tileX, tileY - 1)) {
+                        this.deploymentZoneGraphics.lineBetween(x, y, x + tileSize, y);
+                    }
+                    // Bottom edge
+                    if (tileY === GAME_CONFIG.TILES_Y - 1 || !isCurrentlyInvalid(tileX, tileY + 1)) {
+                        this.deploymentZoneGraphics.lineBetween(x, y + tileSize, x + tileSize, y + tileSize);
+                    }
+                    // Left edge
+                    if (tileX === 0 || !isCurrentlyInvalid(tileX - 1, tileY)) {
+                        this.deploymentZoneGraphics.lineBetween(x, y, x, y + tileSize);
+                    }
+                    // Right edge
+                    if (tileX === GAME_CONFIG.TILES_X - 1 || !isCurrentlyInvalid(tileX + 1, tileY)) {
+                        this.deploymentZoneGraphics.lineBetween(x + tileSize, y, x + tileSize, y + tileSize);
+                    }
                 }
             }
         }
@@ -4260,50 +4326,34 @@ class BattleScene extends Phaser.Scene {
         // Add this expanded area to the list
         this.expandedDeploymentZones[team].expandedAreas.push(expandedArea);
 
-        // Redraw deployment zones to show the expansion
-        this.drawDeploymentZones();
+        // Add a transition to animate the "shrinking" of the invalid zone
+        const transition = {
+            area: expandedArea,
+            progress: 0
+        };
+        this.zoneExpansionTransitions.push(transition);
 
-        // Update deployment area visual indicator only for player
-        if (isPlayer) {
-            this.highlightExpandedDeploymentArea(team, expandedArea);
-        }
+        // Animate the progression (clearing the red area)
+        this.tweens.add({
+            targets: transition,
+            progress: 1,
+            duration: 600, // Fast animation as requested
+            ease: 'Cubic.Out',
+            onUpdate: () => {
+                this.drawDeploymentZones();
+            },
+            onComplete: () => {
+                // Keep the transition state but it's now fully valid
+            }
+        });
+
+        // Redraw immediately to start animation
+        this.drawDeploymentZones();
     }
 
     highlightExpandedDeploymentArea(team, expandedArea) {
-        const isPlayer = (team === 'player');
-
-        // Create a temporary highlight overlay for the expanded area
-        const offsetX = GameHelpers.getBattlefieldOffset();
-        const areaX = offsetX + expandedArea.tileX * GAME_CONFIG.TILE_SIZE;
-        const areaY = expandedArea.tileY * GAME_CONFIG.TILE_SIZE;
-        const areaWidth = expandedArea.tilesWidth * GAME_CONFIG.TILE_SIZE;
-        const areaHeight = expandedArea.tilesHeight * GAME_CONFIG.TILE_SIZE;
-
-        // Create highlight graphics
-        const highlight = this.add.graphics();
-        highlight.fillStyle(isPlayer ? 0x44ff44 : 0xffaa44, 0.3);
-        highlight.fillRect(areaX, areaY, areaWidth, areaHeight);
-        highlight.lineStyle(3, isPlayer ? 0x44ff44 : 0xffaa44, 0.8);
-        highlight.strokeRect(areaX, areaY, areaWidth, areaHeight);
-        highlight.setDepth(1);
-
-        // Pulsing animation
-        this.tweens.add({
-            targets: highlight,
-            alpha: { from: 0.8, to: 0.3 },
-            duration: 1000,
-            yoyo: true,
-            repeat: 2,
-            onComplete: () => {
-                // Fade out after pulsing
-                this.tweens.add({
-                    targets: highlight,
-                    alpha: 0,
-                    duration: 2000,
-                    onComplete: () => highlight.destroy()
-                });
-            }
-        });
+        // This is now replaced by the self-shrinking animation logic
+        // in drawDeploymentZones + expansionTransitions
     }
 
     showTowerDestroyedNotification(tower) {
