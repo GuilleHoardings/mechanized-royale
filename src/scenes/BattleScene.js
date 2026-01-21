@@ -100,6 +100,32 @@ class BattleScene extends Phaser.Scene {
         this.attackRangesVisible = false;
         this.attackRangeCircles = [];
 
+        // Card selection state
+        this.selectedCard = -1;
+        this.tankCards = [];
+
+        // Deployment preview state
+        this.deploymentPreview = {
+            active: false,
+            unitType: null,
+            previewTank: null,
+            previewRangeCircle: null,
+            validPosition: false,
+            startedInBattlefield: false,
+            tileX: 0,
+            tileY: 0
+        };
+
+        // Spell preview state
+        this.spellPreview = {
+            active: false,
+            spellType: null,
+            previewGraphics: null,
+            validPosition: false,
+            tileX: 0,
+            tileY: 0
+        };
+
         // Textures mode - toggles between textures and graphics for all game elements
         this.useGraphicsMode = true;
 
@@ -139,28 +165,6 @@ class BattleScene extends Phaser.Scene {
 
         // Enhanced background with darker, more atmospheric color
         this.cameras.main.setBackgroundColor('#1a2744');
-
-        // Deployment preview state - initialize before UI creation
-        this.deploymentPreview = {
-            active: false,
-            unitType: null,
-            previewTank: null,
-            previewRangeCircle: null,
-            validPosition: false,
-            startedInBattlefield: false,
-            tileX: 0,
-            tileY: 0
-        };
-
-        // Spell preview state
-        this.spellPreview = {
-            active: false,
-            spellType: null,
-            previewGraphics: null,
-            validPosition: false,
-            tileX: 0,
-            tileY: 0
-        };
 
         // Create battlefield
         this.createBattlefield();
@@ -337,6 +341,14 @@ class BattleScene extends Phaser.Scene {
             this.deploymentZoneLabels = [];
         }
 
+        // Check the selected card to see if we should show highlights
+        const selectedCard = this.selectedCard !== -1 ? this.tankCards[this.selectedCard] : null;
+
+        // No highlights for spells or when no card is selected
+        if (!selectedCard || selectedCard.cardType === CARD_TYPES.SPELL) {
+            return;
+        }
+
         const offsetX = GameHelpers.getBattlefieldOffset();
         const tileSize = GAME_CONFIG.TILE_SIZE;
 
@@ -350,8 +362,14 @@ class BattleScene extends Phaser.Scene {
         this.deploymentZoneGraphics.fillStyle(overlayColor, overlayAlpha);
         this.deploymentZoneGraphics.lineStyle(borderWidth, borderColor, borderAlpha);
 
+        // Define enemy territory boundary (rows 0-17 include enemy side + river)
+        const enemyTerritoryEndRow = 17;
+
         // Function to check if a specific tile IS INVALID right now, considering animations
         const isCurrentlyInvalid = (tx, ty) => {
+            // Rule: Only highlight in enemy territory + river
+            if (ty > enemyTerritoryEndRow) return false;
+
             // First check base validity
             const isBaseValid = GameHelpers.isValidDeploymentTile(tx, ty, true, this.expandedDeploymentZones);
 
@@ -651,7 +669,8 @@ class BattleScene extends Phaser.Scene {
         this.energyText = this.add.text(barX - 8, energyY + 10, `${this.energy}/${this.maxEnergy}`, {
             fontSize: '14px',
             fill: '#ffffff',
-            fontFamily: 'Arial'
+            fontFamily: 'Arial',
+            fontStyle: 'bold'
         }).setOrigin(1, 0.5); // Right-align the text so it sits left of the bar
         this.energyText.setScrollFactor(0);
 
@@ -773,6 +792,9 @@ class BattleScene extends Phaser.Scene {
 
         // Show selection feedback
         this.showCardSelectionFeedback(index);
+
+        // Refresh deployment zones to show/hide highlights based on selected card
+        this.drawDeploymentZones();
     }
 
     updateCardSelection() {
@@ -2349,6 +2371,9 @@ class BattleScene extends Phaser.Scene {
 
         this.deploymentPreview.active = false;
         this.deploymentPreview.validPosition = false;
+
+        // Refresh deployment zones when preview ends
+        this.drawDeploymentZones();
     }
 
 
@@ -2475,6 +2500,8 @@ class BattleScene extends Phaser.Scene {
             this.spellPreview.radiusCircle = null;
         }
 
+        // Refresh deployment zones when spell preview ends (card deselected)
+        this.drawDeploymentZones();
         this.spellPreview.active = false;
         this.spellPreview.cardType = null;
         this.spellPreview.radius = 0;
