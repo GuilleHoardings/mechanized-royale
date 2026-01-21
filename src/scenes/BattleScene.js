@@ -338,37 +338,28 @@ class BattleScene extends Phaser.Scene {
 
         const offsetX = GameHelpers.getBattlefieldOffset();
 
-        // Draw original deployment zones
-        const playerZone = GameHelpers.getDeploymentZoneWorldCoords(true);
-        const enemyZone = GameHelpers.getDeploymentZoneWorldCoords(false);
+        // Instead of highlighting valid zones in blue, we highlight INVALID zones in light red
+        // This covers the enemy side, the river, and where towers stand.
+        this.deploymentZoneGraphics.fillStyle(0xff4444, 0.35); // Light red highlight
 
-        // Player zone (bottom) - coordinates already include offset
-        this.deploymentZoneGraphics.lineStyle(3, 0x4a90e2, 0.6);
-        this.deploymentZoneGraphics.fillStyle(0x4a90e2, 0.1);
-        this.deploymentZoneGraphics.fillRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
-        this.deploymentZoneGraphics.strokeRect(playerZone.x, playerZone.y, playerZone.width, playerZone.height);
+        // Loop through all tiles in the battlefield to accurately highlight only invalid tiles
+        for (let tileY = 0; tileY < GAME_CONFIG.TILES_Y; tileY++) {
+            for (let tileX = 0; tileX < GAME_CONFIG.TILES_X; tileX++) {
+                // Check if this tile is INVALID for player deployment
+                if (!GameHelpers.isValidDeploymentTile(tileX, tileY, true, this.expandedDeploymentZones)) {
+                    const x = offsetX + tileX * GAME_CONFIG.TILE_SIZE;
+                    const y = tileY * GAME_CONFIG.TILE_SIZE;
 
-        // Draw expanded zones if they exist
-        this.drawExpandedZones(offsetX);
+                    this.deploymentZoneGraphics.fillRect(x, y, GAME_CONFIG.TILE_SIZE, GAME_CONFIG.TILE_SIZE);
+                }
+            }
+        }
     }
 
     drawExpandedZones(offsetX) {
-        // Draw player expanded zones
-        if (this.expandedDeploymentZones.player && this.expandedDeploymentZones.player.expandedAreas) {
-            this.expandedDeploymentZones.player.expandedAreas.forEach(area => {
-                const areaX = offsetX + area.tileX * GAME_CONFIG.TILE_SIZE;
-                const areaY = area.tileY * GAME_CONFIG.TILE_SIZE;
-                const areaWidth = area.tilesWidth * GAME_CONFIG.TILE_SIZE;
-                const areaHeight = area.tilesHeight * GAME_CONFIG.TILE_SIZE;
-
-                // Player expanded zones - brighter blue with dashed border
-                this.deploymentZoneGraphics.lineStyle(3, 0x6db4ff, 0.8);
-                this.deploymentZoneGraphics.fillStyle(0x6db4ff, 0.2);
-                this.deploymentZoneGraphics.fillRect(areaX, areaY, areaWidth, areaHeight);
-                this.deploymentZoneGraphics.strokeRect(areaX, areaY, areaWidth, areaHeight);
-            });
-        }
-
+        // This method is now integrated into drawDeploymentZones logic
+        // which iterates through all tiles and uses GameHelpers.isValidDeploymentTile
+        // which already accounts for expanded zones.
     }
 
     createUI() {
@@ -1837,17 +1828,17 @@ class BattleScene extends Phaser.Scene {
             const dist = Math.random() * radius * 0.7;
             const px = x + Math.cos(angle) * dist;
             const py = y + Math.sin(angle) * dist;
-            
+
             const color = smokeColors[Math.floor(Math.random() * smokeColors.length)];
             const puffRadius = 12 + Math.random() * 10;
-            
+
             const puff = this.add.graphics();
             puff.fillStyle(color, 0.7);
             puff.fillCircle(0, 0, puffRadius);
             puff.setPosition(px, py);
             puff.setDepth(1000 + Math.floor(Math.random() * 5));
             puff.setScale(0.1);
-            
+
             // Random movement for the puff
             const moveX = (Math.random() - 0.5) * 60;
             const moveY = (Math.random() - 0.5) * 60;
@@ -1872,10 +1863,10 @@ class BattleScene extends Phaser.Scene {
             debris.fillRect(-2, -2, 4, 4);
             debris.setPosition(x, y);
             debris.setDepth(1006);
-            
+
             const angle = Math.random() * Math.PI * 2;
             const dist = radius * (0.6 + Math.random() * 0.6);
-            
+
             this.tweens.add({
                 targets: debris,
                 x: x + Math.cos(angle) * dist,
@@ -1887,7 +1878,7 @@ class BattleScene extends Phaser.Scene {
                 onComplete: () => debris.destroy()
             });
         }
-        
+
         // Add a central lingering cloud for area persistent feel
         const centralCloud = this.add.graphics();
         centralCloud.fillStyle(0xd1d5db, 0.4);
@@ -1895,7 +1886,7 @@ class BattleScene extends Phaser.Scene {
         centralCloud.setDepth(999);
         centralCloud.setScale(0.5);
         centralCloud.alpha = 0;
-        
+
         this.tweens.add({
             targets: centralCloud,
             scale: 1.1,
@@ -1932,10 +1923,10 @@ class BattleScene extends Phaser.Scene {
             // Uniform distribution within the FULL radius
             const angle = Math.random() * Math.PI * 2;
             const dist = Math.sqrt(Math.random()) * radius;
-            
+
             // Ensure at least one shell (the last/biggest) hits near center
             const finalDist = (i === shellCount - 1) ? dist * 0.3 : dist;
-            
+
             const dropX = x + Math.cos(angle) * finalDist;
             const dropY = y + Math.sin(angle) * finalDist;
 
@@ -1949,7 +1940,7 @@ class BattleScene extends Phaser.Scene {
                 startY = isPlayerCast ? 900 : -100;
                 startX = isPlayerCast ? dropX - 50 : dropX + 50;
             }
-            
+
             const shell = this.add.graphics();
             // Draw a proper shell shape: pointed cylinder
             shell.fillStyle(0x222222, 1);
@@ -1960,13 +1951,13 @@ class BattleScene extends Phaser.Scene {
             shell.closePath();
             shell.fill();
             shell.fillRect(-3, 0, 6, 8); // Body
-            
+
             shell.setPosition(startX, startY);
             // Rotate to face the direction of travel
             const travelAngle = Math.atan2(dropY - startY, dropX - startX);
-            shell.setRotation(travelAngle + Math.PI/2);
-            shell.setDepth(2000); 
-            
+            shell.setRotation(travelAngle + Math.PI / 2);
+            shell.setDepth(2000);
+
             const trail = this.add.graphics();
             trail.setDepth(1999);
 
@@ -1992,7 +1983,7 @@ class BattleScene extends Phaser.Scene {
                     trail.destroy();
                     // Each shell landing triggers its portion of the damage
                     if (onImpact) onImpact(dropX, dropY);
-                    
+
                     // Small impact for each shell, big one for the center/last
                     const isLast = (i === shellCount - 1);
                     this.executeArtilleryImpact(dropX, dropY, radius * 0.5, isLast);
@@ -2049,14 +2040,14 @@ class BattleScene extends Phaser.Scene {
             const dist = Math.random() * radius * 0.8;
             const fx = x + Math.cos(angle) * dist;
             const fy = y + Math.sin(angle) * dist;
-            
+
             const puff = this.add.graphics();
             puff.fillStyle(fireColors[Math.floor(Math.random() * fireColors.length)], 0.9);
             const pSize = (isLarge ? 15 : 8) + Math.random() * (isLarge ? 25 : 12);
             puff.fillCircle(0, 0, pSize);
             puff.setPosition(x, y);
             puff.setDepth(1011);
-            
+
             this.tweens.add({
                 targets: puff,
                 x: fx,
@@ -2077,10 +2068,10 @@ class BattleScene extends Phaser.Scene {
             debris.fillRect(-2, -2, 4, 4);
             debris.setPosition(x, y);
             debris.setDepth(1013);
-            
+
             const angle = Math.random() * Math.PI * 2;
             const dist = radius * (1.0 + Math.random() * 1.5);
-            
+
             this.tweens.add({
                 targets: debris,
                 x: x + Math.cos(angle) * dist,
