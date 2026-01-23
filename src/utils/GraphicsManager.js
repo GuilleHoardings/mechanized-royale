@@ -1212,54 +1212,84 @@ class GraphicsManager {
      * Draws the Main Tower base (Command Bunker) without the turret
      */
     _drawCommandBunkerBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor) {
-        const size = 60;
-        const stoneColor = 0x888888;
-        const concreteColor = 0x9ca3af;
+        const size = 64;
+        const concreteDark = 0x4b5563;  // Gray-600
+        const concreteLight = 0x9ca3af; // Gray-400
+        const metalDark = 0x374151;     // Gray-700
 
-        // Direction multiplier: player faces up (-1), enemy faces down (+1)
-        const dir = isPlayerTeam ? -1 : 1;
+        // 1. Foundation Slab (Shadowed)
+        graphics.fillStyle(0x000000, 0.4);
+        graphics.fillRoundedRect(-size / 2 - 2, -size / 2 + 4, size + 4, size, 12);
 
-        // Shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillCircle(2, 4, size / 2);
-
-        // Reinforced Concrete Base (Pillbox style)
-        // Tint the base a bit with the team color
-        graphics.fillStyle(Phaser.Display.Color.Interpolate.ColorWithColor(
-            Phaser.Display.Color.ValueToColor(stoneColor),
-            Phaser.Display.Color.ValueToColor(baseColor),
-            100, 20).color); // 20% team color
+        // 2. Main Concrete Base
+        graphics.fillStyle(concreteDark);
         graphics.fillRoundedRect(-size / 2, -size / 2, size, size, 8);
 
-        // Concrete Texture/Grit
-        graphics.fillStyle(0x000000, 0.1);
-        for (let i = 0; i < 15; i++) {
-            graphics.fillCircle(-size / 2 + Math.random() * size, -size / 2 + Math.random() * size, 1.5);
-        }
+        // 3. Reinforced Upper Platform (Lighter)
+        const innerSize = size - 10;
+        graphics.fillStyle(concreteLight);
+        graphics.fillRoundedRect(-innerSize / 2, -innerSize / 2, innerSize, innerSize, 4);
 
-        // Sloped Armor Plates (Front-facing appearance) - faces toward enemy
-        // Use accent color for some of these plates
-        graphics.fillStyle(accentColor);
+        // 4. Team Color Marking Corners (Heavy industrial look)
+        graphics.fillStyle(baseColor);
+        const cSize = 14;
+        // TL
+        graphics.fillRoundedRect(-innerSize / 2, -innerSize / 2, cSize, cSize, { tl: 4, tr: 0, bl: 0, br: 2 });
+        // TR
+        graphics.fillRoundedRect(innerSize / 2 - cSize, -innerSize / 2, cSize, cSize, { tl: 0, tr: 4, bl: 2, br: 0 });
+        // BL
+        graphics.fillRoundedRect(-innerSize / 2, innerSize / 2 - cSize, cSize, cSize, { tl: 0, tr: 2, bl: 4, br: 0 });
+        // BR
+        graphics.fillRoundedRect(innerSize / 2 - cSize, innerSize / 2 - cSize, cSize, cSize, { tl: 2, tr: 0, bl: 0, br: 4 });
+
+        // 5. Structure Detail: Inner Ring (Turret mount)
+        graphics.lineStyle(3, metalDark);
+        graphics.strokeCircle(0, 0, 18);
+        graphics.fillStyle(metalDark, 0.3);
+        graphics.fillCircle(0, 0, 18);
+
+        // 6. Directional Armor (The "Front" face)
+        const frontY = isPlayerTeam ? -innerSize / 2 : innerSize / 2;
+        const armorHeight = 12;
+        const slopeY = isPlayerTeam ? frontY - armorHeight : frontY + armorHeight;
+
+        graphics.fillStyle(metalDark);
+        graphics.beginPath();
         if (isPlayerTeam) {
-            // Player: sloped armor at top (facing up toward enemy)
-            graphics.fillTriangle(-size / 2, -size / 2, size / 2, -size / 2, 0, -size / 1.5);
+            // Pointing Up
+            graphics.moveTo(-innerSize / 2 + 4, frontY);
+            graphics.lineTo(innerSize / 2 - 4, frontY);
+            graphics.lineTo(innerSize / 2 - 8, slopeY);
+            graphics.lineTo(-innerSize / 2 + 8, slopeY);
         } else {
-            // Enemy: sloped armor at bottom (facing down toward player)
-            graphics.fillTriangle(-size / 2, size / 2, size / 2, size / 2, 0, size / 1.5);
+            // Pointing Down
+            graphics.moveTo(-innerSize / 2 + 4, frontY);
+            graphics.lineTo(innerSize / 2 - 4, frontY);
+            graphics.lineTo(innerSize / 2 - 8, slopeY);
+            graphics.lineTo(-innerSize / 2 + 8, slopeY);
         }
+        graphics.closePath();
+        graphics.fillPath();
 
-        // Observation Slit - on the front side
-        graphics.fillStyle(0x000000, 0.8);
-        const slitY = isPlayerTeam ? -size / 6 : size / 6 - 6;
-        graphics.fillRect(-size / 4, slitY, size / 2, 6);
+        // 7. Armor Highlights/Rivets
+        graphics.fillStyle(accentColor);
+        const rivetY = isPlayerTeam ? frontY - 4 : frontY + 4;
+        graphics.fillCircle(-10, rivetY, 2);
+        graphics.fillCircle(10, rivetY, 2);
 
-        // Antenna - on the back side
-        const antennaY = isPlayerTeam ? size / 4 : -size / 4;
-        this._drawAntenna(graphics, size / 4, antennaY, size / 2);
+        // 8. Rear Vents/Tech
+        const backY = isPlayerTeam ? innerSize / 2 - 6 : -innerSize / 2 + 2;
+        graphics.fillStyle(0x1a202c);
+        graphics.fillRect(-12, backY, 24, 4);
 
-        // Sandbags at the front (facing the enemy)
-        const sandbagY = isPlayerTeam ? -size / 2.2 - 6 : size / 2.2;
-        this._drawSandbags(graphics, 0, sandbagY, size, true);
+        // 9. Antenna (Back corner)
+        const antX = isPlayerTeam ? size / 2 - 4 : -size / 2 + 4;
+        const antY = isPlayerTeam ? size / 2 - 6 : -size / 2 + 6;
+        this._drawAntenna(graphics, antX, antY, 22);
+
+        // 10. Sandbags (Front defensive line)
+        const bagY = isPlayerTeam ? -size / 2 - 8 : size / 2 + 2;
+        this._drawSandbags(graphics, 0, bagY, size + 8, true);
     }
 
     /**
