@@ -23,13 +23,11 @@ class BootScene extends Phaser.Scene {
             });
         }
 
-        // Note: Tower assets are currently being generated procedurally in createPlaceholderAssets
-        // due to rate limiting on asset generation. 
-        // Once assets are available, uncomment the following:
-        // this.load.image('tower_main_base', 'assets/towers/tower_main_base.png');
-        // this.load.image('tower_main_turret', 'assets/towers/tower_main_turret.png');
-        // this.load.image('tower_side_base', 'assets/towers/tower_side_base.png');
-        // this.load.image('tower_side_turret', 'assets/towers/tower_side_turret.png');
+        // Tower assets are now loaded from assets/towers/
+        this.load.image('tower_main_base', 'assets/towers/tower_main_base.png');
+        this.load.image('tower_main_turret', 'assets/towers/tower_main_turret.png');
+        this.load.image('tower_side_base', 'assets/towers/tower_side_base.png');
+        this.load.image('tower_side_turret', 'assets/towers/tower_side_turret.png');
 
         // Create simple colored rectangles as placeholder graphics
         this.createPlaceholderAssets();
@@ -70,49 +68,9 @@ class BootScene extends Phaser.Scene {
         graphics.fillRect(0, 0, 40, 40);
         graphics.generateTexture('bunker', 40, 40);
 
-        // --- NEW TOWER ASSETS (Neutral Grey for Tinting) ---
-
-        // Main Tower Base (Octagonal Concrete Bunker)
-        graphics.clear();
-        graphics.fillStyle(0x9ca3af); // Neutral Grey
-        // Draw an octagon roughly
-        const size = 80;
-        const pts = [
-            20, 0, 60, 0, 80, 20, 80, 60, 60, 80, 20, 80, 0, 60, 0, 20
-        ];
-        graphics.fillPoints(pts.map((p, i) => (i % 2 === 0 ? { x: p, y: pts[i + 1] } : null)).filter(p => p), true);
-        // Add some "concrete" details
-        graphics.fillStyle(0x4b5563);
-        graphics.fillCircle(40, 40, 30);
-        graphics.generateTexture('tower_main_base', 80, 80);
-
-        // Main Tower Turret (Heavy Tank Turret style)
-        graphics.clear();
-        graphics.fillStyle(0x6b7280); // Darker Grey
-        graphics.fillRect(10, 10, 60, 60); // Inner box
-        graphics.fillStyle(0x374151); // Gunmetal
-        graphics.fillRect(30, 0, 20, 40); // Barrel pointing UP (negative Y)
-        graphics.fillCircle(40, 40, 20); // Cupola
-        graphics.generateTexture('tower_main_turret', 80, 80);
-
-        // Side Tower Base (Smaller Hexagon)
-        graphics.clear();
-        graphics.fillStyle(0x9ca3af);
-        const sideSize = 60;
-        // Hexagon
-        const hexPts = [
-            15, 0, 45, 0, 60, 30, 45, 60, 15, 60, 0, 30
-        ];
-        graphics.fillPoints(hexPts.map((p, i) => (i % 2 === 0 ? { x: p, y: hexPts[i + 1] } : null)).filter(p => p), true);
-        graphics.generateTexture('tower_side_base', 60, 60);
-
-        // Side Tower Turret (Smaller Gun)
-        graphics.clear();
-        graphics.fillStyle(0x6b7280);
-        graphics.fillRect(15, 15, 30, 30);
-        graphics.fillStyle(0x374151);
-        graphics.fillRect(25, 5, 10, 25); // Barrel UP
-        graphics.generateTexture('tower_side_turret', 60, 60);
+        // Create placeholder textures if they don't exist in assets/towers/
+        const tempGraphicsManager = new GraphicsManager(this);
+        tempGraphicsManager.generateNeutralTowerTextures();
 
         // ---------------------------------------------------
 

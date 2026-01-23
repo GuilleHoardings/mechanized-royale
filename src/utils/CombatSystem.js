@@ -323,6 +323,9 @@ class CombatSystem {
         // Activate main towers when they are hit for the first time
         if (target.isMainTower && !target.activated) {
             target.activated = true;
+            if (this.scene.onTowerActivated) {
+                this.scene.onTowerActivated(target);
+            }
             console.log(`Main tower activated! (${target.isPlayerOwned ? 'Player' : 'Enemy'})`);
         }
 

@@ -1069,7 +1069,7 @@ class BattleScene extends Phaser.Scene {
         );
 
         // Create custom tower graphics
-        const tower = this.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
+        const tower = this.graphicsManager.createTowerGraphics(towerTile.worldX, towerTile.worldY, isPlayerTeam, isMainTower);
 
         // Set tower properties - Pull stats from UNITS registry
         const entityId = isMainTower ? 'main_tower' : 'side_tower';
@@ -1098,60 +1098,6 @@ class BattleScene extends Phaser.Scene {
 
         // Create health bar
         this.createBuildingHealthBar(tower);
-    }
-
-    createTowerGraphics(x, y, isPlayerTeam, isMainTower) {
-        // Create a container for the tower
-        const tower = this.add.container(x, y);
-
-        const teamTint = isPlayerTeam ? 0x3b82f6 : 0xef4444; // Blue or Red
-        const towerType = isMainTower ? 'tower_main' : 'tower_side';
-        const baseSize = isMainTower ? 80 : 60;
-        const turretSize = isMainTower ? 80 : 60;
-
-        // Create base image
-        const baseImage = this.add.image(0, 0, `${towerType}_base`);
-        baseImage.setDisplaySize(baseSize, baseSize);
-        baseImage.setTint(teamTint);
-        tower.add(baseImage);
-
-        // Create a separate container for the turret (rotatable)
-        // Position the turret at the front of the tower (toward the enemy)
-        // Player: front is top (negative Y), Enemy: front is bottom (positive Y)
-        let turretOffsetY = 0;
-        // if (isMainTower) {
-        //     turretOffsetY = isPlayerTeam ? -10 : 10;
-        // }
-        const turretContainer = this.add.container(0, turretOffsetY);
-
-        // Create turret image
-        const turretImage = this.add.image(0, 0, `${towerType}_turret`);
-        turretImage.setDisplaySize(turretSize, turretSize);
-        turretImage.setTint(teamTint);
-
-        // Correct rotation: The procedural assets face UP (negative Y in Phaser, but effectively UP).
-        // Standard Phaser angle 0 is RIGHT. If drawing is UP, that is -90 deg.
-        // We want the 'front' of the turret (barrel) to align with rotation 0 being Right.
-        // If the texture is drawn facing UP, we need to rotate it +90 to make it face RIGHT.
-        turretImage.setAngle(90);
-
-        turretContainer.add(turretImage);
-
-        // Set initial rotation to point toward the enemy
-        // Player towers point up (toward top of screen), enemy towers point down
-        const initialRotation = isPlayerTeam ? -Math.PI / 2 : Math.PI / 2;
-        turretContainer.setRotation(initialRotation);
-
-        // Add turret to tower container
-        tower.add(turretContainer);
-
-        // Store reference to turret for rotation animation
-        tower.turret = turretContainer;
-
-        // Add depth and visual appeal based on Y position
-        tower.setDepth(y);
-
-        return tower;
     }
 
     startEnergyRegeneration() {
@@ -4246,6 +4192,63 @@ class BattleScene extends Phaser.Scene {
 
         // Play selection sound
         this.playUISound('select');
+    }
+
+    /**
+     * Handles visual and logic updates when a main tower is activated
+     * @param {Object} tower - The tower that was activated
+     */
+    onTowerActivated(tower) {
+        if (!tower || !tower.active) return;
+
+        // Visual feedback - pop animation
+        this.tweens.add({
+            targets: tower,
+            scaleX: 1.15,
+            scaleY: 1.15,
+            duration: 150,
+            yoyo: true,
+            ease: 'Back.easeOut'
+        });
+
+        // Add a permanent glow effect or indicator
+        const glowColor = tower.isPlayerOwned ? 0x60a5fa : 0xf87171;
+
+        // Brief activation flash
+        const flash = this.add.graphics();
+        flash.fillStyle(glowColor, 0.6);
+        flash.fillCircle(0, 0, 60);
+        tower.addAt(flash, 0);
+        flash.setDepth(-1);
+
+        this.tweens.add({
+            targets: flash,
+            scaleX: 2.5,
+            scaleY: 2.5,
+            alpha: 0,
+            duration: 800,
+            ease: 'Cubic.easeOut',
+            onComplete: () => flash.destroy()
+        });
+
+        // Small indicator light that stays on
+        const light = this.add.graphics();
+        light.fillStyle(glowColor, 0.8);
+        light.fillCircle(tower.isMainTower ? 25 : 15, -20, 4);
+        tower.add(light);
+
+        // Pulse the light
+        this.tweens.add({
+            targets: light,
+            alpha: 0.3,
+            duration: 600,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
+        // Update UI
+        this.updateTowerStatusDisplay();
     }
 
     destroyTower(tower) {

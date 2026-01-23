@@ -77,16 +77,16 @@ class GraphicsManager {
         if (this.scene.textures.exists(textureKey)) {
             // Use sprite if texture exists
             const sprite = this.scene.add.sprite(0, 0, textureKey);
-            
+
             // Scaled down huge 1024x1024 textures to battlefield size
             let targetSize = 48;
-            
+
             sprite.setDisplaySize(targetSize, targetSize);
-            
+
             // Assets point Up (North) by default, but system expects 0 to be East. 
             // So we rotate +90 degrees so container.rotation=0 points the sprite East.
             sprite.setRotation(Math.PI / 2);
-            
+
             tank.add(sprite);
             tank.isSpriteBase = true;
         } else {
@@ -130,7 +130,7 @@ class GraphicsManager {
             const image = this.scene.add.image(0, 0, textureKey);
             // Size the image to fit the card icon area (approx 80x60 or similar)
             // The container is centered at (x, y)
-            image.setDisplaySize(80, 60); 
+            image.setDisplaySize(80, 60);
             container.add(image);
             container.isImageCard = true;
         } else {
@@ -180,17 +180,17 @@ class GraphicsManager {
 
         if (this.scene.textures.exists(textureKey)) {
             const sprite = this.scene.add.sprite(0, 0, textureKey);
-            
+
             // Size suitably for building (larger than tanks)
-            const targetSize = 64; 
+            const targetSize = 64;
             sprite.setDisplaySize(targetSize, targetSize);
-            
+
             // If it's an enemy building, rotate it 180 degrees (Math.PI)
             // Player buildings face North (default for assets)
             if (!isPlayer) {
                 sprite.setRotation(Math.PI);
             }
-           
+
             container.add(sprite);
             container.isSpriteBase = true;
         } else {
@@ -214,6 +214,113 @@ class GraphicsManager {
         }
 
         return container;
+    }
+
+    /**
+     * Creates tower graphics for the battlefield
+     * @param {number} x - X position
+     * @param {number} y - Y position
+     * @param {boolean} isPlayerTeam - Whether this is a player tower
+     * @param {boolean} isMainTower - Whether this is a main tower
+     * @returns {Phaser.GameObjects.Container} The tower container
+     */
+    createTowerGraphics(x, y, isPlayerTeam, isMainTower) {
+        const tower = this.scene.add.container(x, y);
+        const towerType = isMainTower ? 'tower_main' : 'tower_side';
+
+        const baseKey = `${towerType}_base`;
+        const turretKey = `${towerType}_turret`;
+
+        // Base Part
+        if (this.scene.textures.exists(baseKey) && !this.scene.textures.get(baseKey).isProcedural) {
+            const baseImage = this.scene.add.image(0, 0, baseKey);
+            const baseSize = isMainTower ? 80 : 60;
+            baseImage.setDisplaySize(baseSize, baseSize);
+
+            if (!isPlayerTeam) {
+                baseImage.setRotation(Math.PI);
+            }
+            tower.add(baseImage);
+        } else {
+            const baseGraphics = this.scene.add.graphics();
+            this.drawTowerBase(baseGraphics, isPlayerTeam, isMainTower);
+            tower.add(baseGraphics);
+        }
+
+        // Turret Part
+        const turretContainer = this.scene.add.container(0, 0);
+        if (this.scene.textures.exists(turretKey) && !this.scene.textures.get(turretKey).isProcedural) {
+            const turretImage = this.scene.add.image(0, 0, turretKey);
+            const turretSize = isMainTower ? 80 : 60;
+            turretImage.setDisplaySize(turretSize, turretSize);
+
+            // Correct rotation: assets face UP, system expects 0 to be RIGHT.
+            turretImage.setAngle(90);
+            turretContainer.add(turretImage);
+        } else {
+            const turretGraphics = this.scene.add.graphics();
+            this.drawTowerTurret(turretGraphics, isPlayerTeam, isMainTower);
+            turretContainer.add(turretGraphics);
+        }
+
+        // Set initial rotation to point toward the enemy
+        const initialRotation = isPlayerTeam ? -Math.PI / 2 : Math.PI / 2;
+        turretContainer.setRotation(initialRotation);
+
+        tower.add(turretContainer);
+        tower.turret = turretContainer;
+        tower.setDepth(y);
+
+        return tower;
+    }
+
+    /**
+     * Generates neutral tower textures for the cache.
+     * These will be tinted later based on team.
+     */
+    generateNeutralTowerTextures() {
+        const graphics = this.scene.add.graphics();
+        const neutral = {
+            base: 0x9ca3af,
+            dark: 0x4b5563,
+            accent: 0x60a5fa, // Keep a hint of blue for the neutral "friendly" version
+            gunmetal: 0x374151
+        };
+
+        // Main Tower Base
+        if (!this.scene.textures.exists('tower_main_base')) {
+            graphics.clear();
+            // Use the detailed command bunker drawing method
+            this._drawCommandBunkerBase(graphics, true, neutral.base, neutral.accent, neutral.dark);
+            graphics.generateTexture('tower_main_base', 80, 80);
+            this.scene.textures.get('tower_main_base').isProcedural = true;
+        }
+
+        // Main Tower Turret
+        if (!this.scene.textures.exists('tower_main_turret')) {
+            graphics.clear();
+            this._drawCommandBunkerTurret(graphics, neutral.dark);
+            graphics.generateTexture('tower_main_turret', 80, 80);
+            this.scene.textures.get('tower_main_turret').isProcedural = true;
+        }
+
+        // Side Tower Base
+        if (!this.scene.textures.exists('tower_side_base')) {
+            graphics.clear();
+            this._drawDefensiveOutpostBase(graphics, true, neutral.base, neutral.accent, neutral.dark);
+            graphics.generateTexture('tower_side_base', 60, 60);
+            this.scene.textures.get('tower_side_base').isProcedural = true;
+        }
+
+        // Side Tower Turret
+        if (!this.scene.textures.exists('tower_side_turret')) {
+            graphics.clear();
+            this._drawDefensiveOutpostTurret(graphics, neutral.dark);
+            graphics.generateTexture('tower_side_turret', 60, 60);
+            this.scene.textures.get('tower_side_turret').isProcedural = true;
+        }
+
+        graphics.destroy();
     }
 
     /**
@@ -1117,7 +1224,11 @@ class GraphicsManager {
         graphics.fillCircle(2, 4, size / 2);
 
         // Reinforced Concrete Base (Pillbox style)
-        graphics.fillStyle(stoneColor);
+        // Tint the base a bit with the team color
+        graphics.fillStyle(Phaser.Display.Color.Interpolate.ColorWithColor(
+            Phaser.Display.Color.ValueToColor(stoneColor),
+            Phaser.Display.Color.ValueToColor(baseColor),
+            100, 20).color); // 20% team color
         graphics.fillRoundedRect(-size / 2, -size / 2, size, size, 8);
 
         // Concrete Texture/Grit
@@ -1127,7 +1238,8 @@ class GraphicsManager {
         }
 
         // Sloped Armor Plates (Front-facing appearance) - faces toward enemy
-        graphics.fillStyle(concreteColor);
+        // Use accent color for some of these plates
+        graphics.fillStyle(accentColor);
         if (isPlayerTeam) {
             // Player: sloped armor at top (facing up toward enemy)
             graphics.fillTriangle(-size / 2, -size / 2, size / 2, -size / 2, 0, -size / 1.5);
@@ -1197,14 +1309,19 @@ class GraphicsManager {
         }
 
         // Defensive Wall with team color
-        graphics.lineStyle(4, baseColor, 0.6);
+        graphics.lineStyle(4, baseColor, 1.0);
         graphics.arc(0, 0, size / 2 - 2, 0, Math.PI * 2, false);
         graphics.strokePath();
 
-        // Banners on the sides
-        graphics.fillStyle(isPlayerTeam ? baseColor : 0xef4444);
+        // High-vis team markers/banners on the sides
+        graphics.fillStyle(baseColor);
         graphics.fillRect(-size / 2.2, -size / 8, 4, size / 4);
         graphics.fillRect(size / 2.2 - 4, -size / 8, 4, size / 4);
+
+        // Accent lights/details
+        graphics.fillStyle(accentColor);
+        graphics.fillCircle(-size / 2.2 + 2, 0, 1.5);
+        graphics.fillCircle(size / 2.2 - 2, 0, 1.5);
 
         // Sandbags at the front (facing the enemy)
         const sandbagY = isPlayerTeam ? -size / 3 - 6 : size / 3;
