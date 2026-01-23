@@ -1259,7 +1259,7 @@ class GraphicsManager {
 
         // Sandbags at the front (facing the enemy)
         const sandbagY = isPlayerTeam ? -size / 2.2 - 6 : size / 2.2;
-        this._drawSandbags(graphics, -size / 2, sandbagY, size);
+        this._drawSandbags(graphics, 0, sandbagY, size, true);
     }
 
     /**
@@ -1325,7 +1325,7 @@ class GraphicsManager {
 
         // Sandbags at the front (facing the enemy)
         const sandbagY = isPlayerTeam ? -size / 3 - 6 : size / 3;
-        this._drawSandbags(graphics, -size / 3, sandbagY, size / 1.5);
+        this._drawSandbags(graphics, 0, sandbagY, size / 1.5, true);
     }
 
     /**
@@ -1350,17 +1350,26 @@ class GraphicsManager {
         graphics.fillRect(size / 1.8, -4, 4, 8);
     }
 
-    _drawSandbags(graphics, x, y, width) {
+    _drawSandbags(graphics, x, y, width, isCentered = false) {
         const bagWidth = 12;
         const bagHeight = 6;
         const bagColor = 0xc0a080; // Sand color
-        const numBags = Math.floor(width / (bagWidth - 2));
+        const overlap = 2;
+        const numBags = Math.floor(width / (bagWidth - overlap));
+
+        // Calculate the actual total width the bags will take up
+        const totalActualWidth = (numBags * (bagWidth - overlap)) + overlap;
+
+        let startX = x;
+        if (isCentered) {
+            startX = x - totalActualWidth / 2;
+        }
 
         graphics.fillStyle(bagColor);
         graphics.lineStyle(1, 0x000000, 0.3);
 
         for (let i = 0; i < numBags; i++) {
-            const bx = x + i * (bagWidth - 2);
+            const bx = startX + i * (bagWidth - overlap);
             graphics.fillRoundedRect(bx, y, bagWidth, bagHeight, 2);
             graphics.strokeRoundedRect(bx, y, bagWidth, bagHeight, 2);
 
