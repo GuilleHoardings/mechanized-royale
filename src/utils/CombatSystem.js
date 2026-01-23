@@ -139,8 +139,14 @@ class CombatSystem {
         // Add to projectiles array
         this.scene.projectiles.push(bullet);
 
-        // Show enhanced muzzle flash and projectile trail
+        // Show enhanced muzzle flash
         this.showMuzzleFlash(attacker, target.x, target.y);
+
+        // Create bullet trail (dynamic line that follows the bullet)
+        const trail = this.scene.add.graphics();
+        trail.setDepth(1099); // Below bullet but above units
+        bullet.trail = trail;
+        bullet.history = [{ x: attacker.x, y: attacker.y }];
 
         // Animate bullet movement
         this.scene.tweens.add({
@@ -149,6 +155,25 @@ class CombatSystem {
             y: target.y,
             duration: travelTime,
             ease: 'None',
+            onUpdate: () => {
+                if (bullet.trail && bullet.active) {
+                    // Update history
+                    bullet.history.push({ x: bullet.x, y: bullet.y });
+                    if (bullet.history.length > 8) {
+                        bullet.history.shift();
+                    }
+
+                    bullet.trail.clear();
+                    // Draw fading tail segments
+                    for (let i = 0; i < bullet.history.length - 1; i++) {
+                        const p1 = bullet.history[i];
+                        const p2 = bullet.history[i + 1];
+                        const alpha = (i / bullet.history.length) * 0.5;
+                        bullet.trail.lineStyle(2, bulletColor, alpha);
+                        bullet.trail.lineBetween(p1.x, p1.y, p2.x, p2.y);
+                    }
+                }
+            },
             onComplete: () => {
                 this.onBulletHit(bullet);
             }
@@ -173,9 +198,9 @@ class CombatSystem {
 
         // Create bullet trail
         const trail = this.scene.add.graphics();
-        trail.lineStyle(3, bulletColor, 0.8);
         trail.setDepth(1099); // Slightly below bullet but above tanks
         bullet.trail = trail;
+        bullet.history = [{ x: base.x, y: base.y }];
 
         // Calculate angle from base to target
         const angle = GameHelpers.angle(base.x, base.y, target.x, target.y);
@@ -215,11 +240,22 @@ class CombatSystem {
             duration: travelTime,
             ease: 'None',
             onUpdate: () => {
-                // Update trail
-                if (bullet.trail) {
+                if (bullet.trail && bullet.active) {
+                    // Update history
+                    bullet.history.push({ x: bullet.x, y: bullet.y });
+                    if (bullet.history.length > 12) {
+                        bullet.history.shift();
+                    }
+
                     bullet.trail.clear();
-                    bullet.trail.lineStyle(3, bulletColor, 0.8);
-                    bullet.trail.lineBetween(base.x, base.y, bullet.x, bullet.y);
+                    // Draw fading tail segments
+                    for (let i = 0; i < bullet.history.length - 1; i++) {
+                        const p1 = bullet.history[i];
+                        const p2 = bullet.history[i + 1];
+                        const alpha = (i / bullet.history.length) * 0.8;
+                        bullet.trail.lineStyle(3, bulletColor, alpha);
+                        bullet.trail.lineBetween(p1.x, p1.y, p2.x, p2.y);
+                    }
                 }
             },
             onComplete: () => {
@@ -623,8 +659,7 @@ class CombatSystem {
             onComplete: () => flash.destroy()
         });
 
-        // Create projectile trail
-        this.createProjectileTrail(flashX, flashY, targetX, targetY);
+        // Projectile trail is now handled dynamically in createProjectile and createBaseProjectile
 
         // Play shoot sound
         if (this.scene.playUISound) {
@@ -632,30 +667,6 @@ class CombatSystem {
         }
     }
 
-    /**
-     * Creates projectile trail effect
-     * @param {number} startX - Start X coordinate
-     * @param {number} startY - Start Y coordinate
-     * @param {number} endX - End X coordinate
-     * @param {number} endY - End Y coordinate
-     */
-    createProjectileTrail(startX, startY, endX, endY) {
-        const trail = this.scene.add.graphics();
-        trail.setDepth(995);
-
-        // Draw projectile line
-        trail.lineStyle(2, 0xffff00, 0.8);
-        trail.lineBetween(startX, startY, endX, endY);
-
-        // Fade out trail quickly
-        this.scene.tweens.add({
-            targets: trail,
-            alpha: 0,
-            duration: 100, // Faster
-            ease: 'Power2',
-            onComplete: () => trail.destroy()
-        });
-    }
 
     /**
      * Creates old-style muzzle flash (backwards compatibility)
