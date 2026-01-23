@@ -918,37 +918,55 @@ class GraphicsManager {
     }
 
     _drawInfantry(graphics, baseColor, accentColor) {
-        // Infantry squad - Top down view with more detail
+        // Infantry squad - Top down view with detailed soldiers
         const drawSoldier = (x, y, color) => {
             // Shadow
             graphics.fillStyle(0x000000, 0.3);
-            graphics.fillCircle(x + 1, y + 1, 4.5);
+            graphics.fillEllipse(x + 2, y + 1, 8, 6);
 
-            // Shoulders/Vest
-            graphics.fillStyle(0x2d3748); // Dark grey gear
-            graphics.fillRoundedRect(x - 5, y - 3, 10, 6, 2);
+            // Legs/Boots (Visible at rear)
+            graphics.fillStyle(0x111827); // Dark Boots
+            graphics.fillCircle(x - 3, y + 2.5, 2.5);
+            graphics.fillCircle(x - 3, y - 2.5, 2.5);
 
-            // Helmet
+            // Body/Torso (Uniform)
+            graphics.fillStyle(0x374151); // Dark Grey Gear Base
+            graphics.fillRoundedRect(x - 4, y - 4, 8, 8, 3);
+
+            // Arms (Sleeves)
+            graphics.fillStyle(0x374151);
+            graphics.fillCircle(x + 1, y - 3.5, 2); // Left shoulder
+            graphics.fillCircle(x + 1, y + 3.5, 2); // Right shoulder
+
+            // Hands (Skin tone)
+            const skinColor = 0xdcb895;
+            graphics.fillStyle(skinColor);
+            graphics.fillCircle(x + 5, y - 2, 1.5); // Left hand on gun
+            graphics.fillCircle(x + 4, y + 2, 1.5); // Right hand on gun trigger
+
+            // Weapon (Assault Rifle)
+            graphics.fillStyle(0x000000); // Gun body
+            graphics.fillRect(x + 2, y - 1, 8, 2.5);
+            graphics.fillStyle(0x4b5563); // Barrel
+            graphics.fillRect(x + 10, y - 0.5, 3, 1.5);
+
+            // Head/Helmet
             graphics.fillStyle(color);
-            graphics.fillCircle(x, y, 3.5);
+            graphics.fillCircle(x, y, 3.8);
 
-            // Helmet shine
-            graphics.fillStyle(0xffffff, 0.3);
-            graphics.fillCircle(x - 1.5, y - 1.5, 1.5);
+            // Goggles/Visor (Tactical look)
+            graphics.fillStyle(0x1a202c); // Dark strap/goggles
+            graphics.fillRoundedRect(x + 1, y - 2.5, 2, 5, 1);
 
-            // Weapon (rifle)
-            graphics.fillStyle(0x000000);
-            graphics.fillRect(x + 1, y - 1, 7, 2); // Barrel
-            graphics.fillRect(x + 1, y, 2, 3);   // Grip
-
-            // Backpack/Radio
-            graphics.fillStyle(0x333333);
-            graphics.fillRect(x - 4, y - 2, 2, 4);
+            // Backpack
+            graphics.fillStyle(0x1f2937);
+            graphics.fillRoundedRect(x - 5, y - 3, 3, 6, 1);
         };
 
-        drawSoldier(-8, -5, baseColor);
-        drawSoldier(-2, 2, accentColor); // Squad leader logic for color?
-        drawSoldier(4, -5, baseColor);
+        // Squad formation (Staggered output)
+        drawSoldier(-7, -5, baseColor);
+        drawSoldier(0, 5, accentColor); // Squad Leader
+        drawSoldier(7, -5, baseColor);
     }
 
     _drawTracks(graphics, unitType) {
