@@ -507,19 +507,34 @@ class BattleScene extends Phaser.Scene {
     }
 
     createTankCards() {
-        // Position cards below the battlefield tiles (outside the game area)
-        // Battlefield height is GAME_CONFIG.WORLD_HEIGHT
-        let cardsY = GAME_CONFIG.WORLD_HEIGHT + UI_CONFIG.CARDS.MARGIN_BELOW_BATTLEFIELD;
+        // Determine if we are on a tall screen (mobile-like) or standard
+        // Standard height is 800. Tall screens usually > 1000.
+        const isTallScreen = GAME_CONFIG.HEIGHT > 1000;
 
-        // If we have extra vertical space (tall screens), move cards further down 
-        // to be closer to the energy bar at the bottom
-        if (GAME_CONFIG.HEIGHT > GAME_CONFIG.WORLD_HEIGHT + 180) {
-            cardsY = GAME_CONFIG.HEIGHT - 130;
+        // Dynamic sizing based on screen type
+        // Use bigger cards and spacing for tall mobile screens efficiently
+        const scaleFactor = isTallScreen ? 1.25 : 1.0;
+        const cardWidth = UI_CONFIG.CARDS.WIDTH * scaleFactor;
+        const cardHeight = UI_CONFIG.CARDS.HEIGHT * scaleFactor;
+        const cardSpacing = UI_CONFIG.CARDS.SPACING * (isTallScreen ? 1.2 : 1.0); // Slightly more relative spacing on mobile
+
+        // Calculate vertical position
+        // Battlefield height is fixed. We arrange items in the remaining space below.
+        // Space available = HEIGHT - WORLD_HEIGHT.
+        const marginBelowBattle = UI_CONFIG.CARDS.MARGIN_BELOW_BATTLEFIELD;
+
+        // Default position (desktop/tight)
+        let cardsY = GAME_CONFIG.WORLD_HEIGHT + marginBelowBattle;
+
+        // If tall screen, center the cards better in the available space between battlefield and energy bar
+        if (isTallScreen) {
+            const energyBarTop = GAME_CONFIG.HEIGHT - (UI_CONFIG.ENERGY_BAR.BOTTOM_MARGIN * 2) - UI_CONFIG.ENERGY_BAR.HEIGHT;
+            const availableSpaceCenter = GAME_CONFIG.WORLD_HEIGHT + (energyBarTop - GAME_CONFIG.WORLD_HEIGHT) / 2;
+            cardsY = availableSpaceCenter - (cardHeight / 2);
+            // Ensure scaling up didn't push it too high into battlefield
+            cardsY = Math.max(cardsY, GAME_CONFIG.WORLD_HEIGHT + marginBelowBattle);
         }
 
-        const cardWidth = UI_CONFIG.CARDS.WIDTH;
-        const cardHeight = UI_CONFIG.CARDS.HEIGHT;
-        const cardSpacing = UI_CONFIG.CARDS.SPACING;
         const totalWidth = (4 * cardSpacing) - (cardSpacing - cardWidth); // Account for spacing
         const startX = (GAME_CONFIG.WIDTH - totalWidth) / 2; // Center horizontally
 
@@ -535,7 +550,6 @@ class BattleScene extends Phaser.Scene {
 
             // Card background
             const card = this.add.image(cardX, cardsY, 'card_bg')
-
                 .setDisplaySize(cardWidth, cardHeight)
                 .setInteractive()
                 .setOrigin(0);
@@ -544,10 +558,10 @@ class BattleScene extends Phaser.Scene {
             // Icon - use mini card drawing for all card types
             const tankIcon = this.graphicsManager.createMiniCardGraphics(
                 cardX + cardWidth / 2,
-                cardsY + 30,
+                cardsY + (30 * scaleFactor),
                 cardId
             );
-            tankIcon.setScale(1.0); // Increased from 0.6 to 1.0 for bigger icons
+            tankIcon.setScale(1.0 * scaleFactor); // Scale icon with card
             // Rotate troop cards to face upward (enemy field direction)
             // Skip rotation for image-based cards which are already oriented for the UI
             if (cardDef.type === CARD_TYPES.TROOP && !tankIcon.isImageCard) {
@@ -557,19 +571,19 @@ class BattleScene extends Phaser.Scene {
 
             // Cost - moved to top right corner with better styling
             const costValue = cardDef.cost;
-            const costText = this.add.text(cardX + cardWidth - 8, cardsY + 8, costValue, {
-                fontSize: UI_CONFIG.CARDS.COST_TEXT.FONT_SIZE,
+            const costText = this.add.text(cardX + cardWidth - (8 * scaleFactor), cardsY + (8 * scaleFactor), costValue, {
+                fontSize: `${parseInt(UI_CONFIG.CARDS.COST_TEXT.FONT_SIZE) * scaleFactor}px`,
                 fill: UI_CONFIG.CARDS.COST_TEXT.COLOR,
                 fontFamily: 'Arial',
                 stroke: UI_CONFIG.CARDS.COST_TEXT.STROKE_COLOR,
-                strokeThickness: UI_CONFIG.CARDS.COST_TEXT.STROKE_THICKNESS
+                strokeThickness: UI_CONFIG.CARDS.COST_TEXT.STROKE_THICKNESS * scaleFactor
             }).setOrigin(1, 0);
             costText.setScrollFactor(0);
 
             // Card name - positioned lower with improved styling
             const displayName = cardDef.name;
-            const nameText = this.add.text(cardX + cardWidth / 2, cardsY + cardHeight - 12, displayName, {
-                fontSize: UI_CONFIG.CARDS.NAME_TEXT.FONT_SIZE,
+            const nameText = this.add.text(cardX + cardWidth / 2, cardsY + cardHeight - (12 * scaleFactor), displayName, {
+                fontSize: `${parseInt(UI_CONFIG.CARDS.NAME_TEXT.FONT_SIZE) * scaleFactor}px`,
                 fill: UI_CONFIG.CARDS.NAME_TEXT.COLOR,
                 fontFamily: 'Arial'
             }).setOrigin(0.5);
@@ -577,7 +591,7 @@ class BattleScene extends Phaser.Scene {
 
             // Selection border (initially hidden)
             const selectionBorder = this.add.graphics();
-            selectionBorder.lineStyle(UI_CONFIG.CARDS.SELECTION_BORDER_WIDTH, UI_CONFIG.CARDS.SELECTION_BORDER_COLOR);
+            selectionBorder.lineStyle(UI_CONFIG.CARDS.SELECTION_BORDER_WIDTH * scaleFactor, UI_CONFIG.CARDS.SELECTION_BORDER_COLOR);
             selectionBorder.strokeRect(cardX - 2, cardsY - 2, cardWidth + 4, cardHeight + 4);
             selectionBorder.setVisible(false);
             selectionBorder.setScrollFactor(0);
@@ -639,8 +653,15 @@ class BattleScene extends Phaser.Scene {
     }
 
     createEnergyBar() {
+        const isTallScreen = GAME_CONFIG.HEIGHT > 1000;
+
+        // Increase bottom margin for tall screens (better visibility on phones)
+        const bottomMargin = isTallScreen
+            ? UI_CONFIG.ENERGY_BAR.BOTTOM_MARGIN * 2.25 // ~45px
+            : UI_CONFIG.ENERGY_BAR.BOTTOM_MARGIN;       // 20px
+
         // Position energy bar at the bottom center
-        const energyY = GAME_CONFIG.HEIGHT - 20;
+        const energyY = GAME_CONFIG.HEIGHT - bottomMargin;
         const squareSize = 18; // Size of each energy square
         const squareSpacing = 2; // Gap between squares
         const totalWidth = (this.maxEnergy * squareSize) + ((this.maxEnergy - 1) * squareSpacing);

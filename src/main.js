@@ -6,7 +6,7 @@ class TankTacticsGame {
         if (screenAspectRatio > 1.4) { // Taller than 4:3 (approx 1.33)
             // Calculate height that would match screen aspect ratio, capped at a reasonable max
             // This allows the game to fill more of the screen on tall phones
-            const dynamicHeight = Math.min(1200, Math.floor(GAME_CONFIG.WIDTH * screenAspectRatio));
+            const dynamicHeight = Math.min(1600, Math.floor(GAME_CONFIG.WIDTH * screenAspectRatio));
             GAME_CONFIG.HEIGHT = Math.max(GAME_CONFIG.HEIGHT, dynamicHeight);
         }
 
