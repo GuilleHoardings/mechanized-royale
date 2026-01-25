@@ -66,15 +66,20 @@ class GraphicsManager {
      * @param {string|null} unitId - Optional unit ID for special units
      * @returns {Phaser.GameObjects.Container} The unit container
      */
-    createTankGraphics(x, y, unitType, isPlayerTank, unitId = null) {
-        // Create a container for the tank
-        const tank = this.scene.add.container(x, y);
+    createTankGraphics(x, y, unitType, isPlayerTank, unitId = null, existingContainer = null) {
+        // Create or clear container
+        const tank = existingContainer || this.scene.add.container(x, y);
+        if (existingContainer) {
+            tank.removeAll(true);
+            tank.isSpriteBase = false;
+        }
+
         const id = unitId || unitType;
 
         // Auto-detect custom unit texture (convention: unit_<id>)
         const textureKey = `unit_${id}`;
 
-        if (this.scene.textures.exists(textureKey)) {
+        if (!this.scene.useGraphicsMode && this.scene.textures.exists(textureKey)) {
             // Use sprite if texture exists
             const sprite = this.scene.add.sprite(0, 0, textureKey);
 
@@ -114,19 +119,23 @@ class GraphicsManager {
      * @param {string} cardId - The card ID from CARDS
      * @returns {Phaser.GameObjects.Container} The mini card graphic container
      */
-    createMiniCardGraphics(x, y, cardId) {
+    createMiniCardGraphics(x, y, cardId, existingContainer = null) {
         const cardDef = CARDS[cardId];
         if (!cardDef) {
             console.error(`Card ${cardId} not found in CARDS`);
             return this.scene.add.container(x, y);
         }
 
-        const container = this.scene.add.container(x, y);
+        const container = existingContainer || this.scene.add.container(x, y);
+        if (existingContainer) {
+            container.removeAll(true);
+            container.isImageCard = false; // Reset flag
+        }
 
         // Auto-detect custom card texture (convention: card_<cardId>)
         const textureKey = `card_${cardId}`;
 
-        if (this.scene.textures.exists(textureKey)) {
+        if (!this.scene.useGraphicsMode && this.scene.textures.exists(textureKey)) {
             const image = this.scene.add.image(0, 0, textureKey);
             // Size the image to fit the card icon area (approx 80x60 or similar)
             // The container is centered at (x, y)
@@ -166,19 +175,23 @@ class GraphicsManager {
      * @param {boolean} isPlayer - Whether this is a player building
      * @returns {Phaser.GameObjects.Container} The building container
      */
-    createBuildingGraphics(x, y, buildingId, isPlayer = true) {
+    createBuildingGraphics(x, y, buildingId, isPlayer = true, existingContainer = null) {
         const buildingDef = CARDS[buildingId];
         if (!buildingDef || buildingDef.type !== CARD_TYPES.BUILDING) {
             console.error(`Invalid building: ${buildingId}`);
             return this.scene.add.container(x, y);
         }
 
-        const container = this.scene.add.container(x, y);
+        const container = existingContainer || this.scene.add.container(x, y);
+        if (existingContainer) {
+            container.removeAll(true);
+            container.isSpriteBase = false;
+        }
 
         // Auto-detect custom building texture (convention: unit_<id>)
         const textureKey = `unit_${buildingId}`;
 
-        if (this.scene.textures.exists(textureKey)) {
+        if (!this.scene.useGraphicsMode && this.scene.textures.exists(textureKey)) {
             const sprite = this.scene.add.sprite(0, 0, textureKey);
 
             // Size suitably for building (larger than tanks)
@@ -224,15 +237,19 @@ class GraphicsManager {
      * @param {boolean} isMainTower - Whether this is a main tower
      * @returns {Phaser.GameObjects.Container} The tower container
      */
-    createTowerGraphics(x, y, isPlayerTeam, isMainTower) {
-        const tower = this.scene.add.container(x, y);
+    createTowerGraphics(x, y, isPlayerTeam, isMainTower, existingContainer = null) {
+        const tower = existingContainer || this.scene.add.container(x, y);
+        if (existingContainer) {
+            tower.removeAll(true);
+        }
+
         const towerType = isMainTower ? 'tower_main' : 'tower_side';
 
         const baseKey = `${towerType}_base`;
         const turretKey = `${towerType}_turret`;
 
         // Base Part
-        if (this.scene.textures.exists(baseKey) && !this.scene.textures.get(baseKey).isProcedural) {
+        if (!this.scene.useGraphicsMode && this.scene.textures.exists(baseKey) && !this.scene.textures.get(baseKey).isProcedural) {
             const baseImage = this.scene.add.image(0, 0, baseKey);
             const baseSize = isMainTower ? 80 : 60;
             baseImage.setDisplaySize(baseSize, baseSize);
@@ -249,7 +266,7 @@ class GraphicsManager {
 
         // Turret Part
         const turretContainer = this.scene.add.container(0, 0);
-        if (this.scene.textures.exists(turretKey) && !this.scene.textures.get(turretKey).isProcedural) {
+        if (!this.scene.useGraphicsMode && this.scene.textures.exists(turretKey) && !this.scene.textures.get(turretKey).isProcedural) {
             const turretImage = this.scene.add.image(0, 0, turretKey);
             const turretSize = isMainTower ? 80 : 60;
             turretImage.setDisplaySize(turretSize, turretSize);

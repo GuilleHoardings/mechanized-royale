@@ -4742,6 +4742,94 @@ class BattleScene extends Phaser.Scene {
 
         // Recreate the battlefield with the new mode
         this.recreateBattlefield();
+
+        // Recreate all game entities
+        this.recreateAllGameEntities();
+    }
+
+    recreateAllGameEntities() {
+        // Recreate Tanks
+        this.tanks.forEach(tank => {
+            if (tank.health > 0) {
+                this.graphicsManager.createTankGraphics(
+                    tank.x,
+                    tank.y,
+                    tank.unitData.unitType,
+                    tank.isPlayerTank,
+                    tank.unitData.id,
+                    tank
+                );
+            }
+        });
+
+        // Recreate Buildings and Towers
+        this.buildings.forEach(building => {
+            if (building.health > 0) {
+                if (building.towerType) {
+                    this.graphicsManager.createTowerGraphics(
+                        building.x,
+                        building.y,
+                        building.isPlayerOwned,
+                        building.isMainTower,
+                        building
+                    );
+                } else {
+                    this.graphicsManager.createBuildingGraphics(
+                        building.x,
+                        building.y,
+                        building.buildingId,
+                        building.isPlayerOwned,
+                        building
+                    );
+                }
+            }
+        });
+
+        // Recreate Tank Card Icons in hand
+        this.tankCards.forEach((card) => {
+            const cardId = card.cardId;
+            const tankIcon = card.tankIcon;
+            if (tankIcon) {
+                // Ensure we use the original relative positions for card icon consistency
+                const cardWidth = UI_CONFIG.CARDS.WIDTH;
+                const cardHeight = UI_CONFIG.CARDS.HEIGHT;
+
+                // Re-draw the card icon
+                this.graphicsManager.createMiniCardGraphics(
+                    card.x + cardWidth / 2,
+                    card.y + 30, // Original creation Y offset
+                    cardId,
+                    tankIcon
+                );
+
+                // Re-apply scale
+                tankIcon.setScale(1.0);
+
+                // Re-apply rotation for troop types in graphics mode
+                const cardDef = CARDS[cardId];
+                if (cardDef.type === CARD_TYPES.TROOP && !tankIcon.isImageCard) {
+                    tankIcon.setRotation(-Math.PI / 2); // -90 degrees = upward
+                } else {
+                    tankIcon.setRotation(0); // Reset for image cards
+                }
+            }
+        });
+
+        // Recreate Deployment Preview Tank
+        if (this.deploymentPreview && this.deploymentPreview.previewTank) {
+            const previewTank = this.deploymentPreview.previewTank;
+            const unitId = this.deploymentPreview.unitType;
+            this.graphicsManager.createTankGraphics(
+                previewTank.x,
+                previewTank.y,
+                unitId,
+                true,
+                unitId,
+                previewTank
+            );
+            // Set alpha for preview
+            previewTank.setAlpha(0.5);
+        }
     }
 
     recreateBattlefield() {
