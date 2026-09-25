@@ -1098,6 +1098,8 @@ class BattleScene extends Phaser.Scene {
 
         tower.health = entityDef.stats.hp;
         tower.maxHealth = entityDef.stats.hp;
+        tower.range = entityDef.stats.range;
+        tower.damage = entityDef.stats.damage;
         tower.isPlayerOwned = isPlayerTeam;
         tower.isMainTower = isMainTower;
         tower.towerType = towerType;
@@ -2517,6 +2519,11 @@ class BattleScene extends Phaser.Scene {
         tank.lastShotTime = 0;
         tank.lastTargetUpdate = 0;
 
+        // Assign lane based on X position relative to battlefield center
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        const relX = x - offsetX;
+        tank.lane = (relX < GAME_CONFIG.WORLD_WIDTH / 2) ? 'left' : 'right';
+
         // Pathfinding properties
         tank.path = null;
         tank.pathIndex = 0;
@@ -3861,7 +3868,7 @@ class BattleScene extends Phaser.Scene {
 
     updateBaseDefense(base) {
         const currentTime = this.time.now;
-        const baseRange = 200; // Base defense range
+        const baseRange = base.range || (base.isMainTower ? UNITS.main_tower.stats.range : UNITS.side_tower.stats.range);
 
         // Main towers don't target until they've been activated (hit at least once)
         if (base.isMainTower && !base.activated) {
@@ -4252,6 +4259,23 @@ class BattleScene extends Phaser.Scene {
             onComplete: () => flash.destroy()
         });
 
+        // Pulsing active beacon ring around the base of the activated tower
+        const beaconRing = this.add.graphics();
+        beaconRing.lineStyle(2, glowColor, 0.7);
+        beaconRing.strokeCircle(0, 0, 42);
+        tower.addAt(beaconRing, 0);
+
+        this.tweens.add({
+            targets: beaconRing,
+            scaleX: 1.25,
+            scaleY: 1.25,
+            alpha: 0.2,
+            duration: 1000,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.easeInOut'
+        });
+
         // Small indicator light that stays on
         const light = this.add.graphics();
         light.fillStyle(glowColor, 0.8);
@@ -4267,6 +4291,10 @@ class BattleScene extends Phaser.Scene {
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
+
+        // Show activation alert notification
+        const towerOwner = tower.isPlayerOwned ? 'PLAYER' : 'ENEMY';
+        this._showNotification(`${towerOwner} MAIN TOWER ACTIVATED!`, tower.isPlayerOwned ? '#60a5fa' : '#f87171', 160);
 
         // Update UI
         this.updateTowerStatusDisplay();
@@ -4299,6 +4327,21 @@ class BattleScene extends Phaser.Scene {
                 this.towerStats.player.rightTowerDestroyed = true;
                 // Expand player deployment zone when enemy right tower is destroyed
                 this.expandDeploymentZone('player', 'right');
+            }
+        }
+
+        // When a side tower is destroyed, the friendly Main (King) Tower awakens
+        if (!tower.isMainTower) {
+            const friendlyMainTower = this.buildings.find(b =>
+                b.isPlayerOwned === tower.isPlayerOwned &&
+                b.isMainTower &&
+                b.health > 0
+            );
+            if (friendlyMainTower && !friendlyMainTower.activated) {
+                friendlyMainTower.activated = true;
+                if (this.onTowerActivated) {
+                    this.onTowerActivated(friendlyMainTower);
+                }
             }
         }
 

@@ -1142,7 +1142,7 @@ class AIController {
                     const itemUnitId = card.unitId || (card.payload && card.payload.unitId);
                     if (!itemUnitId) return false;
                     const data = UNITS[itemUnitId];
-                    return data && (data.stats.range >= 200 || data.stats.hp >= 400);
+                    return data && (data.stats.range >= 115 || data.stats.hp >= 400);
                 });
                 if (defensivePicks.length > 0) {
                     chosenItem = defensivePicks[Math.floor(Math.random() * defensivePicks.length)];
@@ -1541,148 +1541,312 @@ class AIController {
      * Enhanced with smarter target prioritization
      * @param {Object} tank - Tank to update
      */
+    /**
+     * Determines whether a potential target is legal for this tank to attack.
+     * Respects targetBuildingsOnly and Clash Royale King Tower immunity.
+     * @param {Object} tank - Attacking tank
+     * @param {Object} target - Potential target
+     * @returns {boolean} Whether target is valid
+     */
+    isValidTankTarget(tank, target) {
+        if (!target || target.health <= 0) return false;
+
+        const isBuilding = target.isPlayerOwned !== undefined || target.isMainTower !== undefined;
+
+        // If tank only targets buildings (e.g. Tiger), ignore tanks
+        if (tank.unitData?.targetBuildingsOnly && !isBuilding) {
+            return false;
+        }
+
+        // King Tower protection: cannot target Main Tower if the enemy side tower in our lane is still standing
+        if (target.isMainTower) {
+            const laneSideTower = this.scene.buildings.find(b =>
+                b.isPlayerOwned !== tank.isPlayerTank &&
+                b.towerType === tank.lane &&
+                b.health > 0
+            );
+            if (laneSideTower) {
+                return false; // Lane side tower is still standing!
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Finds the primary lane objective (tower) for a tank.
+     * Left lane -> Left Tower -> Main Tower
+     * Right lane -> Right Tower -> Main Tower
+     * @param {Object} tank - Tank to find objective for
+     * @returns {Object|null} The target tower
+     */
+    getLaneObjective(tank) {
+        const isPlayer = tank.isPlayerTank;
+        const enemyBuildings = this.scene.buildings.filter(b => b.isPlayerOwned !== isPlayer && b.health > 0);
+
+        // 1. Check for the enemy side tower in our lane
+        const laneSideTower = enemyBuildings.find(b => b.towerType === tank.lane);
+        if (laneSideTower) {
+            return laneSideTower;
+        }
+
+        // 2. If lane side tower is destroyed, target the enemy main (King) tower
+        const mainTower = enemyBuildings.find(b => b.isMainTower);
+        if (mainTower) {
+            return mainTower;
+        }
+
+        // 3. Fallback to the other side tower if available
+        const otherSideTower = enemyBuildings.find(b => b.towerType && b.towerType !== 'main');
+        if (otherSideTower) {
+            return otherSideTower;
+        }
+
+        return null;
+    }
+
+    /**
+     * Finds the best target within immediate attack range
+     */
+    findBestInRangeEnemy(tank, tankRange) {
+        const isPlayer = tank.isPlayerTank;
+        const enemies = [];
+
+        if (!tank.unitData?.targetBuildingsOnly) {
+            enemies.push(...this.scene.tanks.filter(t => t.isPlayerTank !== isPlayer && t.health > 0));
+        }
+        enemies.push(...this.scene.buildings.filter(b => b.isPlayerOwned !== isPlayer && b.health > 0));
+
+        let bestEnemy = null;
+        let bestScore = -Infinity;
+
+        for (const enemy of enemies) {
+            if (!this.isValidTankTarget(tank, enemy)) continue;
+
+            const dist = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+            if (dist <= tankRange) {
+                let score = 1000 - dist;
+                const hpRatio = enemy.health / enemy.maxHealth;
+                score += (1 - hpRatio) * 200;
+
+                if (enemy.unitData) {
+                    if (enemy.unitData.unitType === TANK_TYPES.TANK_DESTROYER) score += 150;
+                    else if (enemy.unitData.unitType === TANK_TYPES.HEAVY) score += 80;
+                    else if (enemy.unitData.unitType === TANK_TYPES.LIGHT) score += 50;
+                }
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestEnemy = enemy;
+                }
+            }
+        }
+
+        return bestEnemy;
+    }
+
+    /**
+     * Finds the best target within aggro (sight) range
+     */
+    findAggroEnemy(tank, aggroRange, tankRange) {
+        const isPlayer = tank.isPlayerTank;
+        const enemyTanks = this.scene.tanks.filter(t => t.isPlayerTank !== isPlayer && t.health > 0);
+        const enemyBuildings = this.scene.buildings.filter(b => b.isPlayerOwned !== isPlayer && !b.isMainTower && b.health > 0);
+
+        const candidates = [...enemyTanks, ...enemyBuildings];
+        let bestTarget = null;
+        let bestScore = -Infinity;
+
+        const riverRowTop = 16 * GAME_CONFIG.TILE_SIZE;
+        const tankSide = tank.y < riverRowTop ? 'top' : 'bottom';
+
+        for (const enemy of candidates) {
+            if (!this.isValidTankTarget(tank, enemy)) continue;
+
+            const dist = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
+            if (dist > aggroRange) continue;
+
+            // Avoid aggroing units across river water unless near bridge crossing
+            const enemySide = enemy.y < riverRowTop ? 'top' : 'bottom';
+            if (tankSide !== enemySide && dist > 90) {
+                continue;
+            }
+
+            let score = 500 - dist;
+
+            // Prefer enemies in the same lane
+            const offsetX = GameHelpers.getBattlefieldOffset();
+            const enemyRelX = enemy.x - offsetX;
+            const enemyLane = (enemyRelX < GAME_CONFIG.WORLD_WIDTH / 2) ? 'left' : 'right';
+            if (enemyLane === tank.lane) {
+                score += 150;
+            }
+
+            // Troops prioritize defending against other troops
+            if (enemy.unitData) {
+                score += 100;
+            }
+
+            if (score > bestScore) {
+                bestScore = score;
+                bestTarget = enemy;
+            }
+        }
+
+        return bestTarget;
+    }
+
+    /**
+     * Finds nearby deployable enemy building (for building-only attackers like Tiger)
+     */
+    findNearbyEnemyBuilding(tank, aggroRange) {
+        const isPlayer = tank.isPlayerTank;
+        const buildings = this.scene.buildings.filter(b =>
+            b.isPlayerOwned !== isPlayer &&
+            !GameHelpers.isActualTower(b) &&
+            b.health > 0
+        );
+
+        let bestBuilding = null;
+        let bestDist = Infinity;
+
+        for (const b of buildings) {
+            const dist = GameHelpers.distance(tank.x, tank.y, b.x, b.y);
+            if (dist <= aggroRange && dist < bestDist) {
+                bestDist = dist;
+                bestBuilding = b;
+            }
+        }
+
+        return bestBuilding;
+    }
+
+    /**
+     * Dynamically updates the tank's lane if it is drawn across the center line
+     */
+    updateTankLane(tank) {
+        const offsetX = GameHelpers.getBattlefieldOffset();
+        const relX = tank.x - offsetX;
+        const mid = GAME_CONFIG.WORLD_WIDTH / 2;
+        const buffer = GAME_CONFIG.TILE_SIZE * 1.5;
+
+        if (tank.lane === 'left' && relX > mid + buffer) {
+            tank.lane = 'right';
+            tank.needsNewPath = true;
+        } else if (tank.lane === 'right' && relX < mid - buffer) {
+            tank.lane = 'left';
+            tank.needsNewPath = true;
+        }
+    }
+
+    /**
+     * Updates individual tank AI behavior (targeting and movement)
+     * Clash Royale-style lane progression and target acquisition
+     * @param {Object} tank - Tank to update
+     */
     updateTankAI(tank) {
         if (tank.manualControl) return; // Don't override manual control
 
-        const currentTime = this.scene.time.now;
+        // Ensure lane is defined
+        if (!tank.lane) {
+            const offsetX = GameHelpers.getBattlefieldOffset();
+            const relX = tank.x - offsetX;
+            tank.lane = (relX < GAME_CONFIG.WORLD_WIDTH / 2) ? 'left' : 'right';
+        }
+
+        this.updateTankLane(tank);
+
         const tankRange = tank.unitData.stats.range;
+        const aggroRange = Math.max(120, tankRange + 40);
 
-        // Target Retention: Check if current target is still valid
+        // 1. Target Retention: Check if current target is still valid
         if (tank.target && tank.target.health > 0) {
-            const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
-
-            // Keep current target if still in range
-            if (currentTargetDistance <= tankRange) {
-                return; // Target retained - continue attacking
-            } else {
-                // Target moved out of range - clear it and find new target
+            if (!this.isValidTankTarget(tank, tank.target)) {
                 tank.target = null;
                 tank.needsNewPath = true;
+            } else {
+                const currentTargetDistance = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
+
+                // If currently in attack range, stay locked and attack
+                if (currentTargetDistance <= tankRange) {
+                    tank.attacking = true;
+                    tank.moving = false;
+                    return;
+                }
+
+                // If moving towards a troop target, check if it escaped aggro radius
+                const isTargetTank = tank.target.unitData !== undefined;
+                if (isTargetTank && currentTargetDistance > aggroRange * 1.5) {
+                    tank.target = null;
+                    tank.needsNewPath = true;
+                } else if (!isTargetTank && !tank.unitData?.targetBuildingsOnly) {
+                    // Moving towards a tower/building: check if an enemy troop entered immediate aggro range to pull aggro
+                    const distractingEnemy = this.findAggroEnemy(tank, aggroRange, tankRange);
+                    if (distractingEnemy && distractingEnemy !== tank.target) {
+                        tank.target = distractingEnemy;
+                        tank.needsNewPath = true;
+                    }
+                }
             }
         } else if (tank.target && tank.target.health <= 0) {
-            // Target destroyed - clear it and find new target
             tank.target = null;
             tank.needsNewPath = true;
         }
 
-        // Enhanced Target Acquisition with priority system
-        let bestTarget = null;
-        let bestPriority = -Infinity;
-        let fallbackTarget = null;
-        let fallbackDistance = Infinity;
-
-        const isPlayerTank = tank.isPlayerTank;
-        const canAttackTanks = !tank.unitData?.targetBuildingsOnly;
-
-        // Get potential targets
-        let enemies = [];
-        if (isPlayerTank) {
-            if (canAttackTanks) {
-                enemies.push(...this.scene.tanks.filter(t => !t.isPlayerTank && t.health > 0));
+        // If target was retained, maintain combat state
+        if (tank.target && tank.target.health > 0) {
+            const dist = GameHelpers.distance(tank.x, tank.y, tank.target.x, tank.target.y);
+            if (dist <= tankRange) {
+                tank.attacking = true;
+                tank.moving = false;
+            } else {
+                tank.attacking = false;
+                tank.moving = true;
             }
-            enemies.push(...this.scene.buildings.filter(b => !b.isPlayerOwned && b.health > 0));
-        } else {
-            if (canAttackTanks) {
-                enemies.push(...this.scene.tanks.filter(t => t.isPlayerTank && t.health > 0));
-            }
-            enemies.push(...this.scene.buildings.filter(b => b.isPlayerOwned && b.health > 0));
+            return;
         }
 
-        enemies.forEach(enemy => {
-            const distance = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
-            let priority = 0;
-
-            // Base priority: closer targets are higher priority
-            priority += (1000 - distance) / 10;
-
-            // Priority modifiers based on target type
-            const isBuilding = enemy.isPlayerOwned !== undefined || enemy.isMainTower !== undefined;
-            const isTank = enemy.unitData !== undefined;
-
-            if (isBuilding) {
-                // Building targeting
-                if (enemy.isMainTower) {
-                    priority += 50; // High priority for main tower
-                } else {
-                    priority += 30; // Side towers
-                }
-
-                // Extra priority if building is damaged
-                const healthRatio = enemy.health / enemy.maxHealth;
-                priority += (1 - healthRatio) * 40;
-
-                // Buildings close to our tanks get priority
-                if (distance < 150) {
-                    priority += 35;
-                }
-            } else if (isTank) {
-                // Tank targeting - prioritize threats
-                const enemyData = enemy.unitData;
-
-                // Priority based on threat level
-                if (enemyData.type === TANK_TYPES.HEAVY) {
-                    // Heavy tanks are high threat but hard to kill
-                    priority += 10;
-                } else if (enemyData.type === TANK_TYPES.TANK_DESTROYER) {
-                    // TDs are dangerous, prioritize killing them
-                    priority += 25;
-                } else if (enemyData.type === TANK_TYPES.ARTILLERY) {
-                    // Artillery is squishy high-value target
-                    priority += 35;
-                } else if (enemyData.type === TANK_TYPES.LIGHT ||
-                    enemyData.type === TANK_TYPES.FAST_ATTACK) {
-                    // Light tanks - medium priority
-                    priority += 15;
-                } else {
-                    // Medium tanks - balanced priority
-                    priority += 20;
-                }
-
-                // Low health enemies get priority (finish them off)
-                const healthRatio = enemy.health / enemy.maxHealth;
-                if (healthRatio < 0.3) {
-                    priority += 40;
-                } else if (healthRatio < 0.5) {
-                    priority += 20;
-                }
-
-                // Tanks targeting our buildings are high priority
-                if (enemy.target && (enemy.target.isPlayerOwned !== undefined)) {
-                    priority += 25;
-                }
-            }
-
-            // In-range bonus
-            if (distance <= tankRange) {
-                priority += 100; // Strong preference for targets we can shoot now
-
-                if (priority > bestPriority) {
-                    bestPriority = priority;
-                    bestTarget = enemy;
-                }
-            }
-
-            // Track fallback (nearest target for movement)
-            if (distance < fallbackDistance) {
-                fallbackDistance = distance;
-                fallbackTarget = enemy;
-            }
-        });
-
-        // Set target based on acquisition rules
-        if (bestTarget) {
-            // Enemy in range - attack it
-            tank.target = bestTarget;
+        // 2. Target Acquisition: No valid target currently
+        // Step A: Check for any enemy in immediate attack range
+        const inRangeEnemy = this.findBestInRangeEnemy(tank, tankRange);
+        if (inRangeEnemy) {
+            tank.target = inRangeEnemy;
             tank.attacking = true;
             tank.moving = false;
-        } else if (fallbackTarget) {
-            // No enemy in range - move toward best fallback
-            tank.target = fallbackTarget;
+            tank.needsNewPath = false;
+            return;
+        }
+
+        // Step B: Check for any enemy within aggro range
+        if (!tank.unitData?.targetBuildingsOnly) {
+            const aggroEnemy = this.findAggroEnemy(tank, aggroRange, tankRange);
+            if (aggroEnemy) {
+                tank.target = aggroEnemy;
+                tank.attacking = false;
+                tank.moving = true;
+                tank.needsNewPath = true;
+                return;
+            }
+        } else {
+            // For building-only attackers (Tiger), check for deployable enemy buildings in aggro range
+            const nearbyBuilding = this.findNearbyEnemyBuilding(tank, aggroRange);
+            if (nearbyBuilding) {
+                tank.target = nearbyBuilding;
+                tank.attacking = false;
+                tank.moving = true;
+                tank.needsNewPath = true;
+                return;
+            }
+        }
+
+        // Step C: Fallback to Lane Objective (Tower)
+        const laneObjective = this.getLaneObjective(tank);
+        if (laneObjective) {
+            tank.target = laneObjective;
             tank.attacking = false;
             tank.moving = true;
             tank.needsNewPath = true;
         } else {
-            // No enemies found - clear target and stop
             tank.target = null;
             tank.attacking = false;
             tank.moving = false;

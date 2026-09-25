@@ -9,7 +9,7 @@ const UNITS = {
             hp: 1300,
             damage: 70,
             speed: 28,
-            range: 40,
+            range: 70,
             armor: { front: 90, side: 70, rear: 50 },
             penetration: 90
         },
@@ -26,7 +26,7 @@ const UNITS = {
             hp: 320,
             damage: 110,
             speed: 60,
-            range: 170,
+            range: 100,
             armor: { front: 30, side: 20, rear: 15 },
             penetration: 90
         },
@@ -42,7 +42,7 @@ const UNITS = {
             hp: 380,
             damage: 80,
             speed: 50,
-            range: 240,
+            range: 115,
             armor: { front: 30, side: 22, rear: 15 },
             penetration: 95
         },
@@ -58,7 +58,7 @@ const UNITS = {
             hp: 360,
             damage: 160,
             speed: 55,
-            range: 40,
+            range: 150,
             armor: { front: 40, side: 25, rear: 20 },
             penetration: 140
         },
@@ -74,7 +74,7 @@ const UNITS = {
             hp: 60,
             damage: 25,
             speed: 65,
-            range: 40,
+            range: 50,
             armor: { front: 5, side: 5, rear: 5 },
             penetration: 30
         },
@@ -104,7 +104,7 @@ const UNITS = {
         stats: {
             hp: 1200,
             damage: 80,
-            range: 200
+            range: 150
         }
     },
     side_tower: {
@@ -113,7 +113,7 @@ const UNITS = {
         stats: {
             hp: 600,
             damage: 80,
-            range: 200
+            range: 140
         }
     }
 };

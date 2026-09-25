@@ -30,10 +30,13 @@ class Pathfinding {
             const isOnLeftBridge = tileX >= leftBridgeStartX && tileX <= leftBridgeEndX;
             const isOnRightBridge = tileX >= rightBridgeStartX && tileX <= rightBridgeEndX;
             
-            if (isOnLeftBridge || isOnRightBridge) {
-                return true; // It's a bridge
+            if (tank && tank.lane === 'left') {
+                return isOnLeftBridge;
+            } else if (tank && tank.lane === 'right') {
+                return isOnRightBridge;
             }
-            return false; // It's water
+
+            return isOnLeftBridge || isOnRightBridge;
         }
 
         return true; // It's land
@@ -48,6 +51,15 @@ class Pathfinding {
             return [GameHelpers.tileToWorld(startTile.tileX, startTile.tileY)];
         }
 
+        let path = this.#executeAStar(startTile, endTile, tank);
+        // Fallback: if lane-restricted bridge was unreachable, allow any bridge
+        if (!path && tank && tank.lane) {
+            path = this.#executeAStar(startTile, endTile, null);
+        }
+        return path;
+    }
+
+    static #executeAStar(startTile, endTile, tank) {
         const openSet = [startTile];
         const closedSet = new Set();
         const cameFrom = new Map();
