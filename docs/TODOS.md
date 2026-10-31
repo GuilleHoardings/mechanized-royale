@@ -3,5 +3,6 @@
 - [x] Add an indication that the central tower is activated
 - [x] Make the lanes work like in Clash Royale
 - [x] Rework the attack ranges
-- [ ] Improve the units: right now, the scaling is too obvious
+- [x] Improve the units: right now, the scaling is too obvious
+  - Fixed by `tools/normalize-units.ps1` + `src/data/unit-metrics.js`: units are now scaled by trimmed artwork width (real-world hull width, 11 px/m) and pivoted on the artwork centre, instead of being forced into a fixed 48x48 box. Infantry art is still a separate open item.
 - [x] Change the way the indication of where you deploy: instead of indicating valid deployment zones, indicate invalid ones
