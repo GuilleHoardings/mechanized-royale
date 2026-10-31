@@ -1,0 +1,14 @@
+{
+  "name": "tank-tactics-graphics-harness",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Offline renderer for Mechanized Royale's procedural (vector) graphics",
+  "main": "render-gallery.js",
+  "scripts": {
+    "render": "node render-gallery.js",
+    "check": "node render-gallery.js --check"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.1.0"
+  }
+}
