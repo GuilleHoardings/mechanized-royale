@@ -152,7 +152,8 @@ class Container extends DisplayObject {
     }
 
     add(...children) {
-        for (const child of children) {
+        // Phaser accepts both add(a, b) and add([a, b])
+        for (const child of children.flat()) {
             child.parent = this;
             this.children.push(child);
         }

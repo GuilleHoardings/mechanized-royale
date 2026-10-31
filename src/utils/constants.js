@@ -27,6 +27,13 @@ const CARD_TYPES = {
     BUILDING: 'building'
 };
 
+// Deck rules
+const DECK_CONFIG = {
+    SIZE: 8,          // Cards in a battle deck (and the rotation pool)
+    HAND_SIZE: 4,     // Cards visible at once during a battle
+    MAX_COPIES: 1     // One of each card per deck
+};
+
 const GAME_STATES = {
     MENU: 'menu',
     BATTLE: 'battle',

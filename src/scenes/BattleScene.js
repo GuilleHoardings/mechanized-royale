@@ -4,7 +4,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     init(data) {
-        this.gameState = data.gameState;
+        this.gameState = (data && data.gameState)
+            || GameHelpers.loadGameState()
+            || GameHelpers.getDefaultGameState();
         this.energy = ENERGY_CONFIG.STARTING_ENERGY;
         this.maxEnergy = ENERGY_CONFIG.MAX_ENERGY;
         this.battleTime = BATTLE_CONFIG.DURATION;
@@ -86,8 +88,8 @@ class BattleScene extends Phaser.Scene {
         // Pause state for analysis
         this.gamePaused = false;
 
-        // Card deck system (8-card rotation)
-        this.deck = [...DEFAULT_PLAYER_DECK];
+        // Card deck system (8-card rotation) built from the saved deck
+        this.deck = GameHelpers.getPlayerDeck(this.gameState);
         this.hand = [];
         this.nextCardIndex = 0;
         this.initializeDeck();
@@ -540,10 +542,11 @@ class BattleScene extends Phaser.Scene {
 
         this.tankCards = [];
 
-        // Create 4 cards from hand
-        for (let index = 0; index < 4; index++) {
+        // Create cards from hand
+        for (let index = 0; index < DECK_CONFIG.HAND_SIZE; index++) {
             const cardId = this.hand[index];
             const cardDef = CARDS[cardId];
+            if (!cardDef) break; // hand can be shorter if the card pool is small
             const unitId = cardDef.type === CARD_TYPES.TROOP ? (cardDef.unitId || (cardDef.payload && cardDef.payload.unitId)) : null;
             const unitData = unitId ? UNITS[unitId] : null;
             const cardX = startX + index * cardSpacing;
@@ -3480,12 +3483,13 @@ class BattleScene extends Phaser.Scene {
     }
 
     initializeDeck() {
-        // Ensure 8 cards
-        if (!this.deck || this.deck.length !== 8) {
-            this.deck = [...DEFAULT_PLAYER_DECK];
-        }
+        // Always start from a legal deck (the deck screen may have changed it)
+        this.deck = GameHelpers.sanitizeDeck(this.deck);
+        this.hand = [];
         this.shuffleDeck();
-        for (let i = 0; i < 4; i++) {
+
+        const handSize = Math.min(DECK_CONFIG.HAND_SIZE, this.deck.length);
+        for (let i = 0; i < handSize; i++) {
             this.hand.push(this.getNextCard());
         }
     }

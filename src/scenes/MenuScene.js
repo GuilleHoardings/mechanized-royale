@@ -96,80 +96,104 @@ class MenuScene extends Phaser.Scene {
     }
 
     createMenuButtons() {
-        const buttonY = 320;
-        const buttonSpacing = 70;
-        const buttonWidth = 200;
-        const buttonHeight = 55;
+        const buttonWidth = 220;
+        const buttonHeight = 52;
+        const startY = 296;
+        const spacing = 66;
+        const buttonX = GAME_CONFIG.WIDTH / 2 - buttonWidth / 2;
 
-        // Play button - primary action with glow
-        const playButtonBg = this.add.graphics();
-        this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 0x3b82f6, true);
+        // Primary actions
+        this.createMenuButton({
+            x: buttonX,
+            y: startY - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            label: '▶  BATTLE',
+            color: 0x3b82f6,
+            hoverColor: 0x60a5fa,
+            onClick: () => this.scene.start('BattleScene', { gameState: this.gameState })
+        });
 
-        const playButton = this.add.rectangle(GAME_CONFIG.WIDTH / 2, buttonY, buttonWidth, buttonHeight)
-            .setInteractive({ useHandCursor: true })
-            .setAlpha(0.01); // Invisible hitbox
+        this.createMenuButton({
+            x: buttonX,
+            y: startY + spacing - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            label: '🃏  DECK',
+            color: 0x8b5cf6,
+            hoverColor: 0xa78bfa,
+            onClick: () => this.scene.start('DeckScene', { gameState: this.gameState })
+        });
 
-        const playText = this.add.text(GAME_CONFIG.WIDTH / 2, buttonY, '▶  BATTLE', {
-            fontSize: '22px',
-            fill: '#ffffff',
+        // Not implemented yet
+        this.createMenuButton({
+            x: buttonX,
+            y: startY + spacing * 2 - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            label: '🔬  RESEARCH',
+            disabled: true
+        });
+
+        this.createMenuButton({
+            x: buttonX,
+            y: startY + spacing * 3 - buttonHeight / 2,
+            width: buttonWidth,
+            height: buttonHeight,
+            label: '⚙  SETTINGS',
+            disabled: true
+        });
+    }
+
+    /**
+     * Draws a menu button. Disabled buttons show a "SOON" badge and ignore input.
+     */
+    createMenuButton({ x, y, width, height, label, color = 0x475569, hoverColor = null, disabled = false, onClick = null }) {
+        const bg = this.add.graphics();
+        this.drawModernButton(bg, x, y, width, height, color, !disabled);
+
+        this.add.text(x + width / 2, y + height / 2, label, {
+            fontSize: disabled ? '16px' : '20px',
+            fill: disabled ? '#64748b' : '#ffffff',
             fontFamily: 'Arial',
             fontWeight: 'bold'
         }).setOrigin(0.5);
 
-        playButton.on('pointerdown', () => {
+        if (disabled) {
+            const badgeX = x + width - 46;
+            const badgeY = y + height / 2 - 8;
+            const badge = this.add.graphics();
+            badge.fillStyle(0x334155, 0.9);
+            badge.fillRoundedRect(badgeX, badgeY, 38, 16, 8);
+            this.add.text(badgeX + 19, badgeY + 8, 'SOON', {
+                fontSize: '9px',
+                fill: '#94a3b8',
+                fontFamily: 'Arial',
+                fontWeight: '600'
+            }).setOrigin(0.5);
+            return;
+        }
+
+        const hit = this.add.rectangle(x + width / 2, y + height / 2, width, height)
+            .setInteractive({ useHandCursor: true })
+            .setAlpha(0.01); // Invisible hitbox
+
+        hit.on('pointerover', () => {
+            bg.clear();
+            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true);
+        });
+
+        hit.on('pointerout', () => {
+            bg.clear();
+            this.drawModernButton(bg, x, y, width, height, color, true);
+        });
+
+        hit.on('pointerdown', () => {
             // Brief flash effect then transition
-            playButtonBg.clear();
-            this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 0x93c5fd, true);
-            this.time.delayedCall(100, () => {
-                this.scene.start('BattleScene', { gameState: this.gameState });
-            });
+            bg.clear();
+            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true);
+            this.time.delayedCall(100, onClick);
         });
-
-        playButton.on('pointerover', () => {
-            playButtonBg.clear();
-            this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 0x60a5fa, true);
-        });
-
-        playButton.on('pointerout', () => {
-            playButtonBg.clear();
-            this.drawModernButton(playButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY - buttonHeight / 2, buttonWidth, buttonHeight, 0x3b82f6, true);
-        });
-
-        // Research button (disabled)
-        const researchButtonBg = this.add.graphics();
-        this.drawModernButton(researchButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY + buttonSpacing - buttonHeight / 2, buttonWidth, buttonHeight, 0x475569, false);
-
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing - 8, '🔬  RESEARCH', {
-            fontSize: '16px',
-            fill: '#64748b',
-            fontFamily: 'Arial',
-            fontWeight: '600'
-        }).setOrigin(0.5);
-
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing + 10, 'Coming Soon', {
-            fontSize: '11px',
-            fill: '#94a3b8',
-            fontFamily: 'Arial',
-            fontStyle: 'italic'
-        }).setOrigin(0.5);
-
-        // Settings button (disabled)
-        const settingsButtonBg = this.add.graphics();
-        this.drawModernButton(settingsButtonBg, GAME_CONFIG.WIDTH / 2 - buttonWidth / 2, buttonY + buttonSpacing * 2 - buttonHeight / 2, buttonWidth, buttonHeight, 0x475569, false);
-
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2 - 8, '⚙  SETTINGS', {
-            fontSize: '16px',
-            fill: '#64748b',
-            fontFamily: 'Arial',
-            fontWeight: '600'
-        }).setOrigin(0.5);
-
-        this.add.text(GAME_CONFIG.WIDTH / 2, buttonY + buttonSpacing * 2 + 10, 'Coming Soon', {
-            fontSize: '11px',
-            fill: '#94a3b8',
-            fontFamily: 'Arial',
-            fontStyle: 'italic'
-        }).setOrigin(0.5);
     }
 
     drawModernButton(graphics, x, y, width, height, color, isActive) {
@@ -195,11 +219,11 @@ class MenuScene extends Phaser.Scene {
     }
 
     showPlayerInfo() {
-        // Player info panel - positioned below title area
+        // Player info panel - positioned below the menu buttons
         const panelWidth = 180;
-        const panelHeight = 90;
+        const panelHeight = 92;
         const panelX = GAME_CONFIG.WIDTH / 2 - panelWidth / 2;
-        const panelY = 530;
+        const panelY = 548;
 
         // Panel background
         const infoPanelBg = this.add.graphics();
@@ -227,8 +251,9 @@ class MenuScene extends Phaser.Scene {
             fontWeight: '600'
         });
 
-        // Tanks unlocked with icon
-        this.add.text(panelX + 12, panelY + 60, `🛡️ ${player.tanks.length} Tanks`, {
+        // Deck size with icon
+        const deck = GameHelpers.getPlayerDeck(this.gameState);
+        this.add.text(panelX + 12, panelY + 60, `🃏 ${deck.length}/${DECK_CONFIG.SIZE} Cards`, {
             fontSize: '13px',
             fill: '#4ade80',
             fontFamily: 'Arial',
@@ -263,7 +288,7 @@ class MenuScene extends Phaser.Scene {
             // Player Stats (from game state)
             if (this.gameState && this.gameState.player) {
                 window.debugPanel.updateValue('debug-player-energy', '-');
-                window.debugPanel.updateValue('debug-player-tanks', this.gameState.player.tanks.length);
+                window.debugPanel.updateValue('debug-player-tanks', GameHelpers.getPlayerDeck(this.gameState).length);
                 window.debugPanel.updateValue('debug-player-hand', '-');
             }
 

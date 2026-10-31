@@ -359,12 +359,41 @@ function runChecks() {
         console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${id.padEnd(18)} centre (${cx.toFixed(1)}, ${cy.toFixed(1)})`);
     }
 
+    // --- Deck rules -------------------------------------------------------
+    console.log('\nDeck check (rules live in src/utils/helpers.js):');
+    const deckSize = game.DECK_CONFIG.SIZE;
+    let deckFailures = 0;
+
+    const checkDeck = (label, deck) => {
+        const unique = new Set(deck).size === deck.length;
+        const known = deck.every((id) => !!CARDS[id]);
+        const ok = deck.length === deckSize && unique && known;
+        if (!ok) deckFailures++;
+        console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(24)} ${deck.length} cards, unique=${unique}, known=${known}`);
+    };
+
+    checkDeck('default deck', game.GameHelpers.getDefaultDeck());
+    checkDeck('DEFAULT_PLAYER_DECK', game.GameHelpers.sanitizeDeck(game.DEFAULT_PLAYER_DECK));
+    checkDeck('legacy player.tanks', game.GameHelpers.sanitizeDeck([
+        'infantry', 'panther', 'sherman', 'jagdpanzer',
+        'tiger', 'infantry', 'panther', 'sherman'
+    ]));
+    checkDeck('unknown/missing ids', game.GameHelpers.sanitizeDeck(['not_a_card', null, 'tiger']));
+    checkDeck('overlong input', game.GameHelpers.sanitizeDeck(
+        Object.keys(CARDS).concat(Object.keys(CARDS))
+    ));
+
+    const once = game.GameHelpers.getDefaultDeck();
+    const idempotent = game.GameHelpers.sanitizeDeck(once).join(',') === once.join(',');
+    if (!idempotent) deckFailures++;
+    console.log(`  ${idempotent ? 'ok  ' : 'FAIL'} sanitizeDeck is idempotent`);
+
     const failed = rows.filter((r) => !r.ok);
-    if (failed.length || centringFailures) {
-        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre.`);
+    if (failed.length || centringFailures || deckFailures) {
+        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed.`);
         process.exitCode = 1;
     } else {
-        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred.`);
+        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck rules valid.`);
     }
 }
 

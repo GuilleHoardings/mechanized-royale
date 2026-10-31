@@ -6,7 +6,9 @@
   "main": "render-gallery.js",
   "scripts": {
     "render": "node render-gallery.js",
-    "check": "node render-gallery.js --check"
+    "check": "node render-gallery.js --check",
+    "smoke": "node scene-smoke.js",
+    "test": "node render-gallery.js --check && node scene-smoke.js"
   },
   "dependencies": {
     "@napi-rs/canvas": "^1.1.0"

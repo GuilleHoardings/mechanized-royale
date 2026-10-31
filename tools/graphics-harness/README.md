@@ -21,6 +21,7 @@ Nothing here is loaded by the game itself — it is a development tool only.
 npm install --prefix tools/graphics-harness      # once
 node tools/graphics-harness/render-gallery.js    # render sheets
 node tools/graphics-harness/render-gallery.js --check   # render + assert
+node tools/graphics-harness/scene-smoke.js       # headless DeckScene test
 ```
 
 `--check` also verifies, and exits non-zero on failure:
@@ -29,6 +30,20 @@ node tools/graphics-harness/render-gallery.js --check   # render + assert
   (units ~8–80 x 60 px, towers ~40–120 x 140 px, card art ≤ 50 x 50 px, …)
 - each procedural card icon is visually centred on its icon box (±1.5 px),
   which catches barrel-length changes that silently push art off-centre
+- deck rules in `GameHelpers.sanitizeDeck()` produce 8 unique, known cards from
+  the default deck, legacy `player.tanks` saves, junk input and overlong input
+
+## Scene smoke test
+
+`scene-smoke.js` runs the real `DeckScene` against stub Phaser systems and
+simulates taps (select, remove, add, save, reset). It renders nothing, but it
+catches wiring mistakes that a screenshot would not: stale deck state, disabled
+save buttons, duplicate cards, and save/migration regressions.
+
+```sh
+npm run smoke --prefix tools/graphics-harness   # or: node tools/graphics-harness/scene-smoke.js
+npm test --prefix tools/graphics-harness         # art checks + scene smoke
+```
 
 ## Output
 

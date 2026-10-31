@@ -212,14 +212,77 @@ const GameHelpers = {
         }
     },
 
+    // ---------------------------------------------------------------
+    // Deck helpers
+    // ---------------------------------------------------------------
+
+    /**
+     * Turns an arbitrary list of card ids into a legal deck: drops unknown ids
+     * and extra copies, then fills the remaining slots with cards that aren't in
+     * the deck yet. Used when loading saves and before saving from the deck screen.
+     * @param {Array<string>} cards
+     * @returns {Array<string>} A deck of at most DECK_CONFIG.SIZE ids
+     */
+    sanitizeDeck(cards) {
+        const input = Array.isArray(cards) ? cards : [];
+        const deck = [];
+        const copies = {};
+        const maxCopies = DECK_CONFIG.MAX_COPIES;
+
+        for (const id of input) {
+            if (!CARDS[id]) continue;
+            if (deck.length >= DECK_CONFIG.SIZE) break;
+            const used = copies[id] || 0;
+            if (used >= maxCopies) continue;
+            deck.push(id);
+            copies[id] = used + 1;
+        }
+
+        // Top up with unused cards so a save from an older build still plays
+        for (const id of Object.keys(CARDS)) {
+            if (deck.length >= DECK_CONFIG.SIZE) break;
+            if ((copies[id] || 0) >= maxCopies) continue;
+            deck.push(id);
+            copies[id] = (copies[id] || 0) + 1;
+        }
+
+        return deck;
+    },
+
+    /**
+     * The starting loadout, also used by the deck screen's Reset button.
+     */
+    getDefaultDeck() {
+        const preferred = (typeof DEFAULT_PLAYER_DECK !== 'undefined') ? DEFAULT_PLAYER_DECK : null;
+        return this.sanitizeDeck(preferred || Object.keys(CARDS));
+    },
+
+    /**
+     * Reads the player's deck from a game state, migrating the legacy
+     * player.tanks field (older saves stored the deck there).
+     */
+    getPlayerDeck(gameState) {
+        const player = gameState && gameState.player;
+        const stored = player ? (player.deck || player.tanks) : null;
+        return this.sanitizeDeck(stored);
+    },
+
+    /**
+     * Validates a deck, stores it on the game state and persists the save.
+     * @returns {boolean} Whether the save write succeeded
+     */
+    saveDeck(gameState, deck) {
+        if (!gameState || !gameState.player) return false;
+        gameState.player.deck = this.sanitizeDeck(deck);
+        delete gameState.player.tanks; // superseded by player.deck
+        return this.saveGameState(gameState);
+    },
+
     // Get default game state
     getDefaultGameState() {
         return {
             player: {
-                tanks: [
-                    'infantry', 'panther', 'sherman', 'jagdpanzer',
-                    'tiger', 'infantry', 'panther', 'sherman'
-                ], // Starting 8-card deck
+                deck: this.getDefaultDeck(),
                 resources: { credits: 1000, research: 0 },
                 progress: { level: 1, xp: 0 },
                 research: { completed: [], active: null }

@@ -16,7 +16,7 @@ class TankTacticsGame {
             height: GAME_CONFIG.HEIGHT,
             parent: 'game-container',
             backgroundColor: GAME_CONFIG.BACKGROUND_COLOR,
-            scene: [BootScene, MenuScene, BattleScene],
+            scene: [BootScene, MenuScene, DeckScene, BattleScene],
             physics: {
                 default: 'arcade',
                 arcade: {
