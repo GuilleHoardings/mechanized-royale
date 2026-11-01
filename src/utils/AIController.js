@@ -1632,10 +1632,15 @@ class AIController {
             const dist = GameHelpers.distance(tank.x, tank.y, enemy.x, enemy.y);
             if (dist <= tankRange) {
                 let score = 1000 - dist;
-                const hpRatio = enemy.health / enemy.maxHealth;
-                score += (1 - hpRatio) * 200;
 
+                // Wounded-target and unit-type bonuses apply to troops only.
+                // Buildings (towers, V1 Launchers, Wirbelwinds) are ranked by
+                // distance alone, so a damaged or decaying building can never
+                // outrank a closer tower.
                 if (enemy.unitData) {
+                    const hpRatio = enemy.health / enemy.maxHealth;
+                    score += (1 - hpRatio) * 200;
+
                     if (enemy.unitData.unitType === TANK_TYPES.TANK_DESTROYER) score += 150;
                     else if (enemy.unitData.unitType === TANK_TYPES.HEAVY) score += 80;
                     else if (enemy.unitData.unitType === TANK_TYPES.LIGHT) score += 50;
@@ -1681,16 +1686,19 @@ class AIController {
 
             let score = 500 - dist;
 
-            // Prefer enemies in the same lane
-            const offsetX = GameHelpers.getBattlefieldOffset();
-            const enemyRelX = enemy.x - offsetX;
-            const enemyLane = (enemyRelX < GAME_CONFIG.WORLD_WIDTH / 2) ? 'left' : 'right';
-            if (enemyLane === tank.lane) {
-                score += 150;
-            }
-
-            // Troops prioritize defending against other troops
+            // Troops are the defensive priority: they get a lane bonus and a
+            // flat pull bonus. Buildings are ranked by distance alone so a
+            // farther deployed building (e.g. a Wirbelwind) cannot steal aggro
+            // from a closer tower.
             if (enemy.unitData) {
+                const offsetX = GameHelpers.getBattlefieldOffset();
+                const enemyRelX = enemy.x - offsetX;
+                const enemyLane = (enemyRelX < GAME_CONFIG.WORLD_WIDTH / 2) ? 'left' : 'right';
+                if (enemyLane === tank.lane) {
+                    score += 150;
+                }
+
+                // Troops prioritize defending against other troops
                 score += 100;
             }
 
@@ -1704,13 +1712,15 @@ class AIController {
     }
 
     /**
-     * Finds nearby deployable enemy building (for building-only attackers like Tiger)
+     * Finds the closest valid enemy building for building-only attackers.
+     * Towers are included, so a nearer tower always beats a farther deployed
+     * building such as a Wirbelwind or V1 Launcher. King Tower immunity is
+     * still enforced by isValidTankTarget().
      */
-    findNearbyEnemyBuilding(tank, aggroRange) {
+    findClosestEnemyBuilding(tank, aggroRange) {
         const isPlayer = tank.isPlayerTank;
         const buildings = this.scene.buildings.filter(b =>
             b.isPlayerOwned !== isPlayer &&
-            !GameHelpers.isActualTower(b) &&
             b.health > 0
         );
 
@@ -1718,6 +1728,8 @@ class AIController {
         let bestDist = Infinity;
 
         for (const b of buildings) {
+            if (!this.isValidTankTarget(tank, b)) continue;
+
             const dist = GameHelpers.distance(tank.x, tank.y, b.x, b.y);
             if (dist <= aggroRange && dist < bestDist) {
                 bestDist = dist;
@@ -1790,8 +1802,16 @@ class AIController {
                     // Moving towards a tower/building: check if an enemy troop entered immediate aggro range to pull aggro
                     const distractingEnemy = this.findAggroEnemy(tank, aggroRange, tankRange);
                     if (distractingEnemy && distractingEnemy !== tank.target) {
-                        tank.target = distractingEnemy;
-                        tank.needsNewPath = true;
+                        const distractingDistance = GameHelpers.distance(
+                            tank.x, tank.y, distractingEnemy.x, distractingEnemy.y
+                        );
+                        // Troops may always pull aggro, but another building
+                        // only takes over when it is actually closer - never
+                        // skip a nearer tower for a farther building.
+                        if (distractingEnemy.unitData || distractingDistance < currentTargetDistance) {
+                            tank.target = distractingEnemy;
+                            tank.needsNewPath = true;
+                        }
                     }
                 }
             }
@@ -1835,8 +1855,9 @@ class AIController {
                 return;
             }
         } else {
-            // For building-only attackers (Tiger), check for deployable enemy buildings in aggro range
-            const nearbyBuilding = this.findNearbyEnemyBuilding(tank, aggroRange);
+            // For building-only attackers (Tiger, Bomber), pick the closest
+            // legal building - including towers - within aggro range.
+            const nearbyBuilding = this.findClosestEnemyBuilding(tank, aggroRange);
             if (nearbyBuilding) {
                 tank.target = nearbyBuilding;
                 tank.attacking = false;

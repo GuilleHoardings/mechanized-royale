@@ -22,6 +22,7 @@ npm install --prefix tools/graphics-harness      # once
 node tools/graphics-harness/render-gallery.js    # render sheets
 node tools/graphics-harness/render-gallery.js --check   # render + assert
 node tools/graphics-harness/scene-smoke.js       # headless DeckScene test
+node tools/graphics-harness/targeting-smoke.js   # headless AI target-priority test
 ```
 
 `--check` also verifies, and exits non-zero on failure:
@@ -46,7 +47,21 @@ save buttons, duplicate cards, and save/migration regressions.
 
 ```sh
 npm run smoke --prefix tools/graphics-harness   # or: node tools/graphics-harness/scene-smoke.js
-npm test --prefix tools/graphics-harness         # art checks + scene smoke
+npm test --prefix tools/graphics-harness         # art checks + scene smoke + targeting
+```
+
+## Targeting smoke test
+
+`targeting-smoke.js` runs the real `AIController.updateTankAI()` against a stub
+scene and checks which entity a unit locks on to. It covers the priority rule
+that the **closest legal target wins**: a nearer tower is never skipped for a
+farther deployed building such as a Wirbelwind or V1 Launcher, even when that
+building is damaged or slowly decaying. It also keeps the intentional exceptions
+(troops may pull aggro, and the King Tower stays protected while a lane tower
+stands).
+
+```sh
+npm run targeting --prefix tools/graphics-harness   # or: node tools/graphics-harness/targeting-smoke.js
 ```
 
 ## Output
@@ -68,6 +83,8 @@ them into their lane.
 ## Files
 
 - `render-gallery.js` — builds the sheets, draws labels, runs `--check`
+- `targeting-smoke.js` — real `AIController` target-priority checks against a
+  stub scene (closest legal target wins; King Tower immunity; troop aggro)
 - `phaser-shim.js` — `MockScene`, `Graphics`, `Container`; records draw ops and
   replays them on a Canvas2D context. `boundsOf()` walks the display tree to
   measure drawn content, including per-child offsets.
