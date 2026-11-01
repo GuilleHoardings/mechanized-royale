@@ -879,7 +879,9 @@ class BattleScene extends Phaser.Scene {
             [TANK_TYPES.HEAVY]: 0xff0066,
             [TANK_TYPES.TANK_DESTROYER]: 0x9900ff,
             [TANK_TYPES.ARTILLERY]: 0xffff00,
-            [TANK_TYPES.FAST_ATTACK]: 0x00ccff
+            [TANK_TYPES.FAST_ATTACK]: 0x00ccff,
+            [TANK_TYPES.AIR]: 0x38bdf8,
+            [TANK_TYPES.ANTI_AIR]: 0xa3e635
         };
         const headerColor = isTroop ? (typeColors[unitData.unitType] || 0x4a90e2) : 0x4a90e2;
         tooltipBg.fillStyle(headerColor, 0.3);
@@ -899,7 +901,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(1, 0);
 
         // Tank type indicator
-        const typeText = this.add.text(15, 28, isTroop ? unitData.unitType.toUpperCase() : cardRef.cardDef.type.toUpperCase(), {
+        const typeText = this.add.text(15, 28, isTroop ? unitData.unitType.toUpperCase().replace('_', '-') : cardRef.cardDef.type.toUpperCase(), {
             fontSize: '10px',
             fill: '#aaaaaa',
             fontFamily: 'Arial'
@@ -964,9 +966,15 @@ class BattleScene extends Phaser.Scene {
 
         const mobilityStats = this.add.text(rightColumnX, statsY + 15,
             `Speed: ${unitData.stats.speed}\n` +
-            `Front Armor: ${unitData.stats.armor.front}\n` +
-            `Side Armor: ${unitData.stats.armor.side}\n` +
-            `Rear Armor: ${unitData.stats.armor.rear}`, {
+            (unitData.isAir
+                ? `Airborne: Yes\nTargets: ${unitData.canTargetGround === false ? 'Air only' : 'Air + Ground'}`
+                : (unitData.canTargetGround === false
+                    ? `Front Armor: ${unitData.stats.armor?.front ?? 0}\n` +
+                      `Side Armor: ${unitData.stats.armor?.side ?? 0}\n` +
+                      `Targets: Air only`
+                    : `Front Armor: ${unitData.stats.armor?.front ?? 0}\n` +
+                      `Side Armor: ${unitData.stats.armor?.side ?? 0}\n` +
+                      `Rear Armor: ${unitData.stats.armor?.rear ?? 0}`)), {
             fontSize: '11px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -1106,6 +1114,8 @@ class BattleScene extends Phaser.Scene {
         tower.isPlayerOwned = isPlayerTeam;
         tower.isMainTower = isMainTower;
         tower.towerType = towerType;
+        tower.canTargetAir = entityDef.canTargetAir !== false;
+        tower.canTargetGround = entityDef.canTargetGround !== false;
         tower.lastShotTime = 0;
         tower.target = null;
         tower.lastTargetUpdate = 0;
@@ -1571,6 +1581,8 @@ class BattleScene extends Phaser.Scene {
         building.lastTargetUpdate = 0;
         building.attackCooldown = 2000; // 2 seconds between attacks
         building.canShoot = !payload?.launchIntervalMs;
+        building.canTargetAir = !!unitDef?.canTargetAir;
+        building.canTargetGround = unitDef?.canTargetGround !== false;
 
         // Update statistics
         const stats = isPlayerOwned ? this.battleStats.player : this.battleStats.ai;
@@ -1618,8 +1630,10 @@ class BattleScene extends Phaser.Scene {
         // Find closest enemy target
         const isPlayerBuilding = building.isPlayerOwned;
         const enemies = [
-            ...this.tanks.filter(t => t.isPlayerTank !== isPlayerBuilding && t.health > 0),
-            ...this.buildings.filter(b => b.isPlayerOwned !== isPlayerBuilding && b.health > 0 && b !== building)
+            ...this.tanks.filter(t => t.isPlayerTank !== isPlayerBuilding && t.health > 0
+                && GameHelpers.canTarget(building, t)),
+            ...this.buildings.filter(b => b.isPlayerOwned !== isPlayerBuilding && b.health > 0 && b !== building
+                && GameHelpers.canTarget(building, b))
         ];
 
         if (enemies.length === 0) return; // No targets available
@@ -1669,6 +1683,7 @@ class BattleScene extends Phaser.Scene {
         missile.blastRadius = payload.blastRadius || 60;
         missile.isPlayerMissile = isPlayerBuilding;
         missile.isMissile = true;
+        missile.attacker = building;
 
         // Add to projectiles array for cleanup tracking
         this.projectiles.push(missile);
@@ -1702,8 +1717,10 @@ class BattleScene extends Phaser.Scene {
             if (!currentTarget || !currentTarget.scene || currentTarget.health <= 0) {
                 // Retarget to nearest enemy
                 const newEnemies = [
-                    ...this.tanks.filter(t => t.isPlayerTank !== missile.isPlayerMissile && t.health > 0),
-                    ...this.buildings.filter(b => b.isPlayerOwned !== missile.isPlayerMissile && b.health > 0)
+                    ...this.tanks.filter(t => t.isPlayerTank !== missile.isPlayerMissile && t.health > 0
+                        && GameHelpers.canTarget(missile.attacker, t)),
+                    ...this.buildings.filter(b => b.isPlayerOwned !== missile.isPlayerMissile && b.health > 0
+                        && GameHelpers.canTarget(missile.attacker, b))
                 ];
 
                 if (newEnemies.length === 0) {
@@ -1807,6 +1824,9 @@ class BattleScene extends Phaser.Scene {
                 : target.isPlayerOwned !== isPlayerMissile;
 
             if (!isEnemy) return;
+
+            // Ground-launched warheads cannot reach aircraft
+            if (missile.attacker && !GameHelpers.canTarget(missile.attacker, target)) return;
 
             const distance = GameHelpers.distance(missile.x, missile.y, target.x, target.y);
             if (distance <= radius) {
@@ -2518,6 +2538,9 @@ class BattleScene extends Phaser.Scene {
         tank.health = unitData.stats.hp;
         tank.maxHealth = unitData.stats.hp;
         tank.isPlayerTank = isPlayerTank;
+        tank.isAir = !!unitData.isAir;
+        tank.canTargetAir = !!unitData.canTargetAir;
+        tank.canTargetGround = unitData.canTargetGround !== false;
         tank.target = null;
         tank.lastShotTime = 0;
         tank.lastTargetUpdate = 0;
@@ -2544,8 +2567,8 @@ class BattleScene extends Phaser.Scene {
         this.aiController.updateTankAI(tank);
         this.tanks.push(tank);
 
-        // Set initial depth based on Y position
-        tank.setDepth(y);
+        // Set initial depth based on Y position (aircraft stay above ground units)
+        tank.setDepth(tank.isAir ? AIR_CONFIG.RENDER_DEPTH : y);
 
         this.createTankHealthBar(tank);
 
@@ -2695,6 +2718,8 @@ class BattleScene extends Phaser.Scene {
     }
 
     updateTankMovement(tank) {
+        const isAir = GameHelpers.isAirUnit(tank);
+
         // Skip movement if stunned
         if (tank.stunnedUntil && this.time.now < tank.stunnedUntil) {
             tank.moving = false;
@@ -2725,7 +2750,7 @@ class BattleScene extends Phaser.Scene {
             const currentPos = { x: tank.x, y: tank.y };
 
             // Check if pathfinding is needed (crossing river)
-            if (Pathfinding.needsPathfinding(currentPos, targetPos)) {
+            if (!isAir && Pathfinding.needsPathfinding(currentPos, targetPos)) {
                 try {
                     tank.path = Pathfinding.findPath(currentPos, targetPos, tank);
                 } catch (error) {
@@ -2787,22 +2812,26 @@ class BattleScene extends Phaser.Scene {
                 const waypoint = tank.path[tank.pathIndex];
 
                 // Simple obstacle avoidance - check for other tanks nearby
+                // (aircraft fly over the ground battle and ignore traffic)
                 const avoidanceRadius = 40;
                 let avoidanceX = 0;
                 let avoidanceY = 0;
 
-                this.tanks.forEach(otherTank => {
-                    if (otherTank === tank || otherTank.health <= 0) return;
+                if (!isAir) {
+                    this.tanks.forEach(otherTank => {
+                        if (otherTank === tank || otherTank.health <= 0) return;
+                        if (otherTank.isAir) return; // don't swerve around aircraft
 
-                    const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
-                    if (otherDistance < avoidanceRadius) {
-                        // Calculate avoidance vector
-                        const avoidAngle = GameHelpers.angle(otherTank.x, otherTank.y, tank.x, tank.y);
-                        const avoidForce = (avoidanceRadius - otherDistance) / avoidanceRadius;
-                        avoidanceX += Math.cos(avoidAngle) * avoidForce * 30;
-                        avoidanceY += Math.sin(avoidAngle) * avoidForce * 30;
-                    }
-                });
+                        const otherDistance = GameHelpers.distance(tank.x, tank.y, otherTank.x, otherTank.y);
+                        if (otherDistance < avoidanceRadius) {
+                            // Calculate avoidance vector
+                            const avoidAngle = GameHelpers.angle(otherTank.x, otherTank.y, tank.x, tank.y);
+                            const avoidForce = (avoidanceRadius - otherDistance) / avoidanceRadius;
+                            avoidanceX += Math.cos(avoidAngle) * avoidForce * 30;
+                            avoidanceY += Math.sin(avoidAngle) * avoidForce * 30;
+                        }
+                    });
+                }
 
                 // Calculate movement direction towards waypoint
                 const targetAngle = GameHelpers.angle(tank.x, tank.y, waypoint.worldX, waypoint.worldY);
@@ -2836,7 +2865,7 @@ class BattleScene extends Phaser.Scene {
             this.updateTankHealth(tank);
 
             // Update tank depth to match its Y position for correct layering
-            tank.setDepth(tank.y);
+            tank.setDepth(isAir ? AIR_CONFIG.RENDER_DEPTH : tank.y);
         }
 
         // Update selection circle position
@@ -2872,9 +2901,9 @@ class BattleScene extends Phaser.Scene {
             'panther',      // High DPS medium tank
             'sherman',        // Long-range medium tank
             'jagdpanzer',       // Tank destroyer
-            'smoke_barrage',              // Smoke barrage for disruption
-            'artillery_strike',         // Artillery strike for area damage
-            'v1_launcher',          // V1 launcher for sustained fire
+            'attack_helicopter', // Air harassment
+            'bomber',           // Air win condition
+            'flak_panzer',      // Anti-air defense
             'infantry_platoon'     // Infantry platoon for harassment
         ];
 
@@ -3892,6 +3921,7 @@ class BattleScene extends Phaser.Scene {
                 // Player base: target AI tanks
                 const enemyTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
                 enemyTanks.forEach(enemy => {
+                    if (!GameHelpers.canTarget(base, enemy)) return;
                     const distance = GameHelpers.distance(base.x, base.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= baseRange) {
                         closestDistance = distance;
@@ -3902,6 +3932,7 @@ class BattleScene extends Phaser.Scene {
                 // Enemy base: target player tanks
                 const playerTanks = this.tanks.filter(t => t.isPlayerTank && t.health > 0);
                 playerTanks.forEach(enemy => {
+                    if (!GameHelpers.canTarget(base, enemy)) return;
                     const distance = GameHelpers.distance(base.x, base.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= baseRange) {
                         closestDistance = distance;
@@ -3935,6 +3966,7 @@ class BattleScene extends Phaser.Scene {
                 const enemyBuildings = this.buildings.filter(b => !b.isPlayerOwned && !b.isMainTower && b.health > 0);
 
                 [...enemyTanks, ...enemyBuildings].forEach(enemy => {
+                    if (!GameHelpers.canTarget(building, enemy)) return;
                     const distance = GameHelpers.distance(building.x, building.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= buildingRange) {
                         closestDistance = distance;
@@ -3947,6 +3979,7 @@ class BattleScene extends Phaser.Scene {
                 const playerBuildings = this.buildings.filter(b => b.isPlayerOwned && !b.isMainTower && b.health > 0);
 
                 [...playerTanks, ...playerBuildings].forEach(enemy => {
+                    if (!GameHelpers.canTarget(building, enemy)) return;
                     const distance = GameHelpers.distance(building.x, building.y, enemy.x, enemy.y);
                     if (distance < closestDistance && distance <= buildingRange) {
                         closestDistance = distance;

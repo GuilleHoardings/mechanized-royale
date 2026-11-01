@@ -241,6 +241,11 @@ function renderBattlefield(zoom) {
     place(unitNode('panther', false), 7, 17, facingEnemy);
     place(unitNode('jagdpanzer', false), 11, 17, facingEnemy);
 
+    // Air support overhead
+    place(unitNode('attack_helicopter', true), 8, 19, facingPlayer);
+    place(unitNode('bomber', false), 10, 18, facingEnemy);
+    place(unitNode('flak_panzer', true), 5, 22, facingPlayer);
+
     // Labels
     ctx.fillStyle = 'rgba(0,0,0,0.55)';
     ctx.fillRect(0, 0, width, 30 * zoom * 0.6);
@@ -260,7 +265,7 @@ function main() {
     fs.mkdirSync(OUT_DIR, { recursive: true });
     console.log('Rendering vector graphics gallery...');
 
-    const unitIds = ['tiger', 'panther', 'sherman', 'jagdpanzer', 'infantry'];
+    const unitIds = ['tiger', 'panther', 'sherman', 'jagdpanzer', 'infantry', 'attack_helicopter', 'bomber', 'flak_panzer'];
 
     const unitItems = [];
     for (const id of unitIds) {
@@ -275,7 +280,7 @@ function main() {
         subtitle: 'top row player (blue) / bottom row enemy (red) • barrels point right',
         items: unitItems,
         zoom: 6,
-        columns: 5
+        columns: 4
     });
 
     renderSheet('towers.png', {
@@ -333,7 +338,7 @@ function runChecks() {
         rows.push({ kind, id, w: w.toFixed(1), h: h.toFixed(1), ok });
     };
 
-    for (const id of ['tiger', 'panther', 'sherman', 'jagdpanzer', 'infantry']) {
+    for (const id of ['tiger', 'panther', 'sherman', 'jagdpanzer', 'infantry', 'attack_helicopter', 'bomber', 'flak_panzer']) {
         record('unit', id, unitNode(id, true), 8, { w: 80, h: 60 });
     }
     record('tower', 'main', towerNode(true, true), 60, { w: 120, h: 140 });
@@ -388,12 +393,33 @@ function runChecks() {
     if (!idempotent) deckFailures++;
     console.log(`  ${idempotent ? 'ok  ' : 'FAIL'} sanitizeDeck is idempotent`);
 
+    // --- Air rules --------------------------------------------------------
+    console.log('\nAir targeting check (rules live in src/utils/helpers.js):');
+    const canTarget = game.GameHelpers.canTarget;
+    const airChecks = [
+        ['tank -> aircraft', canTarget(UNITS.tiger, UNITS.attack_helicopter), false],
+        ['tank -> tank', canTarget(UNITS.tiger, UNITS.panther), true],
+        ['helicopter -> tank', canTarget(UNITS.attack_helicopter, UNITS.tiger), true],
+        ['helicopter -> aircraft', canTarget(UNITS.attack_helicopter, UNITS.bomber), true],
+        ['bomber -> tank', canTarget(UNITS.bomber, UNITS.tiger), true],
+        ['bomber -> aircraft', canTarget(UNITS.bomber, UNITS.attack_helicopter), false],
+        ['wirbelwind -> aircraft', canTarget(UNITS.flak_panzer, UNITS.bomber), true],
+        ['wirbelwind -> tank', canTarget(UNITS.flak_panzer, UNITS.tiger), false],
+        ['tower -> aircraft', canTarget({ canTargetAir: true }, UNITS.bomber), true]
+    ];
+    let airFailures = 0;
+    for (const [label, actual, expected] of airChecks) {
+        const ok = actual === expected;
+        if (!ok) airFailures++;
+        console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(24)} ${actual}`);
+    }
+
     const failed = rows.filter((r) => !r.ok);
-    if (failed.length || centringFailures || deckFailures) {
-        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed.`);
+    if (failed.length || centringFailures || deckFailures || airFailures) {
+        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed, ${airFailures} air check(s) failed.`);
         process.exitCode = 1;
     } else {
-        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck rules valid.`);
+        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck and air rules valid.`);
     }
 }
 

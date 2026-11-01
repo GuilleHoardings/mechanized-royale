@@ -146,6 +146,10 @@ function checkLayout(scene, label) {
         scene.deckTiles.every((tile) => inside(tile, L.deckX, L.deckY, L.deckW, L.deckH)));
     check(`${label}: collection tiles fit the collection panel`,
         scene.collectionTiles.every((tile) => inside(tile, L.collectionX, L.collectionY, L.collectionW, L.collectionH)));
+    const lowestTile = Math.max(...scene.collectionTiles.map((tile) => tile.y + tile.h));
+    check(`${label}: collection note clears the card grid`,
+        scene.collectionNote.y - 8 >= lowestTile,
+        `note ${scene.collectionNote.y}, grid ends ${lowestTile}`);
     check(`${label}: detail panel clears the collection panel`,
         L.detailY >= L.collectionY + L.collectionH);
     check(`${label}: buttons clear the detail panel`,
@@ -183,8 +187,12 @@ check('builds one tile per deck slot', scene.deckTiles.length === DECK_CONFIG.SI
 check('builds one tile per card in the collection', scene.collectionTiles.length === cardCount);
 check('starts with a full legal deck', scene.deck.length === DECK_CONFIG.SIZE && new Set(scene.deck).size === DECK_CONFIG.SIZE);
 check('save is enabled when the deck is full', scene.saveButton.enabled === true);
-check('tells the player when nothing is left to swap in',
-    /already in your deck/i.test(scene.collectionNote.text), scene.collectionNote.text);
+const spareCards = cardCount - DECK_CONFIG.SIZE;
+check('tells the player how many cards are still available',
+    new RegExp(`^${spareCards} available$`, 'i').test(scene.collectionCountText.text),
+    scene.collectionCountText.text);
+check('deck-full hint mentions swapping',
+    /deck full/i.test(scene.collectionNote.text), scene.collectionNote.text);
 checkLayout(scene, '800px');
 
 // --- Inspect a card -------------------------------------------------------

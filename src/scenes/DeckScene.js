@@ -234,11 +234,11 @@ class DeckScene extends Phaser.Scene {
         const L = this.layout;
         const ids = Object.keys(CARDS);
         const cols = 4;
-        const w = 84;
-        const h = 70;
-        const gapX = 12;
-        const gapY = 12;
         const rows = Math.ceil(ids.length / cols);
+        const w = 84;
+        const h = rows > 2 ? 62 : 70;
+        const gapX = 12;
+        const gapY = rows > 2 ? 8 : 12;
         const gridW = cols * w + (cols - 1) * gapX;
         const gridH = rows * h + (rows - 1) * gapY;
         const startX = (L.W - gridW) / 2;
@@ -255,7 +255,7 @@ class DeckScene extends Phaser.Scene {
                 y: startY + row * (h + gapY),
                 w, h,
                 kind: 'collection',
-                artScale: 0.9,
+                artScale: rows > 2 ? 0.82 : 0.9,
                 nameSize: 9
             });
 

@@ -18,6 +18,7 @@ class CombatSystem {
         // Skip if stunned
         if (tank.stunnedUntil && currentTime < tank.stunnedUntil) return;
         if (!tank.target || tank.moving) return;
+        if (!GameHelpers.canTarget(tank, tank.target)) return;
 
         const timeSinceLastShot = currentTime - tank.lastShotTime;
         const rateOfFire = 2000; // 2 seconds between shots
@@ -106,6 +107,14 @@ class CombatSystem {
         } else if (attacker.unitData.unitType === TANK_TYPES.MEDIUM) {
             bulletSpeed = 225;
             bulletColor = 0xffffff;
+        } else if (attacker.unitData.unitType === TANK_TYPES.AIR) {
+            // Aircraft cannons fire fast tracer rounds
+            bulletSpeed = 320;
+            bulletColor = 0x7dd3fc;
+        } else if (attacker.unitData.unitType === TANK_TYPES.ANTI_AIR) {
+            // Wirbelwind fires high-velocity AA tracers
+            bulletSpeed = 340;
+            bulletColor = 0xa3e635;
         }
 
         // Create bullet sprite

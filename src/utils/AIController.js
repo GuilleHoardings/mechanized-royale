@@ -1479,7 +1479,9 @@ class AIController {
             [TANK_TYPES.FAST_ATTACK]: ['smoke_barrage', 'panther'],
             [TANK_TYPES.TANK_DESTROYER]: ['infantry_platoon', 'tiger'], // Swarm to overwhelm, Tiger to tank
             [TANK_TYPES.ARTILLERY]: ['panther', 'jagdpanzer'],   // Fast units to reach artillery
-            [TANK_TYPES.MEDIUM]: ['jagdpanzer', 'sherman']
+            [TANK_TYPES.MEDIUM]: ['jagdpanzer', 'sherman'],
+            [TANK_TYPES.AIR]: ['flak_panzer', 'attack_helicopter'], // AA gun or air duel
+            [TANK_TYPES.ANTI_AIR]: ['tiger', 'panther']          // Push ground while AA looks up
         };
 
         const counterOptions = counters[playerTankData.type] || ['panther'];
@@ -1550,6 +1552,10 @@ class AIController {
      */
     isValidTankTarget(tank, target) {
         if (!target || target.health <= 0) return false;
+
+        // Air/ground rules: ground tanks cannot shoot aircraft, and dedicated
+        // AA units cannot shoot ground troops.
+        if (!GameHelpers.canTarget(tank, target)) return false;
 
         const isBuilding = target.isPlayerOwned !== undefined || target.isMainTower !== undefined;
 
@@ -1667,8 +1673,9 @@ class AIController {
             if (dist > aggroRange) continue;
 
             // Avoid aggroing units across river water unless near bridge crossing
+            // (aircraft ignore the river entirely)
             const enemySide = enemy.y < riverRowTop ? 'top' : 'bottom';
-            if (tankSide !== enemySide && dist > 90) {
+            if (!tank.unitData?.isAir && tankSide !== enemySide && dist > 90) {
                 continue;
             }
 
@@ -1840,8 +1847,9 @@ class AIController {
         }
 
         // Step C: Fallback to Lane Objective (Tower)
+        // Skip it when the unit cannot legally attack the tower (e.g. air-only AA).
         const laneObjective = this.getLaneObjective(tank);
-        if (laneObjective) {
+        if (laneObjective && GameHelpers.canTarget(tank, laneObjective)) {
             tank.target = laneObjective;
             tank.attacking = false;
             tank.moving = true;

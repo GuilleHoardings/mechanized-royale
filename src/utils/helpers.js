@@ -49,7 +49,7 @@ const GameHelpers = {
         if (!attacker || !target) return false;
         const source = attacker.unitData || attacker;
 
-        if (this.isAirUnit(target)) {
+        if (GameHelpers.isAirUnit(target)) {
             return source.canTargetAir === true;
         }
         return source.canTargetGround !== false;
@@ -268,8 +268,18 @@ const GameHelpers = {
             copies[id] = used + 1;
         }
 
-        // Top up with unused cards so a save from an older build still plays
+        // Top up with unused cards so a save from an older build still plays.
+        // Prefer the default deck order so new units actually appear in old saves.
+        const fillOrder = [];
+        const preferred = (typeof DEFAULT_PLAYER_DECK !== 'undefined') ? DEFAULT_PLAYER_DECK : [];
+        for (const id of preferred) {
+            if (!fillOrder.includes(id)) fillOrder.push(id);
+        }
         for (const id of Object.keys(CARDS)) {
+            if (!fillOrder.includes(id)) fillOrder.push(id);
+        }
+
+        for (const id of fillOrder) {
             if (deck.length >= DECK_CONFIG.SIZE) break;
             if ((copies[id] || 0) >= maxCopies) continue;
             deck.push(id);

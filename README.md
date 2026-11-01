@@ -12,6 +12,7 @@ A real-time strategy game that combines the fast-paced tower defense mechanics o
 
 - Real-time tactical combat with automatic unit movement
 - Diverse tank roster with unique stats and abilities
+- Air units and anti-air vehicles (ground tanks cannot shoot aircraft)
 - Deck building screen for choosing the 8-card battle loadout
 - Research tree progression system
 - Single-player campaign with AI opponents

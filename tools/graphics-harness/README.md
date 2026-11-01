@@ -32,6 +32,8 @@ node tools/graphics-harness/scene-smoke.js       # headless DeckScene test
   which catches barrel-length changes that silently push art off-centre
 - deck rules in `GameHelpers.sanitizeDeck()` produce 8 unique, known cards from
   the default deck, legacy `player.tanks` saves, junk input and overlong input
+- air targeting follows `GameHelpers.canTarget()`: tanks cannot hit aircraft,
+  the Wirbelwind cannot hit ground, and towers can hit both
 
 ## Scene smoke test
 

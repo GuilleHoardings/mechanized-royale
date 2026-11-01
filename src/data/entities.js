@@ -123,8 +123,8 @@ const UNITS = {
         description: 'Armoured bomber that flies straight for enemy structures. Cannot attack troops'
     },
     flak_panzer: {
-        id: 'flak_panzer',
-        name: 'Flak Panzer',
+        id: 'flak_panzer', // Kept for save/card compatibility; display name is the vehicle
+        name: 'Wirbelwind',
         unitType: TANK_TYPES.ANTI_AIR,
         tier: 2,
         cost: 3,
@@ -139,7 +139,7 @@ const UNITS = {
         canTargetAir: true,
         canTargetGround: false,
         abilities: [],
-        description: 'Dedicated anti-air vehicle. Shreds aircraft but cannot engage ground troops'
+        description: 'Flakpanzer IV with quad 20 mm guns. Shreds aircraft but cannot engage ground troops'
     },
     v1_launcher: {
         id: 'v1_launcher',

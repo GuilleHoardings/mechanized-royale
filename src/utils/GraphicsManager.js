@@ -14,7 +14,10 @@ const CARD_ART_OFFSETS = {
     panther: { x: -4.0, y: -1.4 },
     sherman: { x: -1.8, y: -1.4 },
     jagdpanzer: { x: -5.2, y: -1.4 },
-    infantry_platoon: { x: -1.8, y: 0 }
+    infantry_platoon: { x: -1.8, y: 0 },
+    attack_helicopter: { x: 2.8, y: 0 },
+    bomber: { x: -1.4, y: -1.4 },
+    flak_panzer: { x: -1.8, y: -1.4 }
 };
 
 class GraphicsManager {
@@ -42,7 +45,9 @@ class GraphicsManager {
             [TANK_TYPES.HEAVY]: { player: 0xf472b6, enemy: 0xec4899 },         // Pink for heavy
             [TANK_TYPES.TANK_DESTROYER]: { player: 0xa78bfa, enemy: 0x8b5cf6 }, // Purple
             [TANK_TYPES.ARTILLERY]: { player: 0xfde047, enemy: 0xeab308 },     // Brighter Yellow
-            [TANK_TYPES.FAST_ATTACK]: { player: 0x22d3ee, enemy: 0x06b6d4 }    // Brighter Cyan
+            [TANK_TYPES.FAST_ATTACK]: { player: 0x22d3ee, enemy: 0x06b6d4 },   // Brighter Cyan
+            [TANK_TYPES.AIR]: { player: 0x38bdf8, enemy: 0x0ea5e9 },           // Sky blue
+            [TANK_TYPES.ANTI_AIR]: { player: 0xa3e635, enemy: 0x84cc16 }        // Acid green
         };
     }
 
@@ -480,6 +485,15 @@ class GraphicsManager {
             case 'jagdpanzer':
                 this._drawJagdpanzer(graphics, baseColor, darkColor, typeAccentColor);
                 break;
+            case 'attack_helicopter':
+                this._drawAttackHelicopter(graphics, baseColor, darkColor, typeAccentColor);
+                return; // Aircraft have no tracks
+            case 'bomber':
+                this._drawBomber(graphics, baseColor, darkColor, typeAccentColor);
+                return; // Aircraft have no tracks
+            case 'flak_panzer':
+                this._drawFlakPanzer(graphics, baseColor, darkColor, typeAccentColor);
+                break;
             // Fallbacks for types if specific ID not found
             case TANK_TYPES.LIGHT:
                 this._drawLightTank(graphics, baseColor, darkColor, typeAccentColor);
@@ -495,6 +509,12 @@ class GraphicsManager {
                 break;
             case TANK_TYPES.FAST_ATTACK:
                 this._drawFastAttack(graphics, baseColor, darkColor, typeAccentColor);
+                break;
+            case TANK_TYPES.AIR:
+                this._drawAttackHelicopter(graphics, baseColor, darkColor, typeAccentColor);
+                return; // Aircraft have no tracks
+            case TANK_TYPES.ANTI_AIR:
+                this._drawFlakPanzer(graphics, baseColor, darkColor, typeAccentColor);
                 break;
             default:
                 console.warn(`No draw method for unit: ${unitId}, falling back to Medium`);
@@ -1016,8 +1036,205 @@ class GraphicsManager {
         drawSoldier(7, -5, baseColor);
     }
 
+    /**
+     * Attack helicopter: nose points +x, tail boom and tail rotor extend -x.
+     * Top-down silhouette with a translucent rotor disc so it reads as airborne.
+     */
+    _drawAttackHelicopter(graphics, baseColor, darkColor, typeAccentColor) {
+        // Shadow on the ground, offset from the airframe
+        graphics.fillStyle(0x000000, 0.18);
+        graphics.fillEllipse(4, 14, 52, 18);
+
+        // Tail boom
+        graphics.fillStyle(this._shade(baseColor, 0.78));
+        graphics.fillRect(-30, -2.5, 20, 5);
+        graphics.lineStyle(1, this.outlineColor, 0.5);
+        graphics.strokeRect(-30, -2.5, 20, 5);
+
+        // Vertical fin (seen from above as a wedge)
+        this._polygon(graphics, [
+            [-28, -2], [-33, -11], [-26, -9], [-23, -2]
+        ], darkColor, 0.55);
+
+        // Tail rotor blur
+        graphics.fillStyle(0x000000, 0.12);
+        graphics.fillCircle(-31, 0, 7);
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(-32.5, -6, 1.6, 12);
+        graphics.fillRect(-37, -0.8, 12, 1.6);
+
+        // Stub wings with rocket pods
+        this._plate(graphics, -5, -16, 6, 32, 2, this._shade(baseColor, 0.72), 0.5);
+        this._plate(graphics, -8, -17, 9, 6, 3, this.colors.gunmetal, 0.5);
+        this._plate(graphics, -8, 11, 9, 6, 3, this.colors.gunmetal, 0.5);
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillCircle(0, -14, 1.6);
+        graphics.fillCircle(0, 14, 1.6);
+
+        // Fuselage + tapered nose
+        this._plate(graphics, -14, -7, 28, 14, 7, baseColor, 0.6);
+        this._polygon(graphics, [
+            [12, -6], [22, 0], [12, 6]
+        ], this._shade(baseColor, 1.08), 0.6);
+
+        // Canopy and glint
+        this._plate(graphics, 2, -5, 11, 10, 4, 0xaad4ff, 0.4);
+        graphics.fillStyle(0xffffff, 0.55);
+        graphics.fillEllipse(6, -2.5, 3, 2);
+
+        // Engine housing and exhausts
+        this._plate(graphics, -9, -4, 8, 8, 2, darkColor, 0.45);
+        graphics.fillStyle(0x111827, 0.7);
+        graphics.fillRect(-13, -3, 3, 2);
+        graphics.fillRect(-13, 1, 3, 2);
+
+        // Team stripe along the boom and nose
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillRect(-24, -1, 12, 2);
+        graphics.fillRect(15, -1, 3, 2);
+
+        // Rotor disc, blades and mast
+        graphics.fillStyle(0x000000, 0.10);
+        graphics.fillCircle(0, 0, 25);
+        graphics.fillStyle(this.colors.gunmetal);
+        graphics.fillRect(-25, -1, 50, 2);
+        graphics.fillRect(-1, -25, 2, 50);
+        this._disc(graphics, 0, 0, 3, 0x6b7280, 0.5);
+
+        this._drawHelicopterSkids(graphics, typeAccentColor);
+    }
+
+    /**
+     * Dive bomber: wide swept wings, twin engines and a glazed nose.
+     * Nose points +x like every other unit.
+     */
+    _drawBomber(graphics, baseColor, darkColor, typeAccentColor) {
+        // Shadow
+        graphics.fillStyle(0x000000, 0.18);
+        graphics.fillEllipse(6, 18, 62, 20);
+
+        // Swept main wings
+        const wing = (dir) => this._polygon(graphics, [
+            [10, 3 * dir], [-4, 24 * dir], [-12, 23 * dir], [-2, 3 * dir]
+        ], this._shade(baseColor, 0.82), 0.55);
+        wing(-1);
+        wing(1);
+
+        // Tailplanes
+        const tailplane = (dir) => this._polygon(graphics, [
+            [-20, 2 * dir], [-28, 12 * dir], [-33, 12 * dir], [-28, 2 * dir]
+        ], this._shade(baseColor, 0.9), 0.5);
+        tailplane(-1);
+        tailplane(1);
+
+        // Engine nacelles and propeller blur
+        for (const wingY of [-13, 10]) {
+            this._plate(graphics, -2, wingY, 14, 5, 2.5, darkColor, 0.5);
+            graphics.fillStyle(0x000000, 0.12);
+            graphics.fillCircle(13, wingY + 2.5, 7);
+            this._disc(graphics, 13, wingY + 2.5, 2, 0x6b7280, 0.4);
+        }
+
+        // Fuselage + nose
+        this._plate(graphics, -24, -7, 42, 14, 7, baseColor, 0.6);
+        this._polygon(graphics, [
+            [17, -6], [28, 0], [17, 6]
+        ], this._shade(baseColor, 1.08), 0.6);
+
+        // Glazed cockpit
+        this._plate(graphics, 9, -4.5, 9, 9, 4, 0xaad4ff, 0.4);
+        graphics.fillStyle(0xffffff, 0.5);
+        graphics.fillEllipse(12, -2, 2.5, 1.8);
+
+        // Dorsal stripe + roundel
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillRect(-22, -1, 34, 2);
+        graphics.fillStyle(this.colors.metal);
+        graphics.fillCircle(-14, 0, 3);
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillCircle(-14, 0, 1.6);
+
+        // Tail fin
+        this._polygon(graphics, [
+            [-24, -2], [-32, -1], [-32, 1], [-24, 2]
+        ], darkColor, 0.5);
+
+        // Bomb bay seam
+        graphics.lineStyle(1, 0x000000, 0.25);
+        graphics.lineBetween(-12, -3, -12, 3);
+    }
+
+    /**
+     * Flakpanzer IV "Wirbelwind": Panzer IV hull with an open-topped octagonal
+     * turret and a quad 20 mm flak mount. Deliberately no main gun and no radar
+     * dish, so the silhouette reads as mobile anti-air rather than a tank.
+     */
+    _drawFlakPanzer(graphics, baseColor, darkColor, typeAccentColor) {
+        this._drawChassis(graphics, {
+            length: 32, width: 20, trackWidth: 5, trackLength: 34, radius: 4, baseColor
+        });
+
+        // Rear engine deck and stowed tools
+        graphics.fillStyle(0x000000, 0.18);
+        graphics.fillRoundedRect(-15, -8, 6, 16, 2);
+        graphics.fillStyle(0x4b5563, 0.85);
+        graphics.fillRect(-14, -6, 4, 1.2);
+        graphics.fillRect(-14, -2.5, 4, 1.2);
+        graphics.fillRect(-14, 1, 4, 1.2);
+
+        // Open-topped octagonal fighting compartment. The bright rim around a
+        // dark interior is the main cue that this is not a closed tank turret.
+        const rim = [
+            [8, -6], [4, -9], [-6, -9], [-10, -6.5],
+            [-10, 6.5], [-6, 9], [4, 9], [8, 6]
+        ];
+        this._polygon(graphics, rim, this._shade(baseColor, 1.35), 0.65);
+        this._polygon(graphics, [
+            [6.5, -4.8], [3.2, -7.2], [-5.2, -7.2], [-8.2, -5.4],
+            [-8.2, 5.4], [-5.2, 7.2], [3.2, 7.2], [6.5, 4.8]
+        ], 0x0b1220, 0.5, 0.92);
+
+        // Gun shield wedges either side of the opening
+        this._polygon(graphics, [
+            [6, -7.5], [12, -3.5], [12, -1], [5.5, -4]
+        ], this._shade(baseColor, 1.25), 0.55);
+        this._polygon(graphics, [
+            [6, 7.5], [12, 3.5], [12, 1], [5.5, 4]
+        ], this._shade(baseColor, 1.25), 0.55);
+
+        // Quad 20 mm mount. The barrels splay outward like a flak battery, which
+        // keeps the AA role obvious at card-icon size.
+        this._plate(graphics, -4, -6.5, 10, 13, 2, 0x1f2937, 0.55);
+
+        const guns = [
+            { startY: -5.2, endY: -9.2 },
+            { startY: -3.4, endY: -6.4 },
+            { startY: 3.4, endY: 6.4 },
+            { startY: 5.2, endY: 9.2 }
+        ];
+        for (const gun of guns) {
+            // Dark underlay acts as an outline and separates overlapping barrels
+            graphics.lineStyle(3.4, this.outlineColor, 0.75);
+            graphics.lineBetween(3, gun.startY, 20.5, gun.endY);
+            graphics.lineStyle(1.9, 0x9ca3af, 1);
+            graphics.lineBetween(3, gun.startY, 20.5, gun.endY);
+
+            // Flash hider
+            this._disc(graphics, 20.5, gun.endY, 1.7, 0x4b5563, 0.7);
+        }
+
+        // Breech blocks anchor the four guns to the mount
+        this._plate(graphics, -2.5, -6.4, 6, 5, 1.2, 0x374151, 0.55);
+        this._plate(graphics, -2.5, 1.4, 6, 5, 1.2, 0x374151, 0.55);
+
+        // Class stripe between the twin pods and team stripe on the glacis
+        graphics.fillStyle(typeAccentColor);
+        graphics.fillRect(-3, -0.8, 9, 1.6);
+        graphics.fillRect(13, -1, 3, 2);
+    }
+
     _drawHelicopterSkids(graphics, typeAccentColor) {
-        // Landing skids for Mega Minion helicopter profile
+        // Landing skids for the attack helicopter profile
         graphics.fillStyle(this.colors.gunmetal);
         graphics.fillRect(-14, 8, 28, 2); // Cross brace
         graphics.fillRect(-16, 10, 14, 2); // Left skid

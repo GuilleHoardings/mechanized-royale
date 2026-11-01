@@ -13,11 +13,15 @@ class BootScene extends Phaser.Scene {
         // Load battlefield texture
         this.load.image('battlefield', 'assets/textures/battlefield.png');
 
-        // Load card textures automatically based on naming convention: card_<cardId>.png
-        // This allows adding new art just by placing the file in assets/tanks/
+        // Load card textures that have generated metrics (card_<cardId>.png).
+        // Cards without art fall back to procedural graphics, so skipping them
+        // here avoids 404s for new cards that only have vector art.
         if (typeof CARDS !== 'undefined') {
+            const cardMetrics = (typeof CARD_METRICS !== 'undefined') ? CARD_METRICS : null;
             Object.keys(CARDS).forEach(cardId => {
-                this.load.image(`card_${cardId}`, `assets/tanks/card_${cardId}.png`);
+                if (!cardMetrics || cardMetrics[cardId]) {
+                    this.load.image(`card_${cardId}`, `assets/tanks/card_${cardId}.png`);
+                }
             });
         }
 
