@@ -277,7 +277,7 @@ function main() {
 
     renderSheet('units.png', {
         title: 'Units — vector art',
-        subtitle: 'top row player (blue) / bottom row enemy (red) • barrels point right',
+        subtitle: 'unit bodies use per-unit colours • health bars show team • barrels point right',
         items: unitItems,
         zoom: 6,
         columns: 4

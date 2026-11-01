@@ -4,6 +4,23 @@
  */
 
 /**
+ * Per-unit hull colours for vector mode. Both teams share the same palette so
+ * silhouettes stay readable; team identity comes from the blue/red health bar,
+ * as in texture mode. Keep these a few shades lighter than the battlefield so
+ * they do not disappear into the terrain.
+ */
+const UNIT_BASE_COLORS = {
+    tiger: 0x8ea2bd,            // Panzer grey-blue
+    panther: 0x7fae6a,          // Olive green
+    sherman: 0xa9bd7a,          // Light olive drab
+    jagdpanzer: 0xd2ab68,       // Dunkelgelb sand
+    infantry: 0xb3b07a,         // Field khaki
+    attack_helicopter: 0x7d9a6a, // Olive airframe
+    bomber: 0x93a3b5,           // Slate grey
+    flak_panzer: 0xdec06c       // Mustard dunkelgelb
+};
+
+/**
  * Card art is drawn around the turret, so long barrels bias the silhouette to
  * the right. These offsets re-centre each procedural icon inside its icon box.
  * Measured with tools/graphics-harness/render-gallery.js --check, which fails
@@ -74,6 +91,24 @@ class GraphicsManager {
         return {
             base: isPlayer ? this.colors.player : this.colors.enemy,
             dark: isPlayer ? this.colors.playerDark : this.colors.enemyDark,
+            accent: isPlayer ? this.colors.playerAccent : this.colors.enemyAccent
+        };
+    }
+
+    /**
+     * Resolves the hull palette for a unit. Vector mode uses one distinct base
+     * colour per vehicle instead of painting both teams blue/red, because the
+     * shapes are similar and colour is the main way to tell a Tiger from a
+     * Sherman. Team identity is carried by the health bar.
+     * Falls back to the team palette for generic type-only units.
+     */
+    getUnitColors(unitId, isPlayer) {
+        const base = UNIT_BASE_COLORS[unitId];
+        if (base === undefined) return this.getThemeColors(isPlayer);
+
+        return {
+            base,
+            dark: this._shade(base, 0.72),
             accent: isPlayer ? this.colors.playerAccent : this.colors.enemyAccent
         };
     }
@@ -454,7 +489,7 @@ class GraphicsManager {
         const scale = options.scale || 1.0;
         const showTracks = options.showTracks !== undefined ? options.showTracks : true;
 
-        const { base: baseColor, dark: darkColor, accent: accentColor } = this.getThemeColors(isPlayer);
+        const { base: baseColor, dark: darkColor, accent: accentColor } = this.getUnitColors(unitId, isPlayer);
 
         // Get tank data if available to determine type/accent
         const unitData = UNITS[unitId];
@@ -471,7 +506,7 @@ class GraphicsManager {
 
         switch (unitId) {
             case 'infantry':
-                this._drawInfantry(graphics, baseColor, accentColor);
+                this._drawInfantry(graphics, baseColor);
                 return; // Infantry has no tracks
             case 'tiger':
                 this._drawTigerTank(graphics, baseColor, darkColor, typeAccentColor);
@@ -990,7 +1025,7 @@ class GraphicsManager {
         this._disc(graphics, 0, -2.5, 1.2, 0x111827, 0);
     }
 
-    _drawInfantry(graphics, baseColor, accentColor) {
+    _drawInfantry(graphics, baseColor) {
         // Squad shadow
         graphics.fillStyle(0x000000, 0.2);
         graphics.fillEllipse(0, 2, 30, 16);
@@ -1030,9 +1065,9 @@ class GraphicsManager {
             graphics.fillRoundedRect(x - 5.5, y - 3, 3, 6, 1);
         };
 
-        // Squad formation (leader wearing the type accent)
+        // Squad formation - every soldier wears the same unit colour
         drawSoldier(-7, -5, baseColor);
-        drawSoldier(0, 5, accentColor);
+        drawSoldier(0, 5, baseColor);
         drawSoldier(7, -5, baseColor);
     }
 
