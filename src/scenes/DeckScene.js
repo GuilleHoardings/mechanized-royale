@@ -570,6 +570,9 @@ class DeckScene extends Phaser.Scene {
             if (unit.stats.speed) bits.push(`SPD ${unit.stats.speed}`);
         }
 
+        const lifetimeMs = unit?.lifetimeMs || unit?.payload?.lifetimeMs;
+        if (lifetimeMs) bits.push(`LIFE ${Math.round(lifetimeMs / 1000)}s`);
+
         if (def.payload && def.payload.count) {
             bits.push(`x${def.payload.count}`);
         }

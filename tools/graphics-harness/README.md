@@ -34,6 +34,8 @@ node tools/graphics-harness/scene-smoke.js       # headless DeckScene test
   the default deck, legacy `player.tanks` saves, junk input and overlong input
 - air targeting follows `GameHelpers.canTarget()`: tanks cannot hit aircraft,
   the Wirbelwind cannot hit ground, and towers can hit both
+- unit lifetimes follow `GameHelpers.healthDecayPerMs()`: the Wirbelwind drains
+  its full HP over its 50 s lifetime, while normal tanks never decay
 
 ## Scene smoke test
 

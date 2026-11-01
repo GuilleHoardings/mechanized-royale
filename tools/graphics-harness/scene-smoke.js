@@ -203,6 +203,14 @@ check('selecting a card fills the detail panel',
 check('detail panel shows cost and type',
     scene.detailMeta.text.includes('elixir'), scene.detailMeta.text);
 
+// --- Limited-lifetime unit ------------------------------------------------
+const wirbelTile = scene.collectionTiles.find((tile) => tile.cardId === 'flak_panzer');
+if (wirbelTile) {
+    press(wirbelTile.hit);
+    check('detail panel shows the unit lifetime',
+        /LIFE 50s/.test(scene.detailMeta.text), scene.detailMeta.text);
+}
+
 // --- Remove / re-add ------------------------------------------------------
 const removedId = scene.deck[0];
 press(scene.deckTiles[0].hit);

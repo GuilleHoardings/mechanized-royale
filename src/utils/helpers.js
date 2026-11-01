@@ -55,6 +55,16 @@ const GameHelpers = {
         return source.canTargetGround !== false;
     },
 
+    /**
+     * HP lost per millisecond for units with a limited battlefield lifetime
+     * (e.g. the Wirbelwind). Returns 0 for units that live until killed.
+     */
+    healthDecayPerMs(unitData) {
+        if (!unitData || !unitData.lifetimeMs || unitData.lifetimeMs <= 0) return 0;
+        const hp = unitData.stats?.hp || 0;
+        return hp / unitData.lifetimeMs;
+    },
+
     // Generate random integer between min and max (inclusive)
     randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;

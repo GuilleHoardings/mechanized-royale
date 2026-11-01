@@ -138,8 +138,9 @@ const UNITS = {
         },
         canTargetAir: true,
         canTargetGround: false,
+        lifetimeMs: 50000, // Wears out after 50 s, like the V1 Launcher
         abilities: [],
-        description: 'Flakpanzer IV with quad 20 mm guns. Shreds aircraft but cannot engage ground troops'
+        description: 'Flakpanzer IV with quad 20 mm guns. Shreds aircraft but cannot engage ground troops, and wears out after 50 s'
     },
     v1_launcher: {
         id: 'v1_launcher',

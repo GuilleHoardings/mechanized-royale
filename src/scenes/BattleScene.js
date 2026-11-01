@@ -949,7 +949,8 @@ class BattleScene extends Phaser.Scene {
             `Health: ${unitData.stats.hp}\n` +
             `Damage: ${unitData.stats.damage}\n` +
             `Range: ${unitData.stats.range}\n` +
-            `Penetration: ${unitData.stats.penetration}`, {
+            `Penetration: ${unitData.stats.penetration}` +
+            (unitData.lifetimeMs ? `\nLifetime: ${Math.round(unitData.lifetimeMs / 1000)}s` : ''), {
             fontSize: '11px',
             fill: '#ffffff',
             fontFamily: 'Arial',
@@ -2541,6 +2542,8 @@ class BattleScene extends Phaser.Scene {
         tank.isAir = !!unitData.isAir;
         tank.canTargetAir = !!unitData.canTargetAir;
         tank.canTargetGround = unitData.canTargetGround !== false;
+        tank.healthDecayPerMs = GameHelpers.healthDecayPerMs(unitData);
+        tank.expired = false;
         tank.target = null;
         tank.lastShotTime = 0;
         tank.lastTargetUpdate = 0;
@@ -3311,8 +3314,17 @@ class BattleScene extends Phaser.Scene {
         // Update all tanks
         this.tanks.forEach(tank => {
             if (tank.health > 0) {
-                this.updateTankMovement(tank);
-                this.combatSystem.checkTankCombat(tank);
+                // Units with a limited lifetime (e.g. the Wirbelwind) wear out
+                if (tank.healthDecayPerMs) {
+                    tank.health = Math.max(0, tank.health - tank.healthDecayPerMs * delta);
+                    this.updateTankHealth(tank);
+                    if (tank.health <= 0) tank.expired = true;
+                }
+
+                if (tank.health > 0) {
+                    this.updateTankMovement(tank);
+                    this.combatSystem.checkTankCombat(tank);
+                }
             }
         });
 
@@ -3367,12 +3379,12 @@ class BattleScene extends Phaser.Scene {
                 // Track tank destruction statistics
                 if (tank.isPlayerTank) {
                     this.battleStats.player.tanksLost++;
-                    // AI gets credit for destroying player tank
-                    this.battleStats.ai.tanksDestroyed++;
+                    // AI gets credit for destroying player tank (not for expiry)
+                    if (!tank.expired) this.battleStats.ai.tanksDestroyed++;
                 } else {
                     this.battleStats.ai.tanksLost++;
-                    // Player gets credit for destroying AI tank
-                    this.battleStats.player.tanksDestroyed++;
+                    // Player gets credit for destroying AI tank (not for expiry)
+                    if (!tank.expired) this.battleStats.player.tanksDestroyed++;
                 }
 
                 // Create destruction effect

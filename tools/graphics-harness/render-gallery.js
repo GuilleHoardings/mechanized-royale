@@ -414,12 +414,28 @@ function runChecks() {
         console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(24)} ${actual}`);
     }
 
+    // --- Unit lifetime ----------------------------------------------------
+    console.log('\nUnit lifetime check (rules live in src/utils/helpers.js):');
+    const decay = game.GameHelpers.healthDecayPerMs;
+    const wirbelwind = UNITS.flak_panzer;
+    const lifetimeChecks = [
+        ['wirbelwind has a lifetime', wirbelwind.lifetimeMs > 0, true],
+        ['lifetime drains full HP', Math.round(decay(wirbelwind) * wirbelwind.lifetimeMs), wirbelwind.stats.hp],
+        ['normal tank has no decay', decay(UNITS.tiger), 0]
+    ];
+    let lifetimeFailures = 0;
+    for (const [label, actual, expected] of lifetimeChecks) {
+        const ok = actual === expected;
+        if (!ok) lifetimeFailures++;
+        console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${label.padEnd(24)} ${actual}`);
+    }
+
     const failed = rows.filter((r) => !r.ok);
-    if (failed.length || centringFailures || deckFailures || airFailures) {
-        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed, ${airFailures} air check(s) failed.`);
+    if (failed.length || centringFailures || deckFailures || airFailures || lifetimeFailures) {
+        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed, ${airFailures} air check(s) failed, ${lifetimeFailures} lifetime check(s) failed.`);
         process.exitCode = 1;
     } else {
-        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck and air rules valid.`);
+        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck, air rules and lifetimes valid.`);
     }
 }
 
