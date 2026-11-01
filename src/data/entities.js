@@ -81,6 +81,66 @@ const UNITS = {
         abilities: [],
         description: 'Light infantry unit for scouting and harassment'
     },
+    attack_helicopter: {
+        id: 'attack_helicopter',
+        name: 'Attack Helicopter',
+        unitType: TANK_TYPES.AIR,
+        tier: 2,
+        cost: 4,
+        stats: {
+            hp: 320,
+            damage: 50,
+            speed: 100,
+            range: 95,
+            armor: { front: 0, side: 0, rear: 0 },
+            penetration: 60
+        },
+        isAir: true,
+        canTargetAir: true,
+        canTargetGround: true,
+        abilities: [],
+        description: 'Fast gunship that strafes ground and air targets. Ignored by tanks without AA guns'
+    },
+    bomber: {
+        id: 'bomber',
+        name: 'Dive Bomber',
+        unitType: TANK_TYPES.AIR,
+        tier: 3,
+        cost: 5,
+        stats: {
+            hp: 480,
+            damage: 200,
+            speed: 55,
+            range: 70,
+            armor: { front: 0, side: 0, rear: 0 },
+            penetration: 160
+        },
+        isAir: true,
+        canTargetAir: false,
+        canTargetGround: true,
+        targetBuildingsOnly: true,
+        abilities: [],
+        description: 'Armoured bomber that flies straight for enemy structures. Cannot attack troops'
+    },
+    flak_panzer: {
+        id: 'flak_panzer',
+        name: 'Flak Panzer',
+        unitType: TANK_TYPES.ANTI_AIR,
+        tier: 2,
+        cost: 3,
+        stats: {
+            hp: 260,
+            damage: 70,
+            speed: 60,
+            range: 180,
+            armor: { front: 25, side: 15, rear: 10 },
+            penetration: 80
+        },
+        canTargetAir: true,
+        canTargetGround: false,
+        abilities: [],
+        description: 'Dedicated anti-air vehicle. Shreds aircraft but cannot engage ground troops'
+    },
     v1_launcher: {
         id: 'v1_launcher',
         name: 'V1 Launcher',
@@ -101,6 +161,7 @@ const UNITS = {
     main_tower: {
         id: 'main_tower',
         name: 'King Tower',
+        canTargetAir: true,
         stats: {
             hp: 1200,
             damage: 80,
@@ -110,6 +171,7 @@ const UNITS = {
     side_tower: {
         id: 'side_tower',
         name: 'Princess Tower',
+        canTargetAir: true,
         stats: {
             hp: 600,
             damage: 80,
@@ -192,6 +254,30 @@ const CARDS = {
             count: 10,
             unitId: 'infantry'
         }
+    },
+    attack_helicopter: {
+        id: 'attack_helicopter',
+        name: UNITS.attack_helicopter.name,
+        type: CARD_TYPES.TROOP,
+        cost: 4,
+        unitId: 'attack_helicopter',
+        description: UNITS.attack_helicopter.description
+    },
+    bomber: {
+        id: 'bomber',
+        name: UNITS.bomber.name,
+        type: CARD_TYPES.TROOP,
+        cost: 5,
+        unitId: 'bomber',
+        description: UNITS.bomber.description
+    },
+    flak_panzer: {
+        id: 'flak_panzer',
+        name: UNITS.flak_panzer.name,
+        type: CARD_TYPES.TROOP,
+        cost: 3,
+        unitId: 'flak_panzer',
+        description: UNITS.flak_panzer.description
     }
 };
 
@@ -202,8 +288,8 @@ const DEFAULT_PLAYER_DECK = [
     'panther',
     'sherman',
     'jagdpanzer',
-    'smoke_barrage',
-    'artillery_strike',
-    'v1_launcher',
+    'attack_helicopter',
+    'bomber',
+    'flak_panzer',
     'infantry_platoon'
 ];

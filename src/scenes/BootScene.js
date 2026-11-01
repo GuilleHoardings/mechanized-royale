@@ -16,13 +16,15 @@ class BootScene extends Phaser.Scene {
         // Load card textures automatically based on naming convention: card_<cardId>.png
         // This allows adding new art just by placing the file in assets/tanks/
         if (typeof CARDS !== 'undefined') {
-            const unitMetrics = (typeof UNIT_METRICS !== 'undefined') ? UNIT_METRICS : null;
             Object.keys(CARDS).forEach(cardId => {
                 this.load.image(`card_${cardId}`, `assets/tanks/card_${cardId}.png`);
-                // Only request battlefield sprites that exist (listed in the generated metrics)
-                if (unitMetrics && unitMetrics[cardId]) {
-                    this.load.image(`unit_${cardId}`, `assets/tanks/unit_${cardId}.png`);
-                }
+            });
+        }
+
+        // Load battlefield unit textures based on UNIT_METRICS registry
+        if (typeof UNIT_METRICS !== 'undefined') {
+            Object.keys(UNIT_METRICS).forEach(unitId => {
+                this.load.image(`unit_${unitId}`, `assets/tanks/unit_${unitId}.png`);
             });
         }
 
@@ -31,6 +33,12 @@ class BootScene extends Phaser.Scene {
         this.load.image('tower_main_turret', 'assets/towers/tower_main_turret.png');
         this.load.image('tower_side_base', 'assets/towers/tower_side_base.png');
         this.load.image('tower_side_turret', 'assets/towers/tower_side_turret.png');
+
+        // Create fallback placeholder textures only if any tower assets failed to load
+        this.load.once('complete', () => {
+            const tempGraphicsManager = new GraphicsManager(this);
+            tempGraphicsManager.generateNeutralTowerTextures();
+        });
 
         // Create simple colored rectangles as placeholder graphics
         this.createPlaceholderAssets();
@@ -71,9 +79,7 @@ class BootScene extends Phaser.Scene {
         graphics.fillRect(0, 0, 40, 40);
         graphics.generateTexture('bunker', 40, 40);
 
-        // Create placeholder textures if they don't exist in assets/towers/
-        const tempGraphicsManager = new GraphicsManager(this);
-        tempGraphicsManager.generateNeutralTowerTextures();
+
 
         // ---------------------------------------------------
 

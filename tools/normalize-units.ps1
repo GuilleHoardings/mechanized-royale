@@ -100,11 +100,15 @@ public static class UnitAssetProbe
 # Adjust a value here and re-run to re-balance a unit's footprint.
 # ---------------------------------------------------------------------------
 $WorldWidths = [ordered]@{
-    tiger        = 3.55   # Tiger I  (3.55 m hull)
-    panther      = 3.27   # Panther  (3.27 m hull)
-    sherman      = 2.62   # M4 Sherman (2.62 m hull)
-    jagdpanzer   = 3.17   # Jagdpanzer IV (3.17 m hull)
-    v1_launcher  = 4.20   # launch ramp / building footprint
+    tiger             = 3.55   # Tiger I  (3.55 m hull)
+    panther           = 3.27   # Panther  (3.27 m hull)
+    sherman           = 2.62   # M4 Sherman (2.62 m hull)
+    jagdpanzer        = 3.17   # Jagdpanzer IV (3.17 m hull)
+    v1_launcher       = 4.20   # launch ramp / building footprint
+    flak_panzer       = 3.00   # Flakpanzer IV (3.0 m hull)
+    attack_helicopter = 3.50   # Attack Helicopter gunship footprint
+    bomber            = 5.00   # Tactical Dive Bomber wingspan
+    infantry          = 1.20   # Infantry soldier / fireteam
 }
 
 # Game pixels per real-world metre (1 tile = 20 px, so 11 px/m => Tiger ~2 tiles wide).

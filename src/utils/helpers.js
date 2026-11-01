@@ -25,6 +25,36 @@ const GameHelpers = {
         return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
     },
 
+    // ---------------------------------------------------------------
+    // Targeting helpers
+    // ---------------------------------------------------------------
+
+    /**
+     * Whether an entity is airborne. Works for deployed units (isAir) and unit
+     * definitions (isAir on unitData) so both can be passed to canTarget().
+     */
+    isAirUnit(entity) {
+        if (!entity) return false;
+        if (typeof entity.isAir === 'boolean') return entity.isAir;
+        return !!(entity.unitData && entity.unitData.isAir);
+    },
+
+    /**
+     * Whether `attacker` is allowed to shoot `target` under the air rules:
+     * ground units need canTargetAir, air-only units need canTargetGround.
+     * Omitted flags default to ground-capable and air-incapable, so existing
+     * ground tanks cannot hit aircraft without being opted in.
+     */
+    canTarget(attacker, target) {
+        if (!attacker || !target) return false;
+        const source = attacker.unitData || attacker;
+
+        if (this.isAirUnit(target)) {
+            return source.canTargetAir === true;
+        }
+        return source.canTargetGround !== false;
+    },
+
     // Generate random integer between min and max (inclusive)
     randomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;

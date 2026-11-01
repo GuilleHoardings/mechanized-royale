@@ -1,5 +1,8 @@
-- [ ] Use a texture for the towers
-- [ ] Use a texture for the infantry units
+- [x] Use a texture for the towers
+  - Added high-resolution top-down WWII concrete bunker and rotatable turret textures in `assets/towers/` (`tower_main_base`, `tower_main_turret`, `tower_side_base`, `tower_side_turret`) with centered rotation pivots and transparent backgrounds.
+- [x] Use a texture for the infantry units
+  - Added `unit_infantry.png` normalized to human scale (1.2m footprint) so the 10-soldier swarm displays individual sprites.
+- [x] Use textures for air and anti-air units (attack helicopter, dive bomber, flak panzer)
 - [x] Add an indication that the central tower is activated
 - [x] Make the lanes work like in Clash Royale
 - [x] Rework the attack ranges

@@ -17,11 +17,18 @@ const UNIT_METRICS = {
     sherman: { canvasW: 1024, canvasH: 1024, contentX: 265, contentY: 123, contentW: 506, contentH: 774, worldWidthM: 2.62 },
     jagdpanzer: { canvasW: 1024, canvasH: 1024, contentX: 291, contentY: 140, contentW: 398, contentH: 716, worldWidthM: 3.17 },
     v1_launcher: { canvasW: 1024, canvasH: 1024, contentX: 249, contentY: 120, contentW: 526, contentH: 776, worldWidthM: 4.2 },
+    flak_panzer: { canvasW: 1024, canvasH: 1024, contentX: 0, contentY: 61, contentW: 755, contentH: 892, worldWidthM: 3 },
+    attack_helicopter: { canvasW: 1024, canvasH: 1024, contentX: 0, contentY: 24, contentW: 853, contentH: 977, worldWidthM: 3.5 },
+    bomber: { canvasW: 1024, canvasH: 1024, contentX: 63, contentY: 134, contentW: 922, contentH: 781, worldWidthM: 5 },
+    infantry: { canvasW: 1024, canvasH: 1024, contentX: 405, contentY: 287, contentW: 215, contentH: 451, worldWidthM: 1.2 },
 };
 
 // Card artwork is separate art but suffers the same padding problem.
 const CARD_METRICS = {
     artillery_strike: { canvasW: 1024, canvasH: 1024, contentX: 390, contentY: 86, contentW: 251, contentH: 825 },
+    attack_helicopter: { canvasW: 1024, canvasH: 1024, contentX: 0, contentY: 24, contentW: 853, contentH: 977 },
+    bomber: { canvasW: 1024, canvasH: 1024, contentX: 63, contentY: 134, contentW: 922, contentH: 781 },
+    flak_panzer: { canvasW: 1024, canvasH: 1024, contentX: 0, contentY: 61, contentW: 755, contentH: 892 },
     infantry_platoon: { canvasW: 1024, canvasH: 1024, contentX: 182, contentY: 348, contentW: 669, contentH: 452 },
     jagdpanzer: { canvasW: 1024, canvasH: 1024, contentX: 291, contentY: 140, contentW: 398, contentH: 716 },
     panther: { canvasW: 1024, canvasH: 1024, contentX: 340, contentY: 136, contentW: 351, contentH: 708 },

@@ -17,7 +17,14 @@ const TANK_TYPES = {
     HEAVY: 'heavy',
     TANK_DESTROYER: 'tank_destroyer',
     ARTILLERY: 'artillery',
-    FAST_ATTACK: 'fast_attack'
+    FAST_ATTACK: 'fast_attack',
+    AIR: 'air',
+    ANTI_AIR: 'anti_air'
+};
+
+// Air units ignore river pathing and render above the ground battle
+const AIR_CONFIG = {
+    RENDER_DEPTH: 1000
 };
 
 // Card categories for the deck/hand system
