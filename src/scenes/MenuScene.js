@@ -33,66 +33,127 @@ class MenuScene extends Phaser.Scene {
     }
 
     createBackgroundEffects() {
-        // Create subtle floating particles
-        const particles = this.add.graphics();
-        particles.setAlpha(0.3);
+        const W = GAME_CONFIG.WIDTH;
+        const H = GAME_CONFIG.HEIGHT;
 
-        // Draw some static decorative elements
-        for (let i = 0; i < 20; i++) {
-            const x = Math.random() * GAME_CONFIG.WIDTH;
-            const y = Math.random() * GAME_CONFIG.HEIGHT;
-            const size = Math.random() * 3 + 1;
-            particles.fillStyle(0x60a5fa, Math.random() * 0.3 + 0.1);
-            particles.fillCircle(x, y, size);
+        // Blueprint grid and edge vignette
+        const backdrop = this.add.graphics();
+        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.blue, 0.055);
+        CanvasTheme.vignette(backdrop, 0, 0, W, H, 6, 0.05);
+
+        // Framing brackets
+        CanvasTheme.brackets(backdrop, 14, 14, W - 28, H - 28, CanvasTheme.colors.accent, 0.35, 16, 0);
+
+        // Header rail
+        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.2);
+        backdrop.lineBetween(24, 58, W - 24, 58);
+        this.add.text(24, 40, 'MECHANIZED ROYALE / COMMAND', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.muted,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        });
+        this.add.text(W - 24, 40, 'LINK ONLINE', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.greenCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        }).setOrigin(1, 0);
+
+        // Footer rail
+        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.16);
+        backdrop.lineBetween(24, H - 26, W - 24, H - 26);
+        this.add.text(24, H - 20, 'BUILD 0.1  ·  SECTOR 07', {
+            fontSize: '8px',
+            fill: CanvasTheme.colors.faint,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        });
+        this.add.text(W - 24, H - 20, 'STANDBY', {
+            fontSize: '8px',
+            fill: CanvasTheme.colors.faint,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(1, 0);
+
+        // Soft diagonal command lines
+        const lines = this.add.graphics();
+        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.14);
+        for (let i = 0; i < 4; i++) {
+            const ly = 110 + i * 160;
+            lines.lineBetween(0, ly, W, ly + 46);
         }
 
-        // Add decorative lines
-        const lines = this.add.graphics();
-        lines.lineStyle(1, 0x3d5a80, 0.2);
-        for (let i = 0; i < 5; i++) {
-            const y = 100 + i * 150;
-            lines.lineBetween(0, y, GAME_CONFIG.WIDTH, y + 50);
+        // Sparse status lights
+        const particles = this.add.graphics();
+        for (let i = 0; i < 18; i++) {
+            const px = Math.random() * W;
+            const py = Math.random() * H;
+            const size = Math.random() * 1.8 + 0.8;
+            particles.fillStyle(i % 5 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.blue, Math.random() * 0.18 + 0.05);
+            particles.fillCircle(px, py, size);
         }
     }
 
     createTitle() {
+        const W = GAME_CONFIG.WIDTH;
+
+        // Title plate
+        const plate = this.add.graphics();
+        CanvasTheme.panel(plate, 74, 76, W - 148, 120, {
+            radius: 12,
+            fill: CanvasTheme.colors.panel,
+            fillAlpha: 0.72,
+            stroke: CanvasTheme.colors.line,
+            strokeAlpha: 0.28,
+            accent: CanvasTheme.colors.accent,
+            accentAlpha: 0.65,
+            brackets: true,
+            bracketAlpha: 0.35
+        });
+
         // Glow effect
-        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'MECHANIZED ROYALE', {
-            fontSize: '48px',
+        const titleGlow = this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
+            fontSize: '44px',
             fill: '#60a5fa',
-            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+            fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6
         }).setOrigin(0.5);
-        titleGlow.setAlpha(0.4);
+        titleGlow.setAlpha(0.35);
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
 
-        // Main title with gradient-like effect using stroke
-        const title = this.add.text(GAME_CONFIG.WIDTH / 2, 100, 'MECHANIZED ROYALE', {
-            fontSize: '48px',
-            fill: '#f1f5f9',
-            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+        // Main title
+        const title = this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
+            fontSize: '44px',
+            fill: '#e8f1fb',
+            fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6,
-            stroke: '#3b82f6',
+            stroke: '#2563eb',
             strokeThickness: 3
         }).setOrigin(0.5);
 
         // Subtle animation on glow
         this.tweens.add({
             targets: titleGlow,
-            alpha: 0.6,
+            alpha: 0.55,
             duration: 2000,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
-        // Subtitle with modern styling
-        this.add.text(GAME_CONFIG.WIDTH / 2, 155, 'Clash Royale meets World of Tanks', {
-            fontSize: '16px',
-            fill: '#94a3b8',
-            fontFamily: 'Georgia, serif',
-            fontStyle: 'italic'
+        // Subtitle + rule
+        this.add.text(W / 2, 158, 'TACTICAL ARMOURED COMMAND', {
+            fontSize: '10px',
+            fill: CanvasTheme.colors.muted,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 4
         }).setOrigin(0.5);
+
+        const rule = this.add.graphics();
+        CanvasTheme.rule(rule, W / 2 - 90, 174, W / 2 + 90, 174, CanvasTheme.colors.accent, 0.4);
+        rule.fillStyle(CanvasTheme.colors.accent, 0.8);
+        rule.fillCircle(W / 2, 174, 2);
     }
 
     createMenuButtons() {
@@ -101,6 +162,33 @@ class MenuScene extends Phaser.Scene {
         const startY = 296;
         const spacing = 66;
         const buttonX = GAME_CONFIG.WIDTH / 2 - buttonWidth / 2;
+
+        // Operations panel behind the menu
+        const panel = this.add.graphics();
+        CanvasTheme.panel(panel, buttonX - 24, startY - 62, buttonWidth + 48, spacing * 3 + buttonHeight + 44, {
+            radius: 14,
+            fill: CanvasTheme.colors.panel,
+            fillAlpha: 0.7,
+            stroke: CanvasTheme.colors.line,
+            strokeAlpha: 0.24,
+            accent: CanvasTheme.colors.blue,
+            accentAlpha: 0.5,
+            brackets: true,
+            bracketAlpha: 0.3
+        });
+
+        this.add.text(buttonX - 8, startY - 50, 'OPERATIONS', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.muted,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        });
+        this.add.text(buttonX + buttonWidth + 8, startY - 50, '4 AVAILABLE', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.faint,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(1, 0);
 
         // Primary actions
         this.createMenuButton({
@@ -119,7 +207,7 @@ class MenuScene extends Phaser.Scene {
             y: startY + spacing - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '🃏  DECK',
+            label: '▤  DECK',
             color: 0x8b5cf6,
             hoverColor: 0xa78bfa,
             onClick: () => this.scene.start('DeckScene', { gameState: this.gameState })
@@ -131,7 +219,7 @@ class MenuScene extends Phaser.Scene {
             y: startY + spacing * 2 - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '🔬  RESEARCH',
+            label: '⌬  RESEARCH',
             disabled: true
         });
 
@@ -152,24 +240,27 @@ class MenuScene extends Phaser.Scene {
         const bg = this.add.graphics();
         this.drawModernButton(bg, x, y, width, height, color, !disabled);
 
-        this.add.text(x + width / 2, y + height / 2, label, {
-            fontSize: disabled ? '16px' : '20px',
-            fill: disabled ? '#64748b' : '#ffffff',
-            fontFamily: 'Arial',
-            fontWeight: 'bold'
+        const text = this.add.text(x + width / 2, y + height / 2, label, {
+            fontSize: disabled ? '14px' : '18px',
+            fill: disabled ? '#64748b' : '#e8f1fb',
+            fontFamily: CanvasTheme.fonts.ui,
+            fontWeight: '700',
+            letterSpacing: 2
         }).setOrigin(0.5);
 
         if (disabled) {
-            const badgeX = x + width - 46;
+            const badgeX = x + width - 48;
             const badgeY = y + height / 2 - 8;
             const badge = this.add.graphics();
             badge.fillStyle(0x334155, 0.9);
-            badge.fillRoundedRect(badgeX, badgeY, 38, 16, 8);
-            this.add.text(badgeX + 19, badgeY + 8, 'SOON', {
-                fontSize: '9px',
-                fill: '#94a3b8',
-                fontFamily: 'Arial',
-                fontWeight: '600'
+            badge.fillRoundedRect(badgeX, badgeY, 40, 16, 8);
+            badge.lineStyle(1, CanvasTheme.colors.line, 0.25);
+            badge.strokeRoundedRect(badgeX, badgeY, 40, 16, 8);
+            this.add.text(badgeX + 20, badgeY + 8, 'SOON', {
+                fontSize: '8px',
+                fill: '#8ea3bd',
+                fontFamily: CanvasTheme.fonts.mono,
+                letterSpacing: 1
             }).setOrigin(0.5);
             return;
         }
@@ -180,84 +271,121 @@ class MenuScene extends Phaser.Scene {
 
         hit.on('pointerover', () => {
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true);
+            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true, true);
+            text.setFill('#ffffff');
         });
 
         hit.on('pointerout', () => {
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, color, true);
+            this.drawModernButton(bg, x, y, width, height, color, true, false);
+            text.setFill('#e8f1fb');
         });
 
         hit.on('pointerdown', () => {
             // Brief flash effect then transition
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true);
+            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true, true);
             this.time.delayedCall(100, onClick);
         });
     }
 
-    drawModernButton(graphics, x, y, width, height, color, isActive) {
+    drawModernButton(graphics, x, y, width, height, color, isActive, hovered = false) {
         // Outer glow for active buttons
         if (isActive) {
-            graphics.fillStyle(color, 0.3);
-            graphics.fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 14);
+            graphics.fillStyle(color, hovered ? 0.26 : 0.14);
+            graphics.fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 13);
         }
 
+        // Drop shadow
+        graphics.fillStyle(0x000000, 0.3);
+        graphics.fillRoundedRect(x + 2, y + 3, width, height, 9);
+
         // Main button background
-        graphics.fillStyle(color, isActive ? 1 : 0.5);
-        graphics.fillRoundedRect(x, y, width, height, 10);
+        graphics.fillStyle(isActive ? CanvasTheme.colors.raised : CanvasTheme.colors.deep, isActive ? 0.96 : 0.7);
+        graphics.fillRoundedRect(x, y, width, height, 9);
+
+        // Tinted inner glass
+        graphics.fillStyle(color, isActive ? (hovered ? 0.3 : 0.18) : 0.06);
+        graphics.fillRoundedRect(x, y, width, height, 9);
+
+        // Left accent bar
+        graphics.fillStyle(isActive ? (hovered ? 0xffffff : color) : 0x475569, isActive ? 0.9 : 0.4);
+        graphics.fillRoundedRect(x + 1, y + 7, 3, height - 14, 2);
 
         // Inner highlight
         if (isActive) {
-            graphics.fillStyle(0xffffff, 0.1);
-            graphics.fillRoundedRect(x + 2, y + 2, width - 4, height / 2 - 4, 8);
+            graphics.fillStyle(0xffffff, 0.05);
+            graphics.fillRoundedRect(x + 2, y + 2, width - 4, height / 2 - 4, 7);
         }
 
         // Border
-        graphics.lineStyle(2, isActive ? 0x60a5fa : 0x475569, isActive ? 0.6 : 0.3);
-        graphics.strokeRoundedRect(x, y, width, height, 10);
+        graphics.lineStyle(1, isActive ? color : 0x475569, isActive ? (hovered ? 0.9 : 0.55) : 0.3);
+        graphics.strokeRoundedRect(x, y, width, height, 9);
+
+        // Right chevron
+        if (isActive) {
+            graphics.lineStyle(2, color, hovered ? 0.95 : 0.6);
+            const cx = x + width - 22;
+            const cy = y + height / 2;
+            graphics.lineBetween(cx - 4, cy - 5, cx + 2, cy);
+            graphics.lineBetween(cx + 2, cy, cx - 4, cy + 5);
+        }
     }
 
     showPlayerInfo() {
         // Player info panel - positioned below the menu buttons
-        const panelWidth = 180;
-        const panelHeight = 92;
+        const panelWidth = 260;
+        const panelHeight = 104;
         const panelX = GAME_CONFIG.WIDTH / 2 - panelWidth / 2;
-        const panelY = 548;
+        const panelY = 540;
 
         // Panel background
         const infoPanelBg = this.add.graphics();
-        infoPanelBg.fillStyle(0x1e293b, 0.9);
-        infoPanelBg.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
-        infoPanelBg.lineStyle(1, 0x3d5a80, 0.5);
-        infoPanelBg.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 10);
+        CanvasTheme.panel(infoPanelBg, panelX, panelY, panelWidth, panelHeight, {
+            radius: 12,
+            fill: CanvasTheme.colors.panel,
+            fillAlpha: 0.82,
+            stroke: CanvasTheme.colors.line,
+            strokeAlpha: 0.28,
+            accent: CanvasTheme.colors.amber,
+            accentAlpha: 0.55,
+            brackets: true,
+            bracketAlpha: 0.3
+        });
 
-        // Player level and XP
+        this.add.text(panelX + 16, panelY + 12, 'OPERATOR DOSSIER', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.muted,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        });
+
         const player = this.gameState.player;
-
-        // Level with icon
-        this.add.text(panelX + 12, panelY + 15, `⭐ Level ${player.progress.level}`, {
-            fontSize: '15px',
-            fill: '#f1f5f9',
-            fontFamily: 'Arial',
-            fontWeight: 'bold'
-        });
-
-        // Credits with icon
-        this.add.text(panelX + 12, panelY + 38, `💰 ${player.resources.credits}`, {
-            fontSize: '13px',
-            fill: '#fbbf24',
-            fontFamily: 'Arial',
-            fontWeight: '600'
-        });
-
-        // Deck size with icon
         const deck = GameHelpers.getPlayerDeck(this.gameState);
-        this.add.text(panelX + 12, panelY + 60, `🃏 ${deck.length}/${DECK_CONFIG.SIZE} Cards`, {
-            fontSize: '13px',
-            fill: '#4ade80',
-            fontFamily: 'Arial',
-            fontWeight: '600'
+
+        const rows = [
+            { label: 'LEVEL', value: `LV ${player.progress.level}`, color: CanvasTheme.colors.text },
+            { label: 'CREDITS', value: `${player.resources.credits}`, color: CanvasTheme.colors.amberCss },
+            { label: 'DECK', value: `${deck.length}/${DECK_CONFIG.SIZE} CARDS`, color: CanvasTheme.colors.greenCss }
+        ];
+
+        rows.forEach((row, index) => {
+            const rowY = panelY + 36 + index * 22;
+            if (index > 0) {
+                CanvasTheme.rule(infoPanelBg, panelX + 16, rowY - 7, panelX + panelWidth - 16, rowY - 7, CanvasTheme.colors.line, 0.14);
+            }
+            this.add.text(panelX + 16, rowY, row.label, {
+                fontSize: '9px',
+                fill: CanvasTheme.colors.faint,
+                fontFamily: CanvasTheme.fonts.mono,
+                letterSpacing: 1
+            });
+            this.add.text(panelX + panelWidth - 16, rowY, row.value, {
+                fontSize: '11px',
+                fill: row.color,
+                fontFamily: CanvasTheme.fonts.mono,
+                letterSpacing: 1
+            }).setOrigin(1, 0);
         });
     }
 

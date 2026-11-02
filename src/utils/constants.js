@@ -104,9 +104,9 @@ const BATTLE_CONFIG = {
 const UI_COLORS = {
     // Game Over Screen Colors
     GAME_OVER: {
-        OVERLAY_COLOR: 0x0a0f1a,
-        CARD_BACKGROUND: 0x1a2744,
-        CARD_BORDER: 0x3d5a80,
+        OVERLAY_COLOR: 0x05080d,
+        CARD_BACKGROUND: 0x0b1422,
+        CARD_BORDER: 0x7da3ce,
 
         // Result specific colors
         VICTORY: {
@@ -130,9 +130,9 @@ const UI_COLORS = {
 
         // Text colors
         TEXT: {
-            PRIMARY: '#f1f5f9',
-            SECONDARY: '#e2e8f0',
-            MUTED: '#94a3b8',
+            PRIMARY: '#e8f1fb',
+            SECONDARY: '#b7c8dd',
+            MUTED: '#8ea3bd',
             OVERTIME: '#fb923c',
             HIGHLIGHT: '#60a5fa'
         }
@@ -148,13 +148,13 @@ const UI_COLORS = {
 
     // Menu Colors
     MENU: {
-        BACKGROUND: 0x1a2744,
+        BACKGROUND: 0x0f1826,
         TITLE_GRADIENT_START: '#60a5fa',
-        TITLE_GRADIENT_END: '#a78bfa',
+        TITLE_GRADIENT_END: '#4fd1c5',
         BUTTON_PRIMARY: 0x3b82f6,
         BUTTON_HOVER: 0x60a5fa,
         BUTTON_DISABLED: 0x475569,
-        ACCENT: 0xf59e0b
+        ACCENT: 0xfbbf24
     },
 
     // Energy Bar Colors
@@ -162,12 +162,12 @@ const UI_COLORS = {
         FULL: 0x60a5fa,
         CHARGING: 0x3b82f6,
         GLOW: 0x93c5fd,
-        BACKGROUND: 0x1e3a5f
+        BACKGROUND: 0x0f1826
     },
 
     // Card Colors
     CARDS: {
-        BACKGROUND: 0x1e3a5f,
+        BACKGROUND: 0x0f1826,
         BORDER: 0x3d5a80,
         SELECTED: 0xfbbf24,
         HOVER: 0x60a5fa,
@@ -183,11 +183,11 @@ const UI_CONFIG = {
             HEIGHT: 4,
             OFFSET_X: 20,
             OFFSET_Y: 30,
-            BACKGROUND_COLOR: 0x333333,
+            BACKGROUND_COLOR: 0x0b1220,
             COLORS: {
-                HIGH: 0x00ff00,    // > 50% health
-                MEDIUM: 0xffff00,  // 25-50% health  
-                LOW: 0xff0000      // < 25% health
+                HIGH: 0x4ade80,    // > 50% health
+                MEDIUM: 0xfbbf24,  // 25-50% health  
+                LOW: 0xf87171      // < 25% health
             }
         },
         TOWER: {
@@ -195,12 +195,12 @@ const UI_CONFIG = {
             HEIGHT: 10,
             OFFSET_X: 25,
             OFFSET_Y: 45,
-            BACKGROUND_COLOR: 0x333333,
+            BACKGROUND_COLOR: 0x0b1220,
             COLORS: {
-                HIGH: 0x00ff00,
-                MEDIUM_HIGH: 0xffa500,  // 50-75% health
-                MEDIUM: 0xffff00,       // 25-50% health
-                LOW: 0xff0000           // < 25% health
+                HIGH: 0x4ade80,
+                MEDIUM_HIGH: 0xfbbf24,  // 50-75% health
+                MEDIUM: 0xfbbf24,       // 25-50% health
+                LOW: 0xf87171           // < 25% health
             }
         },
         BUILDING: {
@@ -208,11 +208,11 @@ const UI_CONFIG = {
             HEIGHT: 6,
             OFFSET_X: 20,
             OFFSET_Y: 35,
-            BACKGROUND_COLOR: 0x333333,
+            BACKGROUND_COLOR: 0x0b1220,
             COLORS: {
-                HIGH: 0x00ff00,
-                MEDIUM: 0xffff00,
-                LOW: 0xff0000
+                HIGH: 0x4ade80,
+                MEDIUM: 0xfbbf24,
+                LOW: 0xf87171
             }
         }
     },
@@ -227,12 +227,12 @@ const UI_CONFIG = {
         COST_TEXT: {
             FONT_SIZE: '16px',
             COLOR: '#fbbf24',
-            STROKE_COLOR: '#1a1a2e',
+            STROKE_COLOR: '#05080d',
             STROKE_THICKNESS: 3
         },
         NAME_TEXT: {
             FONT_SIZE: '11px',
-            COLOR: '#e2e8f0'
+            COLOR: '#e8f1fb'
         },
         GLOW_COLOR: 0x60a5fa,
         GLOW_ALPHA: 0.3
@@ -242,22 +242,24 @@ const UI_CONFIG = {
         HEIGHT: 20,
         BOTTOM_MARGIN: 20,
         TEXT_OFFSET_Y: 10,
-        BACKGROUND_COLOR: 0x1e3a5f,
+        BACKGROUND_COLOR: 0x0f1826,
         FILL_COLOR: 0x60a5fa,
         GLOW_COLOR: 0x93c5fd,
-        BORDER_COLOR: 0x3d5a80,
+        BORDER_COLOR: 0x7da3ce,
         BORDER_RADIUS: 4
     },
     DEBUG: {
         ATTACK_RANGE_CIRCLES: {
             ENABLED: false,
-            PLAYER_COLOR: 0x00ff00,      // Green for player tanks
-            ENEMY_COLOR: 0xff0000,       // Red for enemy tanks
+            PLAYER_COLOR: 0x4ade80,      // Teal-green for player tanks
+            ENEMY_COLOR: 0xf87171,       // Console red for enemy tanks
             LINE_WIDTH: 2,
-            ALPHA: 0.4
+            ALPHA: 0.35
         }
     },
     GAME_OVER: {
-        CLICK_DELAY: 1500  // Delay in milliseconds before allowing clicks to dismiss
+        CLICK_DELAY: 1500,  // Delay in milliseconds before allowing clicks to dismiss
+        CARD_WIDTH: 560,
+        CARD_HEIGHT: 500
     }
 };

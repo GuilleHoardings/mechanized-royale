@@ -14,6 +14,7 @@ const REPO_ROOT = path.join(__dirname, '..', '..');
 // UNIT_METRICS, and GraphicsManager consumes all of the above.
 const SCRIPTS = [
     'src/utils/constants.js',
+    'src/utils/canvasTheme.js',
     'src/data/entities.js',
     'src/utils/helpers.js',
     'src/data/unit-metrics.js',

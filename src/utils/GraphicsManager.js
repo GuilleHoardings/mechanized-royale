@@ -1366,31 +1366,46 @@ class GraphicsManager {
     // ========================================
 
     _drawV1LauncherBuilding(graphics, isPlayer = true) {
-        const concrete = 0x6b7280;
-        const darkConcrete = 0x4b5563;
-        const metal = this.colors.gunmetal;
+        const concrete = 0x5b6675;
+        const darkConcrete = 0x3b4657;
+        const metal = 0x4b5563;
         const accent = isPlayer ? this.colors.player : this.colors.enemy;
 
         // Concrete pad (rear)
         this._plate(graphics, -17, 9, 34, 9, 3, darkConcrete, 0.5);
+        graphics.lineStyle(1, 0xffffff, 0.08);
+        graphics.lineBetween(-14, 12, 14, 12);
 
         // Launcher bed
         this._plate(graphics, -14, -13, 28, 23, 3, concrete, 0.55);
 
+        // Hazard chevrons on the pad edge
+        graphics.fillStyle(0xfbbf24, 0.5);
+        for (let hx = -13; hx < 12; hx += 6) {
+            graphics.fillTriangle(hx, 15.5, hx + 3, 15.5, hx + 1.5, 13.5);
+        }
+
         // Missile slots
-        graphics.fillStyle(this._shade(concrete, 0.75));
+        graphics.fillStyle(this._shade(concrete, 0.68));
         for (const mx of [-9, 0, 9]) {
             graphics.fillRoundedRect(mx - 4, -12, 8, 21, 2);
+            graphics.lineStyle(1, 0x0b1220, 0.35);
+            graphics.strokeRoundedRect(mx - 4, -12, 8, 21, 2);
         }
 
         // Team stripe along the rear edge
         graphics.fillStyle(accent);
         graphics.fillRect(-14, 7, 28, 3);
+        graphics.fillStyle(0xffffff, 0.18);
+        graphics.fillRect(-14, 7, 28, 1);
 
         // Three V1s pointing up the lane
         const missile = (mx) => {
             // Body
-            this._plate(graphics, mx - 3, -10, 6, 19, 2, 0xd1d5db, 0.5);
+            this._plate(graphics, mx - 3, -10, 6, 19, 2, 0xc7cdd6, 0.5);
+            // Body highlight
+            graphics.fillStyle(0xffffff, 0.22);
+            graphics.fillRect(mx - 2, -9, 1.5, 16);
             // Warhead
             graphics.fillStyle(0x9ca3af);
             graphics.fillTriangle(mx - 3, -10, mx + 3, -10, mx, -17);
@@ -1422,10 +1437,14 @@ class GraphicsManager {
     }
 
     _drawGenericBuilding(graphics, isPlayer = true) {
-        const baseColor = 0x6b7280;
-        const accentColor = 0x9ca3af;
-        const metalColor = this.colors.gunmetal;
+        const baseColor = 0x5b6675;
+        const accentColor = 0x8a97a8;
+        const metalColor = 0x3b4657;
         const teamColor = isPlayer ? this.colors.player : this.colors.enemy;
+
+        // Ground shadow
+        graphics.fillStyle(0x000000, 0.28);
+        graphics.fillRoundedRect(-16, -12, 34, 24, 4);
 
         // Main structure
         this._plate(graphics, -15, -15, 30, 20, 4, baseColor, 0.5);
@@ -1433,10 +1452,22 @@ class GraphicsManager {
         // Roof
         graphics.fillStyle(accentColor);
         graphics.fillTriangle(-18, -15, 18, -15, 0, -22);
+        graphics.lineStyle(1, this.outlineColor, 0.45);
+        graphics.lineBetween(-18, -15, 0, -22);
+        graphics.lineBetween(0, -22, 18, -15);
+
+        // Roof ridge + vents
+        graphics.fillStyle(0xffffff, 0.14);
+        graphics.fillRect(-1, -21, 2, 7);
+        graphics.fillStyle(0x1a202c, 0.7);
+        graphics.fillRect(-12, -18, 5, 2);
+        graphics.fillRect(7, -18, 5, 2);
 
         // Door
         graphics.fillStyle(metalColor);
         graphics.fillRect(-4, 0, 8, 10);
+        graphics.fillStyle(0x0b1220, 0.55);
+        graphics.fillRect(-1, 1, 2, 8);
 
         // Windows
         graphics.fillStyle(0x0f172a);
@@ -1444,10 +1475,15 @@ class GraphicsManager {
         graphics.fillRect(6, -8, 6, 4);
         graphics.fillRect(-12, 0, 6, 4);
         graphics.fillRect(6, 0, 6, 4);
+        graphics.fillStyle(0x93c5fd, 0.28);
+        graphics.fillRect(-12, -8, 6, 1.5);
+        graphics.fillRect(6, -8, 6, 1.5);
 
         // Team light strip above the door
         graphics.fillStyle(teamColor);
         graphics.fillRect(-6, -2, 12, 2);
+        graphics.fillStyle(0xffffff, 0.2);
+        graphics.fillRect(-6, -2, 12, 1);
     }
 
     /**
@@ -1487,12 +1523,12 @@ class GraphicsManager {
      */
     _drawCommandBunkerBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor) {
         const size = 64;
-        const concreteDark = 0x4b5563;  // Gray-600
-        const concreteLight = 0x9ca3af; // Gray-400
-        const metalDark = 0x374151;     // Gray-700
+        const concreteDark = 0x5b6675;  // Slate-600
+        const concreteLight = 0x8a97a8; // Slate-400
+        const metalDark = 0x3b4657;     // Slate-700
 
         // 1. Foundation Slab (Shadowed)
-        graphics.fillStyle(0x000000, 0.4);
+        graphics.fillStyle(0x000000, 0.42);
         graphics.fillRoundedRect(-size / 2 - 2, -size / 2 + 4, size + 4, size, 12);
 
         // 2. Main Concrete Base
@@ -1503,6 +1539,18 @@ class GraphicsManager {
         const innerSize = size - 10;
         graphics.fillStyle(concreteLight);
         graphics.fillRoundedRect(-innerSize / 2, -innerSize / 2, innerSize, innerSize, 4);
+
+        // 3b. Platform bevel + panel seams
+        graphics.lineStyle(1, 0xffffff, 0.12);
+        graphics.strokeRoundedRect(-innerSize / 2 + 1, -innerSize / 2 + 1, innerSize - 2, innerSize - 2, 4);
+        graphics.lineStyle(1, 0x0b1220, 0.28);
+        graphics.lineBetween(-innerSize / 2 + 4, 0, innerSize / 2 - 4, 0);
+        graphics.lineBetween(0, -innerSize / 2 + 4, 0, innerSize / 2 - 4);
+        graphics.fillStyle(0x0b1220, 0.16);
+        graphics.fillCircle(-innerSize / 2 + 6, -innerSize / 2 + 6, 1.2);
+        graphics.fillCircle(innerSize / 2 - 6, -innerSize / 2 + 6, 1.2);
+        graphics.fillCircle(-innerSize / 2 + 6, innerSize / 2 - 6, 1.2);
+        graphics.fillCircle(innerSize / 2 - 6, innerSize / 2 - 6, 1.2);
 
         // 4. Team marking: corner brackets stay legible without turning the
         //    platform into a checkerboard.
@@ -1531,8 +1579,12 @@ class GraphicsManager {
         graphics.fillStyle(metalDark, 0.3);
         graphics.fillCircle(0, 0, 18);
         graphics.lineStyle(1.5, baseColor, 0.75);
-        graphics.strokeCircle(0, 0, 20);        graphics.lineStyle(2, metalDark);
+        graphics.strokeCircle(0, 0, 20);
+        graphics.lineStyle(2, metalDark);
         graphics.strokeCircle(0, 0, 16);
+        graphics.lineStyle(1, 0xffffff, 0.14);
+        graphics.strokeCircle(0, 0, 19);
+
 
         // 6. Directional Armor (The "Front" face)
         const frontY = isPlayerTeam ? -innerSize / 2 : innerSize / 2;
@@ -1583,20 +1635,24 @@ class GraphicsManager {
      */
     _drawCommandBunkerTurret(graphics, darkColor) {
         const size = 60;
-        const gunmetal = 0x374151;
+        const gunmetal = 0x3b4657;
 
         // Turret ring
-        graphics.fillStyle(0x000000, 0.22);
+        graphics.fillStyle(0x000000, 0.24);
         graphics.fillCircle(1.5, 2, size / 4 + 1);
-        this._disc(graphics, 0, 0, size / 4, darkColor, 0.6);
-        this._disc(graphics, -2, -2, size / 9, this._shade(darkColor, 1.4), 0);
+        this._disc(graphics, 0, 0, size / 4, gunmetal, 0.6);
+        this._disc(graphics, -2, -2, size / 9, this._shade(gunmetal, 1.35), 0);
+        graphics.lineStyle(1, 0xffffff, 0.1);
+        graphics.strokeCircle(0, 0, size / 4 - 1);
 
         // Mantlet + barrel pointing right (rotated by the container)
-        this._plate(graphics, 8, -5, 6, 10, 2, gunmetal, 0.5);
+        this._plate(graphics, 8, -5, 6, 10, 2, this._shade(gunmetal, 0.9), 0.5);
         this._drawBarrel(graphics, 12, 0, size / 2.2, 6);
 
         // Cupola hatch
         this._disc(graphics, -4, -4, 3, 0x6b7280, 0.35);
+        graphics.lineStyle(1, 0xffffff, 0.12);
+        graphics.strokeCircle(-4, -4, 3);
     }
 
     /**
@@ -1604,7 +1660,7 @@ class GraphicsManager {
      */
     _drawDefensiveOutpostBase(graphics, isPlayerTeam, baseColor, accentColor, darkColor) {
         const size = 44;
-        const concreteColor = 0x6b7280;
+        const concreteColor = 0x5b6675;
         const r = size / 2;
 
         // Hexagonal bunker reads as a fort rather than a deck of concentric circles
@@ -1618,11 +1674,21 @@ class GraphicsManager {
         };
 
         // Shadow
-        this._polygon(graphics, hexPoints(r, 2, 3), 0x000000, 0, 0.3);
+        this._polygon(graphics, hexPoints(r, 2, 3), 0x000000, 0, 0.32);
 
         // Concrete platform + rim
         this._polygon(graphics, hexPoints(r), concreteColor, 0.55);
-        this._polygon(graphics, hexPoints(r - 4), this._shade(concreteColor, 0.85), 0.35);
+        this._polygon(graphics, hexPoints(r - 4), this._shade(concreteColor, 0.82), 0.35);
+
+        // Inner bevel + panel seams
+        this._polygon(graphics, hexPoints(r - 7), this._shade(concreteColor, 0.92), 0.25);
+        graphics.lineStyle(1, 0xffffff, 0.1);
+        graphics.beginPath();
+        const bevel = hexPoints(r - 5);
+        graphics.moveTo(bevel[0][0], bevel[0][1]);
+        for (let i = 1; i < bevel.length; i++) graphics.lineTo(bevel[i][0], bevel[i][1]);
+        graphics.closePath();
+        graphics.strokePath();
 
         // Team band around the rim
         graphics.lineStyle(2.5, baseColor, 0.95);
@@ -1639,10 +1705,12 @@ class GraphicsManager {
             graphics.fillCircle(px, py, 1.8);
         }
 
-        // Accent lights on the two side faces
+        // Accent lights on the two side faces + hazard ticks on the front
         graphics.fillStyle(accentColor);
         graphics.fillCircle(-r + 4, 0, 1.4);
         graphics.fillCircle(r - 4, 0, 1.4);
+        graphics.fillStyle(0xfbbf24, 0.6);
+        graphics.fillRect(-6, isPlayerTeam ? -r + 3 : r - 4.5, 12, 1.5);
 
         // Sandbags at the front, just outside the platform edge (facing the enemy)
         const sandbagY = isPlayerTeam ? -(r + 5) : r + 1;

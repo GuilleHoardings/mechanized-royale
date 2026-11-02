@@ -88,10 +88,39 @@ class BootScene extends Phaser.Scene {
         // ---------------------------------------------------
 
         // UI elements
+        // Card frame is generated at the size the battle hand actually uses
+        // (100x80) so the border, art well and name plate keep crisp edges.
         graphics.clear();
-        graphics.fillStyle(0x333333);
-        graphics.fillRect(0, 0, 100, 140);
-        graphics.generateTexture('card_bg', 100, 140);
+        graphics.fillStyle(0x0b1422, 1);
+        graphics.fillRoundedRect(0, 0, 100, 80, 7);
+
+        // Top sheen
+        graphics.fillStyle(0xffffff, 0.045);
+        graphics.fillRoundedRect(1, 1, 98, 26, 6);
+
+        // Art well
+        graphics.fillStyle(0x111b2b, 0.92);
+        graphics.fillRoundedRect(5, 19, 90, 42, 4);
+        graphics.lineStyle(1, 0x3d5a80, 0.45);
+        graphics.strokeRoundedRect(5, 19, 90, 42, 4);
+
+        // Neutral accent strip; per-card type colour is layered in BattleScene
+        graphics.fillStyle(0x60a5fa, 0.55);
+        graphics.fillRoundedRect(9, 6, 82, 2, 1);
+
+        // Name plate
+        graphics.fillStyle(0x090f19, 0.82);
+        graphics.fillRoundedRect(4, 61, 92, 15, 4);
+
+        // Outer border + corner ticks
+        graphics.lineStyle(1, 0x7da3ce, 0.45);
+        graphics.strokeRoundedRect(0.5, 0.5, 99, 79, 7);
+        graphics.lineStyle(2, 0x4fd1c5, 0.32);
+        graphics.lineBetween(4, 4, 12, 4);
+        graphics.lineBetween(4, 4, 4, 12);
+        graphics.lineBetween(96, 76, 88, 76);
+        graphics.lineBetween(96, 76, 96, 68);
+        graphics.generateTexture('card_bg', 100, 80);
 
         graphics.clear();
         graphics.fillStyle(0x4a90e2);
@@ -130,79 +159,122 @@ class BootScene extends Phaser.Scene {
     }
 
     createLoadingBar() {
-        // Match the dark blue-gray theme from MenuScene
-        this.cameras.main.setBackgroundColor('#0f172a');
-
-        // Add subtle background particles like MenuScene
-        this.createBackgroundEffects();
+        // Match the dark command-console theme used by the HTML chrome
+        this.cameras.main.setBackgroundColor('#0a111c');
 
         const width = 300;
-        const height = 12;
+        const height = 10;
         const x = (GAME_CONFIG.WIDTH - width) / 2;
         const y = GAME_CONFIG.HEIGHT / 2 + 40;
 
-        // Title with glow effect (matching MenuScene style)
-        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'MECHANIZED ROYALE', {
-            fontSize: '42px',
+        this.createBackgroundEffects();
+
+        // Status chip above the title
+        const chip = this.add.graphics();
+        CanvasTheme.chip(chip, GAME_CONFIG.WIDTH / 2 - 64, GAME_CONFIG.HEIGHT / 2 - 160, 128, 22, CanvasTheme.colors.accent, {
+            fillAlpha: 0.12,
+            strokeAlpha: 0.4,
+            dot: true
+        });
+        this.add.text(GAME_CONFIG.WIDTH / 2 + 6, GAME_CONFIG.HEIGHT / 2 - 149, 'TACTICAL LINK', {
+            fontFamily: CanvasTheme.fonts.mono,
+            fontSize: '10px',
+            fill: CanvasTheme.colors.accentCss,
+            letterSpacing: 2
+        }).setOrigin(0.5);
+
+        // Title with glow effect
+        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 100, 'MECHANIZED ROYALE', {
+            fontSize: '40px',
             fill: '#60a5fa',
-            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+            fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6
         }).setOrigin(0.5);
-        titleGlow.setAlpha(0.4);
+        titleGlow.setAlpha(0.35);
         titleGlow.setBlendMode(Phaser.BlendModes.ADD);
 
-        const title = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 80, 'MECHANIZED ROYALE', {
-            fontSize: '42px',
-            fill: '#f1f5f9',
-            fontFamily: 'Impact, Haettenschweiler, Arial Black, sans-serif',
+        const title = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 100, 'MECHANIZED ROYALE', {
+            fontSize: '40px',
+            fill: '#e8f1fb',
+            fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6,
-            stroke: '#3b82f6',
+            stroke: '#2563eb',
             strokeThickness: 3
+        }).setOrigin(0.5);
+
+        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 66, 'FIELD COMMAND SYSTEM', {
+            fontSize: '11px',
+            fill: '#8ea3bd',
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 4
         }).setOrigin(0.5);
 
         // Animate title glow
         this.tweens.add({
             targets: titleGlow,
-            alpha: 0.6,
+            alpha: 0.55,
             duration: 1500,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
         });
 
-        // Loading text with modern styling
-        const loadingText = this.add.text(GAME_CONFIG.WIDTH / 2, y - 30, 'LOADING', {
-            fontSize: '14px',
-            fill: '#94a3b8',
-            fontFamily: 'Arial',
-            fontWeight: '600',
-            letterSpacing: 4
-        }).setOrigin(0.5);
+        // Loading panel
+        const panelX = x - 16;
+        const panelY = y - 32;
+        const panelW = width + 32;
+        const panelH = 88;
+        const barPanel = this.add.graphics();
+        CanvasTheme.panel(barPanel, panelX, panelY, panelW, panelH, {
+            radius: 10,
+            fill: CanvasTheme.colors.panel,
+            fillAlpha: 0.9,
+            stroke: CanvasTheme.colors.line,
+            strokeAlpha: 0.3,
+            accent: CanvasTheme.colors.accent,
+            brackets: true,
+            bracketColor: CanvasTheme.colors.accent,
+            bracketAlpha: 0.45
+        });
 
-        // Loading bar container with rounded corners and glow
+        this.add.text(panelX + 16, panelY + 12, 'INITIALIZING BATTLEFIELD', {
+            fontSize: '9px',
+            fill: '#8ea3bd',
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        });
+
+        const statusText = this.add.text(panelX + panelW - 16, panelY + 12, 'SECURE', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.greenCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(1, 0);
+
+        // Bar container
         const barContainer = this.add.graphics();
-
-        // Outer glow
-        barContainer.fillStyle(0x3b82f6, 0.2);
-        barContainer.fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 10);
-
-        // Background bar
-        barContainer.fillStyle(0x1e293b, 1);
-        barContainer.fillRoundedRect(x, y, width, height, 6);
-
-        // Border
-        barContainer.lineStyle(1, 0x3d5a80, 0.5);
-        barContainer.strokeRoundedRect(x, y, width, height, 6);
+        barContainer.fillStyle(0x05080d, 0.85);
+        barContainer.fillRoundedRect(x, y, width, height, 5);
+        barContainer.lineStyle(1, CanvasTheme.colors.lineSoft, 0.55);
+        barContainer.strokeRoundedRect(x, y, width, height, 5);
 
         // Loading bar fill
         const fillBar = this.add.graphics();
 
         // Percentage text
-        const percentText = this.add.text(GAME_CONFIG.WIDTH / 2, y + 30, '0%', {
-            fontSize: '16px',
-            fill: '#60a5fa',
-            fontFamily: 'Arial',
-            fontWeight: 'bold'
+        const percentText = this.add.text(GAME_CONFIG.WIDTH / 2, y + 26, '0%', {
+            fontSize: '11px',
+            fill: '#b7c8dd',
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(0.5);
+
+        // Footer
+        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'BUILD 0.1  /  AWAITING DEPLOYMENT', {
+            fontSize: '9px',
+            fill: '#64748b',
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
         }).setOrigin(0.5);
 
         // Simulate loading progress
@@ -215,21 +287,25 @@ class BootScene extends Phaser.Scene {
 
                 fillBar.clear();
 
-                // Gradient-like effect for the progress bar
-                fillBar.fillStyle(0x3b82f6, 1);
-                fillBar.fillRoundedRect(x + 2, y + 2, (width - 4) * progress, height - 4, 4);
+                // Main fill
+                fillBar.fillStyle(CanvasTheme.colors.blueDeep, 1);
+                fillBar.fillRoundedRect(x + 2, y + 2, Math.max(0, (width - 4) * progress), height - 4, 4);
 
-                // Inner highlight
-                if (progress > 0.1) {
-                    fillBar.fillStyle(0x60a5fa, 0.4);
-                    fillBar.fillRoundedRect(x + 2, y + 2, (width - 4) * progress, (height - 4) / 2, 4);
+                // Brighter leading edge
+                if (progress > 0.04) {
+                    const fillWidth = (width - 4) * progress;
+                    fillBar.fillStyle(CanvasTheme.colors.accent, 0.9);
+                    fillBar.fillRoundedRect(x + 2 + Math.max(0, fillWidth - 18), y + 2, Math.min(18, fillWidth), height - 4, 4);
+                    fillBar.fillStyle(0xffffff, 0.18);
+                    fillBar.fillRoundedRect(x + 2, y + 2, fillWidth, 3, 2);
                 }
 
                 // Update percentage
-                percentText.setText(Math.floor(progress * 100) + '%');
+                percentText.setText(`${Math.floor(progress * 100)}%  ·  ${progress < 1 ? 'SYNCING' : 'READY'}`);
 
                 if (progress >= 1) {
                     timer.remove();
+                    statusText.setText('ONLINE');
                     // Brief delay before transitioning
                     this.time.delayedCall(200, () => {
                         this.scene.start('MenuScene');
@@ -241,24 +317,30 @@ class BootScene extends Phaser.Scene {
     }
 
     createBackgroundEffects() {
-        // Create subtle floating particles (matching MenuScene)
-        const particles = this.add.graphics();
-        particles.setAlpha(0.3);
+        const W = GAME_CONFIG.WIDTH;
+        const H = GAME_CONFIG.HEIGHT;
 
-        for (let i = 0; i < 15; i++) {
-            const x = Math.random() * GAME_CONFIG.WIDTH;
-            const y = Math.random() * GAME_CONFIG.HEIGHT;
-            const size = Math.random() * 2 + 1;
-            particles.fillStyle(0x60a5fa, Math.random() * 0.3 + 0.1);
-            particles.fillCircle(x, y, size);
+        // Blueprint grid + edge vignette
+        const grid = this.add.graphics();
+        CanvasTheme.grid(grid, 0, 0, W, H, 40, CanvasTheme.colors.blue, 0.055);
+        CanvasTheme.vignette(grid, 0, 0, W, H, 5, 0.05);
+
+        // Soft diagonal command lines
+        const lines = this.add.graphics();
+        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.12);
+        for (let i = 0; i < 4; i++) {
+            const ly = 90 + i * 180;
+            lines.lineBetween(0, ly, W, ly + 50);
         }
 
-        // Add decorative lines
-        const lines = this.add.graphics();
-        lines.lineStyle(1, 0x3d5a80, 0.15);
-        for (let i = 0; i < 4; i++) {
-            const y = 100 + i * 180;
-            lines.lineBetween(0, y, GAME_CONFIG.WIDTH, y + 40);
+        // Sparse status lights
+        const particles = this.add.graphics();
+        for (let i = 0; i < 18; i++) {
+            const px = Math.random() * W;
+            const py = Math.random() * H;
+            const size = Math.random() * 1.8 + 0.8;
+            particles.fillStyle(i % 4 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.blue, Math.random() * 0.22 + 0.06);
+            particles.fillCircle(px, py, size);
         }
     }
 }
