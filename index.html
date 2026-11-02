@@ -7,24 +7,81 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <button class="menu-toggle" onclick="toggleMenu()">🛠️ Tools</button>
-    <div class="side-controls" id="side-controls">
-        <button class="debug-toggle" onclick="toggleDebugPanel()">Toggle Debug</button>
-        <button class="row-numbers-toggle" onclick="toggleRowNumbers()">Toggle Row Numbers</button>
-        <button class="attack-range-toggle" onclick="toggleAttackRanges()">Toggle Attack Ranges</button>
-        <button class="textures-toggle" onclick="toggleTextures()">Toggle Textures</button>
-        <button class="speed-toggle" id="speed-toggle" onclick="cycleGameSpeed()" disabled>Speed: 1.00x</button>
-        <button class="pause-toggle" id="pause-toggle" onclick="togglePause()" disabled>⏸ Pause</button>
-    </div>
-    
-    <div id="game-container">
-        <div id="loading">
-            <h2>Mechanized Royale</h2>
-            <p>Loading...</p>
+    <button class="menu-toggle" onclick="toggleMenu()" aria-expanded="false" aria-controls="side-controls">
+        <span class="menu-toggle-icon" aria-hidden="true">☰</span>
+        <span class="menu-toggle-label">Tools</span>
+    </button>
+
+    <aside class="side-controls" id="side-controls" aria-label="Game tools">
+        <div class="panel-heading">
+            <div class="panel-heading-copy">
+                <span class="panel-eyebrow">Command</span>
+                <span class="panel-title">Tools</span>
+            </div>
+            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Online</span>
+        </div>
+
+        <div class="control-group">
+            <div class="control-group-title">Overlays</div>
+            <button class="tool-button debug-toggle" type="button" onclick="toggleDebugPanel()" aria-pressed="false">
+                <span class="tool-glyph" aria-hidden="true">▤</span>
+                <span class="tool-label">Debug Panel</span>
+                <span class="tool-meta">Off</span>
+            </button>
+            <button class="tool-button row-numbers-toggle" type="button" onclick="toggleRowNumbers()" aria-pressed="false">
+                <span class="tool-glyph" aria-hidden="true">#</span>
+                <span class="tool-label">Row Numbers</span>
+                <span class="tool-meta">Off</span>
+            </button>
+            <button class="tool-button attack-range-toggle" type="button" onclick="toggleAttackRanges()" aria-pressed="false">
+                <span class="tool-glyph" aria-hidden="true">◎</span>
+                <span class="tool-label">Attack Ranges</span>
+                <span class="tool-meta">Off</span>
+            </button>
+            <button class="tool-button textures-toggle" type="button" onclick="toggleTextures()" aria-pressed="false">
+                <span class="tool-glyph" aria-hidden="true">▦</span>
+                <span class="tool-label">Textures</span>
+                <span class="tool-meta">Vector</span>
+            </button>
+        </div>
+
+        <div class="control-group">
+            <div class="control-group-title">Simulation</div>
+            <button class="tool-button speed-toggle" id="speed-toggle" type="button" onclick="cycleGameSpeed()" disabled>
+                <span class="tool-glyph" aria-hidden="true">◷</span>
+                <span class="tool-label">Speed</span>
+                <span class="tool-meta">1.00×</span>
+            </button>
+            <button class="tool-button pause-toggle" id="pause-toggle" type="button" onclick="togglePause()" disabled>
+                <span class="tool-glyph" aria-hidden="true">⏸</span>
+                <span class="tool-label">Pause</span>
+                <span class="tool-meta">Live</span>
+            </button>
+        </div>
+    </aside>
+
+    <div class="game-shell">
+        <div class="shell-rail" aria-hidden="true">
+            <span class="shell-brand"><span class="shell-led"></span>Mechanized Royale</span>
+            <span class="shell-meta">Tactical Link <span class="shell-divider">/</span> Ready</span>
+        </div>
+        <div id="game-container">
+            <div id="loading">
+                <h2>Mechanized Royale</h2>
+                <p>Loading battlefield</p>
+            </div>
         </div>
     </div>
-    
-    <div id="debug-panel">
+
+    <aside id="debug-panel" aria-label="Live telemetry">
+        <div class="panel-heading debug-heading">
+            <div class="panel-heading-copy">
+                <span class="panel-eyebrow">Live</span>
+                <span class="panel-title">Telemetry</span>
+            </div>
+            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Stream</span>
+            <button class="panel-close" type="button" onclick="toggleDebugPanel()" aria-label="Close telemetry">✕</button>
+        </div>
         <div class="debug-section">
             <div class="debug-title">Game State</div>
             <div class="debug-item">
@@ -152,31 +209,111 @@
                 <span class="debug-value" id="debug-speed">1.00x</span>
             </div>
         </div>
-    </div>
+    </aside>
 
     <script>
-        function toggleMenu() {
+        const MOBILE_BREAKPOINT = 1280;
+
+        function setMenuState(isVisible) {
             const controls = document.getElementById('side-controls');
             const menuBtn = document.querySelector('.menu-toggle');
-            const isVisible = controls.classList.toggle('visible');
-            menuBtn.textContent = isVisible ? '✖ Close' : '🛠️ Tools';
+            if (!controls || !menuBtn) return;
+            controls.classList.toggle('visible', isVisible);
+            menuBtn.classList.toggle('is-open', isVisible);
+            menuBtn.setAttribute('aria-expanded', String(isVisible));
+            const icon = menuBtn.querySelector('.menu-toggle-icon');
+            const label = menuBtn.querySelector('.menu-toggle-label');
+            if (icon) icon.textContent = isVisible ? '✕' : '☰';
+            if (label) label.textContent = isVisible ? 'Close' : 'Tools';
         }
 
-        // Auto-close menu on mobile when a button is clicked
+        function toggleMenu() {
+            const controls = document.getElementById('side-controls');
+            if (!controls) return;
+            setMenuState(!controls.classList.contains('visible'));
+        }
+
+        // Auto-close the tool tray on small screens after a control is pressed
         document.addEventListener('DOMContentLoaded', () => {
             const controls = document.getElementById('side-controls');
-            const menuBtn = document.querySelector('.menu-toggle');
+            if (!controls) return;
             controls.addEventListener('click', (e) => {
-                if (e.target.tagName === 'BUTTON' && window.innerWidth <= 1100) {
-                    controls.classList.remove('visible');
-                    menuBtn.textContent = '🛠️ Tools';
+                if (e.target.closest('button') && window.innerWidth <= MOBILE_BREAKPOINT) {
+                    setMenuState(false);
                 }
             });
         });
 
+        function setToolState(button, active, activeText, inactiveText) {
+            if (!button) return;
+            button.classList.toggle('is-active', active);
+            button.setAttribute('aria-pressed', String(active));
+            const meta = button.querySelector('.tool-meta');
+            if (meta) meta.textContent = active ? activeText : inactiveText;
+        }
+
+        function setToolDisabled(button, disabled) {
+            if (!button) return;
+            button.disabled = disabled;
+            if (disabled) {
+                button.classList.remove('is-active');
+                button.setAttribute('aria-pressed', 'false');
+                const meta = button.querySelector('.tool-meta');
+                if (meta) meta.textContent = 'N/A';
+            }
+        }
+
+        function syncToolButtonStates() {
+            const scene = window.currentScene;
+
+            const debugButton = document.querySelector('.debug-toggle');
+            const debugPanel = document.getElementById('debug-panel');
+            setToolState(debugButton, !!(debugPanel && debugPanel.classList.contains('visible')), 'On', 'Off');
+
+            const rowsButton = document.querySelector('.row-numbers-toggle');
+            setToolDisabled(rowsButton, !(scene && typeof scene.toggleRowNumbers === 'function'));
+            if (rowsButton && !rowsButton.disabled) {
+                setToolState(rowsButton, !!(scene && scene.rowNumbersVisible), 'On', 'Off');
+            }
+
+            const rangesButton = document.querySelector('.attack-range-toggle');
+            setToolDisabled(rangesButton, !(scene && typeof scene.toggleAttackRanges === 'function'));
+            if (rangesButton && !rangesButton.disabled) {
+                setToolState(rangesButton, !!(scene && scene.attackRangesVisible), 'On', 'Off');
+            }
+
+            const texturesButton = document.querySelector('.textures-toggle');
+            setToolDisabled(texturesButton, !(scene && typeof scene.toggleTextures === 'function'));
+            if (texturesButton && !texturesButton.disabled) {
+                setToolState(texturesButton, !!(scene && scene.useGraphicsMode === false), 'Art', 'Vector');
+            }
+
+            const pauseButton = document.getElementById('pause-toggle');
+            const hasPauseControl = !!(scene && typeof scene.togglePause === 'function');
+            if (pauseButton) {
+                pauseButton.disabled = !hasPauseControl;
+                pauseButton.title = hasPauseControl ? 'Pause/Resume game for analysis' : 'Available during battles';
+                if (!hasPauseControl) {
+                    updatePauseButtonState(false);
+                }
+            }
+
+            const speedButton = document.getElementById('speed-toggle');
+            const hasSpeedControl = !!(scene && typeof scene.toggleSimulationSpeed === 'function');
+            if (speedButton) {
+                speedButton.disabled = !hasSpeedControl;
+                speedButton.title = hasSpeedControl ? 'Cycle through analysis-friendly slow speeds' : 'Available during battles';
+                if (!hasSpeedControl) {
+                    updateSpeedButtonLabel(1);
+                }
+            }
+        }
+
         function toggleDebugPanel() {
             const panel = document.getElementById('debug-panel');
+            if (!panel) return;
             panel.classList.toggle('visible');
+            syncToolButtonStates();
         }
         
         function toggleRowNumbers() {
@@ -184,6 +321,7 @@
             if (window.currentScene && window.currentScene.toggleRowNumbers) {
                 window.currentScene.toggleRowNumbers();
             }
+            syncToolButtonStates();
         }
         
         function toggleAttackRanges() {
@@ -191,6 +329,7 @@
             if (window.currentScene && window.currentScene.toggleAttackRanges) {
                 window.currentScene.toggleAttackRanges();
             }
+            syncToolButtonStates();
         }
         
         function toggleTextures() {
@@ -198,6 +337,7 @@
             if (window.currentScene && window.currentScene.toggleTextures) {
                 window.currentScene.toggleTextures();
             }
+            syncToolButtonStates();
         }
 
         function togglePause() {
@@ -210,13 +350,21 @@
         function updatePauseButtonState(isPaused) {
             const button = document.getElementById('pause-toggle');
             if (!button) return;
+            const glyph = button.querySelector('.tool-glyph');
+            const label = button.querySelector('.tool-label');
+            const meta = button.querySelector('.tool-meta');
             if (isPaused) {
-                button.textContent = '▶ Resume';
-                button.classList.add('paused');
+                if (glyph) glyph.textContent = '▶';
+                if (label) label.textContent = 'Resume';
+                if (meta) meta.textContent = 'Paused';
+                button.classList.add('paused', 'is-active');
             } else {
-                button.textContent = '⏸ Pause';
-                button.classList.remove('paused');
+                if (glyph) glyph.textContent = '⏸';
+                if (label) label.textContent = 'Pause';
+                if (meta) meta.textContent = 'Live';
+                button.classList.remove('paused', 'is-active');
             }
+            button.setAttribute('aria-pressed', String(!!isPaused));
         }
 
         function refreshPauseButtonState() {
@@ -228,6 +376,7 @@
             const isPaused = hasControl && scene.isPaused && scene.isPaused();
             updatePauseButtonState(isPaused);
             button.title = hasControl ? 'Pause/Resume game for analysis' : 'Available during battles';
+            syncToolButtonStates();
         }
 
         window.updatePauseButtonState = updatePauseButtonState;
@@ -237,7 +386,8 @@
             const button = document.getElementById('speed-toggle');
             if (!button) return;
             const displaySpeed = typeof speed === 'number' ? speed : 1;
-            button.textContent = `Speed: ${displaySpeed.toFixed(2)}x`;
+            const meta = button.querySelector('.tool-meta');
+            if (meta) meta.textContent = `${displaySpeed.toFixed(2)}×`;
             if (displaySpeed < 1) {
                 button.classList.add('speed-slow');
             } else {
@@ -256,6 +406,7 @@
                 : 1;
             updateSpeedButtonLabel(speed);
             button.title = hasControl ? 'Cycle through analysis-friendly slow speeds' : 'Available during battles';
+            syncToolButtonStates();
         }
 
         function cycleGameSpeed() {
@@ -268,9 +419,11 @@
 
         window.updateSpeedButtonLabel = updateSpeedButtonLabel;
         window.refreshSpeedButtonState = refreshSpeedButtonState;
+        window.syncToolButtonStates = syncToolButtonStates;
 
         refreshSpeedButtonState();
         refreshPauseButtonState();
+        syncToolButtonStates();
         
         // Make debug functions globally accessible
         window.debugPanel = {
