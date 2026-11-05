@@ -1556,7 +1556,7 @@ class BattleScene extends Phaser.Scene {
     }
 
     showOvertimeNotification() {
-        this._showNotification('OVERTIME!', '#ff4444', 150, 'First to gain advantage wins!');
+        this._showNotification('OVERTIME!', CanvasTheme.colors.dangerCss, 150, 'First to gain advantage wins!');
     }
 
     /**
@@ -2850,10 +2850,10 @@ class BattleScene extends Phaser.Scene {
             building.x,
             barCenterY,
             `${Math.ceil(building.health)}`, {
-            fontSize: '11px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            stroke: '#000000',
+            fontSize: '10px',
+            fill: CanvasTheme.colors.text,
+            fontFamily: CanvasTheme.fonts.mono,
+            stroke: '#05080d',
             strokeThickness: 2,
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -2920,7 +2920,7 @@ class BattleScene extends Phaser.Scene {
         // Update health text
         if (building.healthText) {
             building.healthText.setText(`${Math.ceil(building.health)}`);
-            building.healthText.setFill('#ffffff');
+            building.healthText.setFill(CanvasTheme.colors.text);
         }
     }
 
@@ -3848,15 +3848,28 @@ class BattleScene extends Phaser.Scene {
         const cost = selectedCard.cardDef.cost;
         const displayName = selectedCard.cardDef.name;
         const energyNeeded = cost - this.energy;
+        const config = this.energyBarConfig;
 
-        // Flash the energy bar red
-        const barWidth = 200;
-        const barX = (GAME_CONFIG.WIDTH - barWidth) / 2;
-        const energyY = GAME_CONFIG.HEIGHT - 20;
-
-        this.energyBarFill.clear();
-        this.energyBarFill.fillStyle(0xff0000);
-        this.energyBarFill.fillRect(barX, energyY, barWidth * (this.energy / this.maxEnergy), 16);
+        // Flash the energy cells red with a temporary overlay (the base bar is untouched)
+        if (config) {
+            const flash = this.add.graphics();
+            flash.setScrollFactor(0);
+            flash.setDepth(1001);
+            flash.fillStyle(CanvasTheme.colors.dangerDeep, 0.32);
+            flash.lineStyle(1, CanvasTheme.colors.danger, 0.85);
+            for (let i = 0; i < this.maxEnergy; i++) {
+                const sx = config.x + i * (config.squareSize + config.spacing);
+                flash.fillRoundedRect(sx, config.y, config.squareSize, config.squareSize, 3);
+                flash.strokeRoundedRect(sx, config.y, config.squareSize, config.squareSize, 3);
+            }
+            this.tweens.add({
+                targets: flash,
+                alpha: 0,
+                duration: 900,
+                ease: 'Power2',
+                onComplete: () => flash.destroy()
+            });
+        }
 
         // Flash the selected card
         this.tweens.add({
@@ -3868,90 +3881,91 @@ class BattleScene extends Phaser.Scene {
             onComplete: () => {
                 selectedCard.clearTint();
                 this.updateCardSelection(); // Restore selection highlight
-                this.updateEnergyBar(); // Restore normal energy bar color
             }
         });
 
-        // Enhanced error message with specific information
-        const errorText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 50, 'NOT ENOUGH ENERGY!', {
-            fontSize: '24px',
-            fill: '#ff0000',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-        errorText.setScrollFactor(0);
-        errorText.setDepth(100);
+        const panelW = 300;
+        const panelH = 136;
+        const banner = this.add.container(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 10);
+        banner.setScrollFactor(0);
+        banner.setDepth(100);
 
-        // Detailed energy info
-        const detailText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 20,
-            `${displayName} costs ${cost} energy\n` +
-            `You have ${this.energy} energy\n` +
-            `Need ${energyNeeded} more energy`, {
-            fontSize: '14px',
-            fill: '#ffaaaa',
-            fontFamily: 'Arial',
-            align: 'center',
-            stroke: '#000000',
-            strokeThickness: 1
+        const bg = this.add.graphics();
+        CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
+            radius: 8,
+            fill: CanvasTheme.colors.panelStrong,
+            fillAlpha: 0.97,
+            stroke: CanvasTheme.colors.danger,
+            strokeAlpha: 0.55,
+            accent: CanvasTheme.colors.danger,
+            accentAlpha: 0.9,
+            shadowAlpha: 0.4,
+            brackets: true,
+            bracketColor: CanvasTheme.colors.danger,
+            bracketAlpha: 0.4,
+            bracketLength: 10
+        });
+        // Alert header band
+        bg.fillStyle(CanvasTheme.colors.danger, 0.12);
+        bg.fillRoundedRect(-panelW / 2 + 1, -panelH / 2 + 1, panelW - 2, 32, 7);
+        CanvasTheme.rule(bg, -panelW / 2 + 14, -panelH / 2 + 33, panelW / 2 - 14, -panelH / 2 + 33, CanvasTheme.colors.line, 0.18);
+
+        const eyebrow = this.add.text(-panelW / 2 + 16, -panelH / 2 + 7, 'SYS ALERT', {
+            fontSize: '7px',
+            fill: CanvasTheme.colors.dangerCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        });
+
+        const title = this.add.text(0, -panelH / 2 + 20, 'INSUFFICIENT ENERGY', {
+            fontSize: '19px',
+            fill: CanvasTheme.colors.text,
+            fontFamily: CanvasTheme.fonts.display,
+            letterSpacing: 2
         }).setOrigin(0.5);
-        detailText.setScrollFactor(0);
-        detailText.setDepth(100);
+
+        const detail = this.add.text(0, -12,
+            `${displayName} requires ${cost} energy\n` +
+            `AVAILABLE ${this.energy}   ·   SHORT ${energyNeeded}`, {
+            fontSize: '10px',
+            fill: CanvasTheme.colors.textDim,
+            fontFamily: CanvasTheme.fonts.mono,
+            align: 'center',
+            lineSpacing: 5,
+            letterSpacing: 1
+        }).setOrigin(0.5);
 
         // Energy regeneration timing info
         const regenRate = this.getEnergyRegenDelay() / 1000; // Convert to seconds
         const timeToEnergy = Math.ceil(energyNeeded * regenRate);
-        const regenText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 + 15,
-            `Energy regenerates every ${regenRate}s\n` +
-            `${energyNeeded} energy in ~${timeToEnergy}s`, {
-            fontSize: '12px',
-            fill: '#cccccc',
-            fontFamily: 'Arial',
-            align: 'center',
-            fontStyle: 'italic'
+        const regen = this.add.text(0, 35,
+            `CELL ${regenRate}s  ·  FULL CHARGE ~${timeToEnergy}s`, {
+            fontSize: '8px',
+            fill: CanvasTheme.colors.faint,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
         }).setOrigin(0.5);
-        regenText.setScrollFactor(0);
-        regenText.setDepth(100);
 
-        // Animate all text elements
-        [errorText, detailText, regenText].forEach((text, index) => {
-            text.setAlpha(0);
-            text.y += 20;
-
-            this.tweens.add({
-                targets: text,
-                alpha: 1,
-                y: text.y - 20,
-                duration: 300,
-                delay: index * 100,
-                ease: 'Back.out'
-            });
-
-            this.tweens.add({
-                targets: text,
-                alpha: 0,
-                y: text.y - 30,
-                duration: 1000,
-                delay: 2000 + index * 50,
-                ease: 'Power2',
-                onComplete: () => text.destroy()
-            });
-        });
-
-        // Red flash overlay effect for emphasis
-        const flashOverlay = this.add.graphics();
-        flashOverlay.fillStyle(0xff0000, 0.3);
-        flashOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
-        flashOverlay.setScrollFactor(0);
-        flashOverlay.setDepth(95);
+        banner.add([bg, eyebrow, title, detail, regen]);
+        banner.setAlpha(0);
+        banner.y += 10;
 
         this.tweens.add({
-            targets: flashOverlay,
+            targets: banner,
+            alpha: 1,
+            y: banner.y - 10,
+            duration: 260,
+            ease: 'Back.out'
+        });
+
+        this.tweens.add({
+            targets: banner,
             alpha: 0,
-            duration: 300,
+            y: banner.y - 16,
+            duration: 500,
+            delay: 1800,
             ease: 'Power2',
-            onComplete: () => flashOverlay.destroy()
+            onComplete: () => banner.destroy()
         });
     }
 
@@ -4402,7 +4416,7 @@ class BattleScene extends Phaser.Scene {
         // Draw pulse circle around card
         const cardCenterX = card.x + UI_CONFIG.CARDS.WIDTH / 2;
         const cardCenterY = card.y + UI_CONFIG.CARDS.HEIGHT / 2;
-        selectionPulse.lineStyle(3, 0x60a5fa, 0.8);
+        selectionPulse.lineStyle(2, CanvasTheme.colors.accent, 0.8);
         selectionPulse.strokeCircle(cardCenterX, cardCenterY, 55);
 
         // Animate pulse
@@ -4419,54 +4433,85 @@ class BattleScene extends Phaser.Scene {
         // Show brief selection info (troop vs non-troop)
         const isTroop = card.cardType === CARD_TYPES.TROOP;
         const displayName = isTroop ? card.unitData?.name : card.cardDef?.name;
-        const costVal = isTroop ? card.cardDef?.cost : card.cardDef?.cost; // Fixed to use cardDef for cost
+        const costVal = card.cardDef?.cost;
         const canAfford = typeof costVal === 'number' ? (this.energy >= costVal) : true;
+        let actionLabel;
         let infoText;
-        let actionIcon;
         if (isTroop) {
-            actionIcon = '🎯';
-            infoText = canAfford ?
-                `${displayName} - Click to deploy` :
-                `${displayName} - Need ${costVal - this.energy} more ⚡`;
+            actionLabel = 'DEPLOY';
+            infoText = canAfford
+                ? `${displayName} - TAP A VALID TILE TO DEPLOY`
+                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
         } else if (card.cardType === CARD_TYPES.SPELL) {
-            actionIcon = '✨';
-            infoText = canAfford ?
-                `${displayName} - Click to cast` :
-                `${displayName} - Need ${costVal - this.energy} more ⚡`;
+            actionLabel = 'CAST';
+            infoText = canAfford
+                ? `${displayName} - TAP A TARGET TO CAST`
+                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
         } else {
-            actionIcon = '🏗️';
-            infoText = canAfford ?
-                `${displayName} - Click to place` :
-                `${displayName} - Need ${costVal - this.energy} more ⚡`;
+            actionLabel = 'PLACE';
+            infoText = canAfford
+                ? `${displayName} - TAP A VALID TILE TO PLACE`
+                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
         }
 
-        // Feedback background panel
+        const accent = canAfford ? CanvasTheme.colors.green : CanvasTheme.colors.danger;
+        const accentCss = canAfford ? CanvasTheme.colors.greenCss : CanvasTheme.colors.dangerCss;
+        const panelW = 300;
+        const panelH = 34;
+        const panelX = GAME_CONFIG.WIDTH / 2 - panelW / 2;
+        const panelY = GAME_CONFIG.HEIGHT - 197;
+
+        // Feedback panel
         const feedbackBg = this.add.graphics();
-        feedbackBg.fillStyle(0x1e293b, 0.9);
-        feedbackBg.fillRoundedRect(GAME_CONFIG.WIDTH / 2 - 130, GAME_CONFIG.HEIGHT - 195, 260, 30, 8);
-        feedbackBg.lineStyle(1, canAfford ? 0x4ade80 : 0xf87171, 0.5);
-        feedbackBg.strokeRoundedRect(GAME_CONFIG.WIDTH / 2 - 130, GAME_CONFIG.HEIGHT - 195, 260, 30, 8);
+        CanvasTheme.panel(feedbackBg, panelX, panelY, panelW, panelH, {
+            radius: 6,
+            fill: CanvasTheme.colors.panelStrong,
+            fillAlpha: 0.94,
+            stroke: accent,
+            strokeAlpha: 0.45,
+            accent,
+            accentAlpha: 0.85,
+            shadowAlpha: 0.3,
+            brackets: true,
+            bracketColor: accent,
+            bracketAlpha: 0.35,
+            bracketLength: 6
+        });
+
+        // Small action chip on the left
+        CanvasTheme.chip(feedbackBg, panelX + 9, panelY + 9, 50, 16, accent, { fillAlpha: 0.18, strokeAlpha: 0.55 });
+        const actionText = this.add.text(panelX + 34, panelY + 17, actionLabel, {
+            fontSize: '7px',
+            fill: accentCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            fontStyle: 'bold',
+            letterSpacing: 1
+        }).setOrigin(0.5);
+
+        const feedbackText = this.add.text(panelX + 68, panelY + 17, infoText, {
+            fontSize: '9px',
+            fill: accentCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(0, 0.5);
+
         feedbackBg.setScrollFactor(0);
         feedbackBg.setDepth(49);
-
-        const feedbackText = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 180, `${actionIcon} ${infoText}`, {
-            fontSize: '13px',
-            fill: canAfford ? '#4ade80' : '#f87171',
-            fontFamily: 'Arial',
-            fontWeight: '600'
-        }).setOrigin(0.5);
+        actionText.setScrollFactor(0);
+        actionText.setDepth(50);
         feedbackText.setScrollFactor(0);
         feedbackText.setDepth(50);
 
         // Fade out feedback after 2 seconds
         this.tweens.add({
-            targets: [feedbackBg, feedbackText],
+            targets: [feedbackBg, actionText, feedbackText],
             alpha: 0,
             duration: 800,
             delay: 1500,
             ease: 'Power2',
             onComplete: () => {
                 feedbackBg.destroy();
+                actionText.destroy();
                 feedbackText.destroy();
             }
         });
@@ -4547,7 +4592,7 @@ class BattleScene extends Phaser.Scene {
 
         // Show activation alert notification
         const towerOwner = tower.isPlayerOwned ? 'PLAYER' : 'ENEMY';
-        this._showNotification(`${towerOwner} MAIN TOWER ACTIVATED!`, tower.isPlayerOwned ? '#60a5fa' : '#f87171', 160);
+        this._showNotification(`${towerOwner} MAIN TOWER ACTIVATED!`, tower.isPlayerOwned ? CanvasTheme.colors.blueCss : CanvasTheme.colors.dangerCss, 160);
 
         // Update UI
         this.updateTowerStatusDisplay();
@@ -4708,7 +4753,7 @@ class BattleScene extends Phaser.Scene {
         const towerName = tower.isMainTower ? 'MAIN TOWER' :
             tower.towerType === 'left' ? 'LEFT TOWER' : 'RIGHT TOWER';
         const message = `${isPlayerTower ? 'PLAYER' : 'ENEMY'} ${towerName} DESTROYED!`;
-        const color = isPlayerTower ? '#ff4444' : '#44ff44';
+        const color = isPlayerTower ? CanvasTheme.colors.dangerCss : CanvasTheme.colors.greenCss;
         this._showNotification(message, color, 200);
     }
 
@@ -4967,41 +5012,80 @@ class BattleScene extends Phaser.Scene {
     showPauseOverlay() {
         if (this.pauseOverlay) return;
 
-        // Create semi-transparent overlay (low opacity to keep battle visible)
+        const W = GAME_CONFIG.WIDTH;
+        const H = GAME_CONFIG.HEIGHT;
+
+        // Dim the battlefield without hiding it
         this.pauseOverlay = this.add.graphics();
-        this.pauseOverlay.fillStyle(0x000000, 0.3);
-        this.pauseOverlay.fillRect(0, 0, GAME_CONFIG.WIDTH, GAME_CONFIG.HEIGHT);
+        this.pauseOverlay.fillStyle(CanvasTheme.colors.ink, 0.5);
+        this.pauseOverlay.fillRect(0, 0, W, H);
         this.pauseOverlay.setScrollFactor(0);
         this.pauseOverlay.setDepth(90);
 
-        // Create compact pause indicator at top of screen
-        this.pauseText = this.add.text(GAME_CONFIG.WIDTH / 2, 60, '⏸ PAUSED', {
-            fontSize: '24px',
-            fill: '#ffffff',
-            fontFamily: 'Arial',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 3
-        }).setOrigin(0.5);
-        this.pauseText.setScrollFactor(0);
-        this.pauseText.setDepth(91);
+        // Compact command banner near the top
+        const panelW = 260;
+        const panelH = 70;
+        const banner = this.add.container(W / 2, 66);
+        banner.setScrollFactor(0);
+        banner.setDepth(91);
 
-        // Create compact subtitle
-        this.pauseSubtext = this.add.text(GAME_CONFIG.WIDTH / 2, 82, 'Click Resume to continue', {
-            fontSize: '12px',
-            fill: '#cccccc',
-            fontFamily: 'Arial',
-            stroke: '#000000',
-            strokeThickness: 1
+        const bg = this.add.graphics();
+        CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
+            radius: 7,
+            fill: CanvasTheme.colors.panelStrong,
+            fillAlpha: 0.96,
+            stroke: CanvasTheme.colors.amber,
+            strokeAlpha: 0.42,
+            accent: CanvasTheme.colors.amber,
+            accentAlpha: 0.9,
+            shadowAlpha: 0.34,
+            brackets: true,
+            bracketColor: CanvasTheme.colors.amber,
+            bracketAlpha: 0.4,
+            bracketLength: 8
+        });
+        CanvasTheme.rule(bg, -panelW / 2 + 16, 6, panelW / 2 - 16, 6, CanvasTheme.colors.line, 0.18);
+
+        const title = this.add.text(0, -9, 'SIMULATION PAUSED', {
+            fontSize: '19px',
+            fill: CanvasTheme.colors.text,
+            fontFamily: CanvasTheme.fonts.display,
+            letterSpacing: 3
         }).setOrigin(0.5);
-        this.pauseSubtext.setScrollFactor(0);
-        this.pauseSubtext.setDepth(91);
+
+        const sub = this.add.text(0, 18, 'PRESS RESUME TO CONTINUE', {
+            fontSize: '8px',
+            fill: CanvasTheme.colors.muted,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 2
+        }).setOrigin(0.5);
+
+        banner.add([bg, title, sub]);
+        this.pauseBanner = banner;
+
+        // Subtle pulse on the banner accent
+        this.pauseTween = this.tweens.add({
+            targets: banner,
+            alpha: { from: 0.85, to: 1 },
+            duration: 900,
+            yoyo: true,
+            repeat: -1,
+            ease: 'Sine.inOut'
+        });
     }
 
     hidePauseOverlay() {
+        if (this.pauseTween) {
+            this.pauseTween.stop();
+            this.pauseTween = null;
+        }
         if (this.pauseOverlay) {
             this.pauseOverlay.destroy();
             this.pauseOverlay = null;
+        }
+        if (this.pauseBanner) {
+            this.pauseBanner.destroy();
+            this.pauseBanner = null;
         }
         if (this.pauseText) {
             this.pauseText.destroy();
@@ -5259,25 +5343,24 @@ class BattleScene extends Phaser.Scene {
         // Create row numbers for each row of the battlefield
         for (let row = 0; row < GAME_CONFIG.TILES_Y; row++) {
             const y = row * GAME_CONFIG.TILE_SIZE + GAME_CONFIG.TILE_SIZE / 2;
+            const label = row.toString().padStart(2, '0');
 
             // Left side row number
-            const leftLabel = this.add.text(offsetX - 20, y, row.toString(), {
-                fontSize: '10px',
-                fill: '#ffffff',
-                fontFamily: 'Arial',
-                stroke: '#000000',
-                strokeThickness: 1
+            const leftLabel = this.add.text(offsetX - 20, y, label, {
+                fontSize: '9px',
+                fill: CanvasTheme.colors.muted,
+                fontFamily: CanvasTheme.fonts.mono,
+                letterSpacing: 1
             }).setOrigin(1, 0.5);
             leftLabel.setDepth(1000);
             leftLabel.setScrollFactor(0);
 
             // Right side row number
-            const rightLabel = this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH + 20, y, row.toString(), {
-                fontSize: '10px',
-                fill: '#ffffff',
-                fontFamily: 'Arial',
-                stroke: '#000000',
-                strokeThickness: 1
+            const rightLabel = this.add.text(offsetX + GAME_CONFIG.WORLD_WIDTH + 20, y, label, {
+                fontSize: '9px',
+                fill: CanvasTheme.colors.muted,
+                fontFamily: CanvasTheme.fonts.mono,
+                letterSpacing: 1
             }).setOrigin(0, 0.5);
             rightLabel.setDepth(1000);
             rightLabel.setScrollFactor(0);

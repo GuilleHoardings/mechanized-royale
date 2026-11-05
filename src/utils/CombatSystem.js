@@ -491,17 +491,18 @@ class CombatSystem {
      * @param {boolean} isCritical - Whether this is a critical hit
      */
     showDamageNumber(x, y, damage, isCritical = false) {
-        const color = isCritical ? '#ffff00' : '#ff4444';
-        const fontSize = isCritical ? '20px' : '16px';
+        const color = isCritical ? CanvasTheme.colors.amberCss : CanvasTheme.colors.dangerCss;
+        const fontSize = isCritical ? '19px' : '15px';
         const prefix = isCritical ? 'CRIT ' : '';
 
         const damageText = this.scene.add.text(x, y, `${prefix}${Math.ceil(damage)}`, {
             fontSize: fontSize,
             fill: color,
-            fontFamily: 'Arial',
+            fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 2
+            stroke: '#05080d',
+            strokeThickness: 3,
+            letterSpacing: 1
         }).setOrigin(0.5);
         damageText.setDepth(1000);
 
