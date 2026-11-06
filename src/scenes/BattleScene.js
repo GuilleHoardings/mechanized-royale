@@ -691,17 +691,28 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    createTankCards() {
+    /**
+     * Shared hand-card layout metrics. Cards are enlarged on tall screens, so
+     * every card refresh must use the same sizes as the initial hand.
+     */
+    getCardLayoutMetrics() {
         // Determine if we are on a tall screen (mobile-like) or standard
         // Standard height is 800. Tall screens usually > 1000.
         const isTallScreen = GAME_CONFIG.HEIGHT > 1000;
-
-        // Dynamic sizing based on screen type
-        // Use bigger cards and spacing for tall mobile screens efficiently
         const scaleFactor = isTallScreen ? 1.25 : 1.0;
-        const cardWidth = UI_CONFIG.CARDS.WIDTH * scaleFactor;
-        const cardHeight = UI_CONFIG.CARDS.HEIGHT * scaleFactor;
-        const cardSpacing = UI_CONFIG.CARDS.SPACING * (isTallScreen ? 1.2 : 1.0); // Slightly more relative spacing on mobile
+
+        return {
+            isTallScreen,
+            scaleFactor,
+            cardWidth: UI_CONFIG.CARDS.WIDTH * scaleFactor,
+            cardHeight: UI_CONFIG.CARDS.HEIGHT * scaleFactor,
+            cardSpacing: UI_CONFIG.CARDS.SPACING * (isTallScreen ? 1.2 : 1.0), // Slightly more relative spacing on mobile
+            iconOffsetY: 30 * scaleFactor
+        };
+    }
+
+    createTankCards() {
+        const { isTallScreen, scaleFactor, cardWidth, cardHeight, cardSpacing, iconOffsetY } = this.getCardLayoutMetrics();
 
         // Calculate vertical position
         // Battlefield height is fixed. We arrange items in the remaining space below.
@@ -744,10 +755,10 @@ class BattleScene extends Phaser.Scene {
             // Icon - use mini card drawing for all card types
             const tankIcon = this.graphicsManager.createMiniCardGraphics(
                 cardX + cardWidth / 2,
-                cardsY + (30 * scaleFactor),
+                cardsY + iconOffsetY,
                 cardId
             );
-            tankIcon.setScale(1.0 * scaleFactor); // Scale icon with card
+            tankIcon.setScale(scaleFactor); // Scale icon with card
             // Rotate troop cards to face upward (enemy field direction)
             // Skip rotation for image-based cards which are already oriented for the UI
             if (cardDef.type === CARD_TYPES.TROOP && !tankIcon.isImageCard) {
@@ -1071,9 +1082,7 @@ class BattleScene extends Phaser.Scene {
         this.tankCards.forEach((card, index) => {
             card.clearTint();
             if (index === this.selectedCard) {
-                const scaleFactor = GAME_CONFIG.HEIGHT > 1000 ? 1.25 : 1.0;
-                const w = UI_CONFIG.CARDS.WIDTH * scaleFactor;
-                const h = UI_CONFIG.CARDS.HEIGHT * scaleFactor;
+                const { cardWidth: w, cardHeight: h } = this.getCardLayoutMetrics();
                 card.selectionBorder.clear();
                 card.selectionBorder.lineStyle(2, CanvasTheme.colors.amber, 0.95);
                 card.selectionBorder.strokeRoundedRect(card.x - 2, card.y - 2, w + 4, h + 4, 9);
@@ -3931,16 +3940,17 @@ class BattleScene extends Phaser.Scene {
             card.tankIcon.destroy();
         }
 
-        // Create new tank icon with updated graphics
+        // Create new tank icon with the same layout metrics as the initial hand
+        // so cards drawn later do not shrink or drift on tall screens.
+        const { cardWidth, scaleFactor, iconOffsetY } = this.getCardLayoutMetrics();
         const cardX = card.x;
         const cardY = card.y;
-        const cardWidth = UI_CONFIG.CARDS.WIDTH;
         card.tankIcon = this.graphicsManager.createMiniCardGraphics(
             cardX + cardWidth / 2,
-            cardY + 30,
+            cardY + iconOffsetY,
             cardId
         );
-        card.tankIcon.setScale(1.0); // Use larger scale for better visibility
+        card.tankIcon.setScale(scaleFactor);
 
         // Rotate troop cards to face upward (enemy field direction)
         // Skip rotation for image-based cards which are already oriented for the UI
@@ -4543,10 +4553,11 @@ class BattleScene extends Phaser.Scene {
         selectionPulse.setDepth(50);
 
         // Draw pulse circle around card
-        const cardCenterX = card.x + UI_CONFIG.CARDS.WIDTH / 2;
-        const cardCenterY = card.y + UI_CONFIG.CARDS.HEIGHT / 2;
+        const { cardWidth, cardHeight, scaleFactor } = this.getCardLayoutMetrics();
+        const cardCenterX = card.x + cardWidth / 2;
+        const cardCenterY = card.y + cardHeight / 2;
         selectionPulse.lineStyle(2, CanvasTheme.colors.accent, 0.8);
-        selectionPulse.strokeCircle(cardCenterX, cardCenterY, 55);
+        selectionPulse.strokeCircle(cardCenterX, cardCenterY, 55 * scaleFactor);
 
         // Animate pulse
         this.tweens.add({
@@ -5316,24 +5327,21 @@ class BattleScene extends Phaser.Scene {
         });
 
         // Recreate Tank Card Icons in hand
+        const { cardWidth, scaleFactor, iconOffsetY } = this.getCardLayoutMetrics();
         this.tankCards.forEach((card) => {
             const cardId = card.cardId;
             const tankIcon = card.tankIcon;
             if (tankIcon) {
-                // Ensure we use the original relative positions for card icon consistency
-                const cardWidth = UI_CONFIG.CARDS.WIDTH;
-                const cardHeight = UI_CONFIG.CARDS.HEIGHT;
-
-                // Re-draw the card icon
+                // Re-draw the card icon using the same layout as createTankCards
                 this.graphicsManager.createMiniCardGraphics(
                     card.x + cardWidth / 2,
-                    card.y + 30, // Original creation Y offset
+                    card.y + iconOffsetY,
                     cardId,
                     tankIcon
                 );
 
                 // Re-apply scale
-                tankIcon.setScale(1.0);
+                tankIcon.setScale(scaleFactor);
 
                 // Re-apply rotation for troop types in graphics mode
                 const cardDef = CARDS[cardId];

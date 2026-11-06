@@ -28,9 +28,11 @@ node tools/graphics-harness/targeting-smoke.js   # headless AI target-priority t
 `--check` also verifies, and exits non-zero on failure:
 
 - every unit, tower, building and card icon is drawn inside a sane size range
-  (units ~8–80 x 60 px, towers ~40–120 x 140 px, card art ≤ 50 x 50 px, …)
+  (units ~8–80 x 60 px, towers ~40–120 x 140 px, card art ≤ 85 x 85 px, …)
 - each procedural card icon is visually centred on its icon box (±1.5 px),
   which catches barrel-length changes that silently push art off-centre
+- card icons are normalised to the same 80x60 box as the image-based cards, so
+  small units read clearly in the battle hand on phones
 - deck rules in `GameHelpers.sanitizeDeck()` produce 8 unique, known cards from
   the default deck, legacy `player.tanks` saves, junk input and overlong input
 - air targeting follows `GameHelpers.canTarget()`: tanks cannot hit aircraft,
@@ -97,8 +99,9 @@ them into their lane.
 - The shim's texture manager always reports textures as missing, which forces
   the procedural branches. Texture mode is therefore not covered here; that art
   is validated by `tools/normalize-units.ps1` and `src/data/unit-metrics.js`.
-- Phaser's `Graphics` has no `getBounds()`, so card centring uses the measured
-  `CARD_ART_OFFSETS` table in `GraphicsManager.js`. If you change card art,
-  re-run `--check` and update those offsets.
+- Phaser's `Graphics` has no `getBounds()`, so card centring and size
+  normalisation use the measured `CARD_ART_METRICS` table in
+  `GraphicsManager.js`. If you change card art, re-run `--check` and update the
+  `offset`, `width` and `height` values.
 - Add a new unit/building to `entities.js` and it appears automatically; the
   bound limits in `runChecks()` may need widening for unusually large art.

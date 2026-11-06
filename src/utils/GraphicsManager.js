@@ -21,20 +21,25 @@ const UNIT_BASE_COLORS = {
 };
 
 /**
- * Card art is drawn around the turret, so long barrels bias the silhouette to
- * the right. These offsets re-centre each procedural icon inside its icon box.
- * Measured with tools/graphics-harness/render-gallery.js --check, which fails
- * if an icon drifts off-centre.
+ * Procedural card art is drawn around the turret, so long barrels bias the
+ * silhouette to the right. `offset` re-centres each icon inside its icon box.
+ * `width`/`height` are the unrotated drawn content bounds and are used to scale
+ * every icon to the same 80x60 box the image-based cards use. Measured with
+ * tools/graphics-harness/render-gallery.js --check, which fails if an icon
+ * drifts off-centre or escapes its box.
  */
-const CARD_ART_OFFSETS = {
-    tiger: { x: -4.0, y: -1.4 },
-    panther: { x: -4.0, y: -1.4 },
-    sherman: { x: -1.8, y: -1.4 },
-    jagdpanzer: { x: -5.2, y: -1.4 },
-    infantry_platoon: { x: -1.8, y: 0 },
-    attack_helicopter: { x: 2.8, y: 0 },
-    bomber: { x: -1.4, y: -1.4 },
-    flak_panzer: { x: -1.8, y: -1.4 }
+const CARD_ART_METRICS = {
+    tiger: { offset: { x: -4.0, y: -1.4 }, width: 35.3, height: 25.9 },
+    panther: { offset: { x: -4.0, y: -1.4 }, width: 32.5, height: 22.4 },
+    sherman: { offset: { x: -1.8, y: -1.4 }, width: 25.9, height: 22.4 },
+    jagdpanzer: { offset: { x: -5.2, y: -1.4 }, width: 35.4, height: 20.3 },
+    infantry_platoon: { offset: { x: -1.8, y: 0 }, width: 24.5, height: 14.4 },
+    attack_helicopter: { offset: { x: 2.8, y: 0 }, width: 47.6, height: 35.0 },
+    bomber: { offset: { x: -1.4, y: -1.4 }, width: 49.0, height: 36.4 },
+    flak_panzer: { offset: { x: -1.8, y: -1.4 }, width: 27.4, height: 22.4 },
+    smoke_barrage: { offset: { x: 0.5, y: -1.0 }, width: 27.0, height: 26.0 },
+    artillery_strike: { offset: null, width: 16.0, height: 16.0 },
+    v1_launcher: { offset: { x: 0, y: -0.3 }, width: 20.4, height: 21.0 }
 };
 
 class GraphicsManager {
@@ -274,8 +279,18 @@ class GraphicsManager {
             container.add(image);
             container.isImageCard = true;
         } else {
-            // Centre the drawn art in the icon box (see CARD_ART_OFFSETS)
-            const artOffset = CARD_ART_OFFSETS[cardId];
+            const artMetrics = CARD_ART_METRICS[cardId];
+            const artOffset = artMetrics && artMetrics.offset;
+
+            // Troop icons are rotated a quarter turn in the hand. Fit their
+            // unrotated art into a 60x80 box, which becomes the same 80x60
+            // on-screen box the image-based cards fill.
+            let iconScale = 1;
+            if (artMetrics) {
+                const boxWidth = cardDef.type === CARD_TYPES.TROOP ? 60 : 80;
+                const boxHeight = cardDef.type === CARD_TYPES.TROOP ? 80 : 60;
+                iconScale = Math.min(boxWidth / artMetrics.width, boxHeight / artMetrics.height);
+            }
 
             // Card icons are static and drawn hundreds of times per frame while
             // batching. Bake them once, like the battlefield unit art.
@@ -283,14 +298,18 @@ class GraphicsManager {
             const iconSize = 120;
             const iconOffset = iconSize / 2;
             // Troops scale themselves to 0.7 and buildings to 0.6 in their draw
-            // methods. generateTexture applies that Graphics scale, so the
-            // centring offset must be divided by it.
-            let contentScale = 1;
+            // methods. generateTexture applies that Graphics scale (and the
+            // normalising icon scale), so divide the centring offset by both.
+            let contentScale = iconScale;
             if (cardDef.type === CARD_TYPES.TROOP) {
-                contentScale = 0.7;
+                contentScale *= 0.7;
             } else if (cardDef.type === CARD_TYPES.BUILDING) {
-                contentScale = 0.6;
+                contentScale *= 0.6;
             }
+            // The offset was measured at the native art scale; scale it with
+            // the art so the icon stays centred after normalisation.
+            const offsetX = artOffset ? artOffset.x * iconScale : 0;
+            const offsetY = artOffset ? artOffset.y * iconScale : 0;
 
             let icon = null;
             if (this._canBakeGraphics()) {
@@ -301,7 +320,7 @@ class GraphicsManager {
                     if (typeof graphics.translateCanvas === 'function') {
                         graphics.translateCanvas(iconOffset / contentScale, iconOffset / contentScale);
                     }
-                    this._drawMiniCardArt(graphics, cardDef, cardId);
+                    this._drawMiniCardArt(graphics, cardDef, cardId, iconScale);
                     graphics.generateTexture(cacheKey, iconSize, iconSize);
                     graphics.destroy();
                 }
@@ -312,16 +331,12 @@ class GraphicsManager {
             }
 
             if (icon) {
-                if (artOffset) {
-                    icon.setPosition(artOffset.x, artOffset.y);
-                }
+                icon.setPosition(offsetX, offsetY);
             } else {
                 // Offline harness (or failed bake): keep the live Graphics path.
                 icon = this.scene.add.graphics();
-                this._drawMiniCardArt(icon, cardDef, cardId);
-                if (artOffset) {
-                    icon.setPosition(artOffset.x, artOffset.y);
-                }
+                this._drawMiniCardArt(icon, cardDef, cardId, iconScale);
+                icon.setPosition(offsetX, offsetY);
             }
 
             container.add(icon);
@@ -660,17 +675,18 @@ class GraphicsManager {
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
      * @param {Object} cardDef - The card definition
      * @param {string} cardId - The card ID (for diagnostics)
+     * @param {number} iconScale - Extra scale used to normalise icon sizes
      */
-    _drawMiniCardArt(graphics, cardDef, cardId) {
+    _drawMiniCardArt(graphics, cardDef, cardId, iconScale = 1) {
         switch (cardDef.type) {
             case CARD_TYPES.TROOP:
-                this._drawMiniTroopGraphics(graphics, cardDef);
+                this._drawMiniTroopGraphics(graphics, cardDef, iconScale);
                 break;
             case CARD_TYPES.SPELL:
-                this._drawMiniSpellGraphics(graphics, cardDef);
+                this._drawMiniSpellGraphics(graphics, cardDef, iconScale);
                 break;
             case CARD_TYPES.BUILDING:
-                this._drawMiniBuildingGraphics(graphics, cardDef);
+                this._drawMiniBuildingGraphics(graphics, cardDef, iconScale);
                 break;
             default:
                 console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
@@ -682,8 +698,9 @@ class GraphicsManager {
      * Draws mini graphics for troop cards
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
      * @param {Object} cardDef - The card definition
+     * @param {number} iconScale - Extra scale used to normalise icon sizes
      */
-    _drawMiniTroopGraphics(graphics, cardDef) {
+    _drawMiniTroopGraphics(graphics, cardDef, iconScale = 1) {
         const unitId = cardDef.unitId || (cardDef.payload && cardDef.payload.unitId);
         const unitData = UNITS[unitId];
 
@@ -695,7 +712,7 @@ class GraphicsManager {
         // Use the unified drawing method with scaling
         this.drawUnitGraphics(graphics, unitId, {
             isPlayer: true,
-            scale: 0.7, // Scale down for card
+            scale: 0.7 * iconScale, // Scale down for card, then normalise
             showTracks: true
         });
     }
@@ -704,10 +721,13 @@ class GraphicsManager {
      * Draws mini graphics for spell cards
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
      * @param {Object} cardDef - The card definition
+     * @param {number} iconScale - Extra scale used to normalise icon sizes
      */
-    _drawMiniSpellGraphics(graphics, cardDef) {
+    _drawMiniSpellGraphics(graphics, cardDef, iconScale = 1) {
         const spellColor = 0x8b5cf6; // Purple for spells
         const accentColor = 0xa855f7;
+
+        graphics.setScale(iconScale);
 
         switch (cardDef.id) {
             case 'smoke_barrage':
@@ -727,9 +747,10 @@ class GraphicsManager {
      * Draws mini graphics for building cards
      * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
      * @param {Object} cardDef - The card definition
+     * @param {number} iconScale - Extra scale used to normalise icon sizes
      */
-    _drawMiniBuildingGraphics(graphics, cardDef) {
-        graphics.setScale(0.6); // Scale down for card
+    _drawMiniBuildingGraphics(graphics, cardDef, iconScale = 1) {
+        graphics.setScale(0.6 * iconScale); // Scale down for card, then normalise
 
         switch (cardDef.id) {
             case 'v1_launcher':
