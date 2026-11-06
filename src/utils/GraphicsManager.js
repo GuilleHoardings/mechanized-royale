@@ -208,17 +208,20 @@ class GraphicsManager {
             tank.add(sprite);
             tank.isSpriteBase = true;
         } else {
-            // Create graphics object for drawing
-            const graphics = this.scene.add.graphics();
+            // Bake the (static) unit art once per unit/team instead of replaying
+            // hundreds of Graphics commands every frame.
+            const cacheKey = `procedural_unit_${id}_${isPlayerTank ? 'p' : 'e'}`;
+            const graphics = this._bakeCenteredGraphics(
+                (g) => this.drawUnitGraphics(g, id, {
+                    isPlayer: isPlayerTank,
+                    scale: 1.0,
+                    showTracks: true
+                }),
+                cacheKey,
+                100
+            );
 
-            // Use unified drawing method
-            this.drawUnitGraphics(graphics, id, {
-                isPlayer: isPlayerTank,
-                scale: 1.0,
-                showTracks: true
-            });
-
-            // Add the graphics to the container
+            // Add the graphic to the container
             tank.add(graphics);
         }
 
@@ -271,30 +274,57 @@ class GraphicsManager {
             container.add(image);
             container.isImageCard = true;
         } else {
-            const graphics = this.scene.add.graphics();
-
-            switch (cardDef.type) {
-                case CARD_TYPES.TROOP:
-                    this._drawMiniTroopGraphics(graphics, cardDef);
-                    break;
-                case CARD_TYPES.SPELL:
-                    this._drawMiniSpellGraphics(graphics, cardDef);
-                    break;
-                case CARD_TYPES.BUILDING:
-                    this._drawMiniBuildingGraphics(graphics, cardDef);
-                    break;
-                default:
-                    console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
-                    break;
-            }
-
             // Centre the drawn art in the icon box (see CARD_ART_OFFSETS)
             const artOffset = CARD_ART_OFFSETS[cardId];
-            if (artOffset) {
-                graphics.setPosition(artOffset.x, artOffset.y);
+
+            // Card icons are static and drawn hundreds of times per frame while
+            // batching. Bake them once, like the battlefield unit art.
+            const cacheKey = `procedural_card_${cardId}`;
+            const iconSize = 120;
+            const iconOffset = iconSize / 2;
+            // Troops scale themselves to 0.7 and buildings to 0.6 in their draw
+            // methods. generateTexture applies that Graphics scale, so the
+            // centring offset must be divided by it.
+            let contentScale = 1;
+            if (cardDef.type === CARD_TYPES.TROOP) {
+                contentScale = 0.7;
+            } else if (cardDef.type === CARD_TYPES.BUILDING) {
+                contentScale = 0.6;
             }
 
-            container.add(graphics);
+            let icon = null;
+            if (this._canBakeGraphics()) {
+                if (!this.scene.textures.exists(cacheKey)) {
+                    const graphics = this.scene.add.graphics();
+                    // The draw methods apply a scale, and generateTexture
+                    // applies it too, so pre-divide the centring offset.
+                    if (typeof graphics.translateCanvas === 'function') {
+                        graphics.translateCanvas(iconOffset / contentScale, iconOffset / contentScale);
+                    }
+                    this._drawMiniCardArt(graphics, cardDef, cardId);
+                    graphics.generateTexture(cacheKey, iconSize, iconSize);
+                    graphics.destroy();
+                }
+
+                if (this.scene.textures.exists(cacheKey)) {
+                    icon = this.scene.add.image(0, 0, cacheKey);
+                }
+            }
+
+            if (icon) {
+                if (artOffset) {
+                    icon.setPosition(artOffset.x, artOffset.y);
+                }
+            } else {
+                // Offline harness (or failed bake): keep the live Graphics path.
+                icon = this.scene.add.graphics();
+                this._drawMiniCardArt(icon, cardDef, cardId);
+                if (artOffset) {
+                    icon.setPosition(artOffset.x, artOffset.y);
+                }
+            }
+
+            container.add(icon);
         }
 
         container.setScrollFactor(0);
@@ -345,20 +375,22 @@ class GraphicsManager {
             container.add(sprite);
             container.isSpriteBase = true;
         } else {
-            const graphics = this.scene.add.graphics();
+            // Bake the static building art once and reuse it. Draw it facing
+            // the player, then rotate the image for enemy buildings.
+            const cacheKey = `procedural_building_${buildingId}_${isPlayer ? 'p' : 'e'}`;
+            const graphics = this._bakeCenteredGraphics((g) => {
+                switch (buildingId) {
+                    case 'v1_launcher':
+                        this._drawV1LauncherBuilding(g, isPlayer);
+                        break;
+                    default:
+                        this._drawGenericBuilding(g, isPlayer);
+                        break;
+                }
+            }, cacheKey, 80);
 
-            // If it's an enemy building, rotate the graphics 180 degrees
             if (!isPlayer) {
                 graphics.setRotation(Math.PI);
-            }
-
-            switch (buildingId) {
-                case 'v1_launcher':
-                    this._drawV1LauncherBuilding(graphics, isPlayer);
-                    break;
-                default:
-                    this._drawGenericBuilding(graphics, isPlayer);
-                    break;
             }
 
             container.add(graphics);
@@ -397,8 +429,12 @@ class GraphicsManager {
             }
             tower.add(baseImage);
         } else {
-            const baseGraphics = this.scene.add.graphics();
-            this.drawTowerBase(baseGraphics, isPlayerTeam, isMainTower);
+            const bakedBaseKey = `procedural_${towerType}_base_${isPlayerTeam ? 'p' : 'e'}`;
+            const baseGraphics = this._bakeCenteredGraphics(
+                (g) => this.drawTowerBase(g, isPlayerTeam, isMainTower),
+                bakedBaseKey,
+                isMainTower ? 120 : 100
+            );
             tower.add(baseGraphics);
         }
 
@@ -413,8 +449,12 @@ class GraphicsManager {
             turretImage.setAngle(90);
             turretContainer.add(turretImage);
         } else {
-            const turretGraphics = this.scene.add.graphics();
-            this.drawTowerTurret(turretGraphics, isPlayerTeam, isMainTower);
+            const bakedTurretKey = `procedural_${towerType}_turret_${isPlayerTeam ? 'p' : 'e'}`;
+            const turretGraphics = this._bakeCenteredGraphics(
+                (g) => this.drawTowerTurret(g, isPlayerTeam, isMainTower),
+                bakedTurretKey,
+                isMainTower ? 120 : 100
+            );
             turretContainer.add(turretGraphics);
         }
 
@@ -427,6 +467,60 @@ class GraphicsManager {
         tower.setDepth(y);
 
         return tower;
+    }
+
+    /**
+     * True when the running game can bake Graphics into textures. The offline
+     * graphics harness has no renderer, so it keeps using live Graphics.
+     */
+    _canBakeGraphics() {
+        return !!(
+            this.scene &&
+            this.scene.sys &&
+            this.scene.sys.game &&
+            this.scene.sys.game.renderer &&
+            this.scene.textures &&
+            typeof this.scene.textures.exists === 'function'
+        );
+    }
+
+    /**
+     * Bakes a centred procedural drawing (art drawn around 0,0) into a texture
+     * and returns a static Image. Falls back to live Graphics where texture
+     * generation is unavailable (offline harness).
+     *
+     * Batching thousands of Graphics commands every frame is expensive, while
+     * an Image is a single quad. These drawings never change after creation, so
+     * the texture is generated once and reused by every instance.
+     */
+    _bakeCenteredGraphics(draw, key, size = 96, offset = size / 2) {
+        const scene = this.scene;
+
+        if (!this._canBakeGraphics() || typeof scene.add.graphics !== 'function') {
+            const graphics = scene.add.graphics();
+            draw(graphics);
+            return graphics;
+        }
+
+        if (!scene.textures.exists(key)) {
+            const graphics = scene.add.graphics();
+            // Shift the centred art into the positive quadrant before baking.
+            if (typeof graphics.translateCanvas === 'function') {
+                graphics.translateCanvas(offset, offset);
+            }
+            draw(graphics);
+            graphics.generateTexture(key, size, size);
+            graphics.destroy();
+        }
+
+        if (scene.textures.exists(key)) {
+            return scene.add.image(0, 0, key);
+        }
+
+        // Renderer could not create the texture: keep the live Graphics path.
+        const graphics = scene.add.graphics();
+        draw(graphics);
+        return graphics;
     }
 
     /**
@@ -559,6 +653,29 @@ class GraphicsManager {
 
         // Tracks are drawn by _drawChassis() so they always line up with the hull
         this._showTracks = true;
+    }
+
+    /**
+     * Draws the vector art for a card icon using the current transform.
+     * @param {Phaser.GameObjects.Graphics} graphics - The graphics object
+     * @param {Object} cardDef - The card definition
+     * @param {string} cardId - The card ID (for diagnostics)
+     */
+    _drawMiniCardArt(graphics, cardDef, cardId) {
+        switch (cardDef.type) {
+            case CARD_TYPES.TROOP:
+                this._drawMiniTroopGraphics(graphics, cardDef);
+                break;
+            case CARD_TYPES.SPELL:
+                this._drawMiniSpellGraphics(graphics, cardDef);
+                break;
+            case CARD_TYPES.BUILDING:
+                this._drawMiniBuildingGraphics(graphics, cardDef);
+                break;
+            default:
+                console.warn(`Unknown card type: ${cardDef.type} for card ${cardId}`);
+                break;
+        }
     }
 
     /**

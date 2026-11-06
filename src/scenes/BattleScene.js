@@ -228,6 +228,46 @@ class BattleScene extends Phaser.Scene {
         this.battlefieldImage.setDepth(-10);
     }
 
+    /**
+     * Replaces a static Graphics object with a baked texture Image.
+     *
+     * Graphics geometry is re-batched by Phaser every frame, which dominated the
+     * frame cost for the battlefield and other fixed art. Baking happens once;
+     * the resulting Image is a single quad. Falls back to the live Graphics when
+     * texture generation is unavailable.
+     */
+    cacheStaticGraphics(graphics, key, width, height, refresh = false) {
+        if (!graphics || typeof graphics.generateTexture !== 'function') return graphics;
+
+        const textures = this.textures;
+        const canRender = !!(this.sys && this.sys.game && this.sys.game.renderer);
+        if (!canRender || !textures || typeof textures.exists !== 'function') {
+            return graphics;
+        }
+
+        // Callers that redraw infrequently (deployment zones) can ask for a
+        // fresh bake instead of reusing the cached texture.
+        if (refresh && textures.exists(key)) {
+            textures.remove(key);
+        }
+
+        if (!textures.exists(key)) {
+            graphics.generateTexture(key, width, height);
+        }
+        if (!textures.exists(key)) {
+            return graphics;
+        }
+
+        const depth = graphics.depth;
+        const scrollX = graphics.scrollFactorX;
+        const scrollY = graphics.scrollFactorY;
+        const image = this.add.image(0, 0, key).setOrigin(0, 0);
+        image.setDepth(depth);
+        image.setScrollFactor(scrollX, scrollY);
+        graphics.destroy();
+        return image;
+    }
+
     createDebugBattlefield(offsetX) {
         // Create procedural graphics battlefield for debugging and detailed visualization
         this.battlefieldGraphics = this.add.graphics();
@@ -316,6 +356,15 @@ class BattleScene extends Phaser.Scene {
 
         // Add river and bridges in debug mode
         this.createRiverAndBridges(this.battlefieldGraphics, offsetX);
+
+        // This art never changes: bake it once instead of re-batching ~4k
+        // Graphics commands every frame.
+        this.battlefieldGraphics = this.cacheStaticGraphics(
+            this.battlefieldGraphics,
+            'procedural_battlefield',
+            GAME_CONFIG.WIDTH,
+            GAME_CONFIG.HEIGHT
+        );
     }
 
     createRiverAndBridges(graphics, offsetX = 0) {
@@ -407,6 +456,15 @@ class BattleScene extends Phaser.Scene {
 
     drawDeploymentZones() {
         if (!this.deploymentZoneGraphics) return;
+
+        // Deployment zones are baked to a texture after drawing. When they need
+        // to change, replace the previous Image with a fresh Graphics pass.
+        const previousDepth = this.deploymentZoneGraphics.depth;
+        if (typeof this.deploymentZoneGraphics.clear !== 'function') {
+            this.deploymentZoneGraphics.destroy();
+            this.deploymentZoneGraphics = this.add.graphics();
+            this.deploymentZoneGraphics.setDepth(previousDepth);
+        }
 
         // Clear existing deployment zone graphics and labels
         this.deploymentZoneGraphics.clear();
@@ -511,6 +569,22 @@ class BattleScene extends Phaser.Scene {
                     }
                 }
             }
+        }
+
+        // While an expansion transition animates, this redraws every frame, so
+        // keep the live Graphics. Once it settles, bake the result: static art
+        // should not be re-batched every frame.
+        const isAnimating = this.zoneExpansionTransitions
+            && this.zoneExpansionTransitions.some(transition => transition.progress < 1);
+
+        if (!isAnimating) {
+            this.deploymentZoneGraphics = this.cacheStaticGraphics(
+                this.deploymentZoneGraphics,
+                'procedural_deployment_zones',
+                GAME_CONFIG.WIDTH,
+                GAME_CONFIG.HEIGHT,
+                true
+            );
         }
     }
 
@@ -806,8 +880,52 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(1, 0.5); // Right-align the text so it sits left of the bar
         this.energyText.setScrollFactor(0);
 
+        // The cell wells never change: draw them once instead of every frame.
+        this.drawEnergyBarBackground();
+
         // Update energy bar after creating
+        this._energyBarStateKey = null;
         this.updateEnergyBar();
+    }
+
+    drawEnergyBarBackground() {
+        const config = this.energyBarConfig;
+        if (!this.energyBarBg || !config) return;
+
+        const graphics = this.energyBarBg;
+        graphics.clear();
+
+        // Bake a compact texture for the cell wells. Shift the drawing into the
+        // texture's local space first so the bake only covers the bar.
+        if (typeof graphics.translateCanvas === 'function') {
+            graphics.translateCanvas(-config.x + 1, -config.y + 1);
+        }
+
+        for (let i = 0; i < this.maxEnergy; i++) {
+            const squareX = config.x + (i * (config.squareSize + config.spacing));
+            const squareY = config.y;
+
+            // Empty cell: dark inset well
+            graphics.fillStyle(CanvasTheme.colors.panelStrong, 0.92);
+            graphics.lineStyle(1, CanvasTheme.colors.line, 0.3);
+            graphics.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+            graphics.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+            graphics.fillStyle(0x000000, 0.35);
+            graphics.fillRect(squareX + 2, squareY + 2, config.squareSize - 4, 2);
+        }
+
+        this.energyBarBg = this.cacheStaticGraphics(
+            graphics,
+            'procedural_energy_bar_bg',
+            config.totalWidth + 2,
+            config.height + 2
+        );
+
+        // The baked Image must sit exactly where the wells were drawn.
+        if (this.energyBarBg !== graphics) {
+            this.energyBarBg.setPosition(config.x - 1, config.y - 1);
+            this.energyBarBg.setScrollFactor(0);
+        }
     }
 
     createTimer() {
@@ -1373,23 +1491,27 @@ class BattleScene extends Phaser.Scene {
 
     updateEnergyBar() {
         const config = this.energyBarConfig;
+        if (!config || !this.energyBarFill) return;
 
-        // Clear previous graphics
-        this.energyBarBg.clear();
+        const nextFillWidth = this.energy < this.maxEnergy
+            ? Math.floor(config.squareSize * this.energyRegenProgress)
+            : 0;
+        const stateKey = `${this.energy}|${nextFillWidth}`;
+
+        // Redraw only when a cell or the partial fill actually changes. This is
+        // called every frame while energy regenerates.
+        if (this._energyBarStateKey === stateKey) {
+            this.updateEnergyPreview();
+            return;
+        }
+        this._energyBarStateKey = stateKey;
+
         this.energyBarFill.clear();
 
         // Draw individual energy squares with modern styling
         for (let i = 0; i < this.maxEnergy; i++) {
             const squareX = config.x + (i * (config.squareSize + config.spacing));
             const squareY = config.y;
-
-            // Empty cell: dark inset well
-            this.energyBarBg.fillStyle(CanvasTheme.colors.panelStrong, 0.92);
-            this.energyBarBg.lineStyle(1, CanvasTheme.colors.line, 0.3);
-            this.energyBarBg.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-            this.energyBarBg.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-            this.energyBarBg.fillStyle(0x000000, 0.35);
-            this.energyBarBg.fillRect(squareX + 2, squareY + 2, config.squareSize - 4, 2);
 
             // Filled square if we have energy for this slot
             if (i < this.energy) {
@@ -1445,7 +1567,14 @@ class BattleScene extends Phaser.Scene {
             });
         }
 
-        // Update deployment preview if active (energy might have changed during preview)
+        this.updateEnergyPreview();
+    }
+
+    /**
+     * Refreshes the deployment preview when the energy bar itself did not
+     * change. Kept separate so the bar's draw loop can stay cheap.
+     */
+    updateEnergyPreview() {
         // Only update if deploymentPreview has been initialized
         if (this.deploymentPreview && this.deploymentPreview.active) {
             this.updateDeploymentPreview(this.deploymentPreview.tileX, this.deploymentPreview.tileY);
