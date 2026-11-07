@@ -759,19 +759,15 @@ class AIController {
     }
 
     /**
-     * Updates the display for AI strategy
+     * Updates the display for AI strategy.
+     *
+     * The scene owns the HUD text object and its period styling, so formatting
+     * lives there. This keeps the readout from flickering between the scene's
+     * compact line and this controller's multi-line debug dump.
      */
     updateAIStrategyDisplay() {
-        if (this.scene.aiStrategyText) {
-            const strategyInfo = [
-                `Mode: ${this.aiStrategy.mode.toUpperCase()}`,
-                `Base HP: ${Math.round(this.aiStrategy.baseHealthPercent * 100)}%`,
-                `Tanks: ${this.aiStrategy.aiTankCount} vs ${this.aiStrategy.playerTankCount}`,
-                `Lane: ${this.aiStrategy.activeLane.toUpperCase()}`,
-                `Energy Adv: ${this.aiStrategy.energyAdvantage >= 0 ? '+' : ''}${this.aiStrategy.energyAdvantage}`
-            ];
-
-            this.scene.aiStrategyText.setText(strategyInfo.join('\n'));
+        if (this.scene && typeof this.scene.updateAIStrategyDisplay === 'function') {
+            this.scene.updateAIStrategyDisplay();
         }
     }
 

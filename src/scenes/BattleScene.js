@@ -165,8 +165,8 @@ class BattleScene extends Phaser.Scene {
             window.refreshPauseButtonState();
         }
 
-        // Enhanced background with darker, more atmospheric color
-        this.cameras.main.setBackgroundColor('#0a111c');
+        // Dark field-map backdrop behind the battlefield
+        this.cameras.main.setBackgroundColor('#1b1a12');
 
         // Create battlefield
         this.createBattlefield();
@@ -176,6 +176,9 @@ class BattleScene extends Phaser.Scene {
 
         // Create bases
         this.createBases();
+
+        // Towers exist now, so replace the placeholder readout with real status
+        this.updateTowerStatusDisplay();
 
         // Start energy regeneration
         this.startEnergyRegeneration();
@@ -281,11 +284,11 @@ class BattleScene extends Phaser.Scene {
         this.battlefieldGraphics.fillStyle(CanvasTheme.colors.ground, 1);
         this.battlefieldGraphics.fillRect(offsetX, 0, worldW, worldH);
 
-        // Sector wash: cool blue for the player half, warm red for the enemy half
+        // Sector wash: olive for the player half, rust red for the enemy half
         const enemyH = 16 * tileSize;
-        this.battlefieldGraphics.fillStyle(0xf87171, 0.025);
+        this.battlefieldGraphics.fillStyle(0x8b3627, 0.045);
         this.battlefieldGraphics.fillRect(offsetX, 0, worldW, enemyH);
-        this.battlefieldGraphics.fillStyle(0x60a5fa, 0.03);
+        this.battlefieldGraphics.fillStyle(0x5b6540, 0.05);
         this.battlefieldGraphics.fillRect(offsetX, enemyH + 2 * tileSize, worldW, worldH - enemyH - 2 * tileSize);
 
         // Soft terrain patches (irregular ground, mud and worn tracks)
@@ -604,17 +607,19 @@ class BattleScene extends Phaser.Scene {
         // Timer in top right corner
         this.createTimer();
 
-        // AI Strategy indicator - sized for 5 lines of debug info
+        // Enemy command readout - sized for the five-line intel summary
         const aiStatusBg = this.add.graphics();
-        CanvasTheme.panel(aiStatusBg, 5, 32, 105, 70, {
-            radius: 6,
+        CanvasTheme.panel(aiStatusBg, 5, 32, 105, 74, {
+            radius: 2,
             fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.88,
+            fillAlpha: 0.9,
             stroke: CanvasTheme.colors.amber,
-            strokeAlpha: 0.3,
+            strokeAlpha: 0.38,
             accent: CanvasTheme.colors.amber,
-            accentAlpha: 0.7,
+            accentAlpha: 0.75,
             shadow: false,
+            rivets: true,
+            rivetAlpha: 0.4,
             brackets: true,
             bracketColor: CanvasTheme.colors.amber,
             bracketAlpha: 0.28,
@@ -623,7 +628,7 @@ class BattleScene extends Phaser.Scene {
         aiStatusBg.setScrollFactor(0);
         aiStatusBg.setDepth(1000);
 
-        this.add.text(10, 37, 'AI CORE', {
+        this.add.text(10, 37, 'ENEMY COMMAND', {
             fontSize: '7px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
@@ -636,40 +641,31 @@ class BattleScene extends Phaser.Scene {
             aiStatusBg.fillRect(96 - i * 4, 37, 2, 6);
         }
 
-        this.aiStrategyText = this.add.text(10, 50, 'AI: ---', {
-            fontSize: '10px',
+        // Five compact lines fit between the header and the tower status below.
+        this.aiStrategyText = this.add.text(10, 47, 'FOE: ---', {
+            fontSize: '9px',
             fill: CanvasTheme.colors.amberCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontWeight: '600',
-            lineSpacing: 2
+            lineSpacing: 1
         });
         this.aiStrategyText.setScrollFactor(0);
         this.aiStrategyText.setDepth(1000);
 
-        // Thin scan rule under the readout
-        aiStatusBg.lineStyle(1, CanvasTheme.colors.line, 0.14);
-        aiStatusBg.lineBetween(10, 68, 105, 68);
-        this.add.text(10, 77, 'THREAT ASSESSMENT', {
-            fontSize: '7px',
-            fill: CanvasTheme.colors.faint,
-            fontFamily: CanvasTheme.fonts.mono,
-            letterSpacing: 1
-        }).setScrollFactor(0).setDepth(1000);
-
-        // Back button with modern styling - compact in top left margin
+        // Back button - compact in top left margin
         const backButtonBg = this.add.graphics();
         CanvasTheme.panel(backButtonBg, 5, 5, 70, 24, {
-            radius: 5,
+            radius: 2,
             fill: CanvasTheme.colors.raised,
-            fillAlpha: 0.9,
+            fillAlpha: 0.92,
             stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.36,
+            strokeAlpha: 0.42,
             shadow: false
         });
         backButtonBg.setScrollFactor(0);
         backButtonBg.setDepth(1000);
 
-        const backButton = this.add.text(40, 17, '← MENU', {
+        const backButton = this.add.text(40, 17, '‹ MENU', {
             fontSize: '9px',
             fill: CanvasTheme.colors.textDim,
             fontFamily: CanvasTheme.fonts.mono,
@@ -1131,32 +1127,34 @@ class BattleScene extends Phaser.Scene {
         const affordable = costVal <= this.energy;
 
         const typeColors = {
-            [TANK_TYPES.LIGHT]: 0x4ade80,
-            [TANK_TYPES.MEDIUM]: 0xfbbf24,
-            [TANK_TYPES.HEAVY]: 0xf472b6,
-            [TANK_TYPES.TANK_DESTROYER]: 0xa78bfa,
-            [TANK_TYPES.ARTILLERY]: 0xfacc15,
-            [TANK_TYPES.FAST_ATTACK]: 0x38bdf8,
-            [TANK_TYPES.AIR]: 0x38bdf8,
-            [TANK_TYPES.ANTI_AIR]: 0xa3e635
+            [TANK_TYPES.LIGHT]: 0x9cae73,
+            [TANK_TYPES.MEDIUM]: 0xd1a04a,
+            [TANK_TYPES.HEAVY]: 0xb56b5a,
+            [TANK_TYPES.TANK_DESTROYER]: 0x9d8055,
+            [TANK_TYPES.ARTILLERY]: 0xc9a24b,
+            [TANK_TYPES.FAST_ATTACK]: 0x8fa3a8,
+            [TANK_TYPES.AIR]: 0x7f96a0,
+            [TANK_TYPES.ANTI_AIR]: 0xa6b47b
         };
         const headerColor = isTroop ? (typeColors[unitData.unitType] || CanvasTheme.colors.blue) : CanvasTheme.colors.violet;
 
         CanvasTheme.panel(tooltipBg, 0, 0, tooltipWidth, tooltipHeight, {
-            radius: 8,
+            radius: 3,
             fill: CanvasTheme.colors.panelStrong,
             fillAlpha: 0.97,
             stroke: affordable ? headerColor : CanvasTheme.colors.steelLight,
-            strokeAlpha: 0.6,
+            strokeAlpha: 0.65,
             accent: headerColor,
             accentAlpha: 0.85,
-            shadowAlpha: 0.4
+            shadowAlpha: 0.4,
+            rivets: true,
+            rivetAlpha: 0.4
         });
 
         // Header band tinted by card type
-        tooltipBg.fillStyle(headerColor, 0.16);
-        tooltipBg.fillRoundedRect(1, 1, tooltipWidth - 2, 34, 7);
-        CanvasTheme.rule(tooltipBg, 12, 36, tooltipWidth - 12, 36, CanvasTheme.colors.line, 0.18);
+        tooltipBg.fillStyle(headerColor, 0.2);
+        tooltipBg.fillRoundedRect(1, 1, tooltipWidth - 2, 34, 2);
+        CanvasTheme.rule(tooltipBg, 12, 36, tooltipWidth - 12, 36, CanvasTheme.colors.line, 0.24);
 
         // Tank name and tier
         const nameText = this.add.text(15, 9, `${cardRef.cardDef.name}`, {
@@ -1316,7 +1314,7 @@ class BattleScene extends Phaser.Scene {
         });
     }
 
-    hideCardTooltip() {
+    hideCardTooltip(immediate = false) {
         // Cancel any ongoing fade-in animation
         if (this.tooltipFadeInTween) {
             this.tooltipFadeInTween.destroy();
@@ -1330,8 +1328,9 @@ class BattleScene extends Phaser.Scene {
         }
 
         if (this.cardTooltip) {
-            // Immediately destroy if already fully transparent or if we need to clean up quickly
-            if (this.cardTooltip.alpha === 0) {
+            // Immediately destroy when already transparent, when tweens are about
+            // to be paused (pause/result screens), or when cleanup must be quick
+            if (immediate || this.cardTooltip.alpha === 0) {
                 this.cardTooltip.destroy();
                 this.cardTooltip = null;
                 return;
@@ -1456,7 +1455,7 @@ class BattleScene extends Phaser.Scene {
     showEnergyGainEffect() {
         // Create a small energy gain indicator positioned above the energy bar
         const config = this.energyBarConfig;
-        const energyGainText = this.add.text(GAME_CONFIG.WIDTH / 2, config.y - 18, '+1 ENERGY', {
+        const energyGainText = this.add.text(GAME_CONFIG.WIDTH / 2, config.y - 18, '+1 SUPPLY', {
             fontSize: '11px',
             fill: CanvasTheme.colors.greenCss,
             fontFamily: CanvasTheme.fonts.mono,
@@ -1471,20 +1470,27 @@ class BattleScene extends Phaser.Scene {
             const squareX = config.x + (latestSquareIndex * (config.squareSize + config.spacing)) + config.squareSize / 2;
             const squareY = config.y + config.squareSize / 2;
 
-            // Create a temporary glow effect on the newest square
-            const glowCircle = this.add.graphics();
-            glowCircle.setScrollFactor(0);
-            glowCircle.fillStyle(0x4ade80, 0.5);
-            glowCircle.fillCircle(squareX, squareY, config.squareSize);
+            // Stamped ring flash on the newest supply cell
+            const ring = this.add.graphics();
+            ring.setScrollFactor(0);
+            ring.setPosition(squareX, squareY);
+            ring.lineStyle(2, CanvasTheme.colors.green, 0.7);
+            ring.strokeRoundedRect(
+                -config.squareSize / 2,
+                -config.squareSize / 2,
+                config.squareSize,
+                config.squareSize,
+                2
+            );
 
             this.tweens.add({
-                targets: glowCircle,
-                scaleX: 1.8,
-                scaleY: 1.8,
+                targets: ring,
+                scaleX: 1.35,
+                scaleY: 1.35,
                 alpha: 0,
                 duration: 500,
                 ease: 'Cubic.easeOut',
-                onComplete: () => glowCircle.destroy()
+                onComplete: () => ring.destroy()
             });
         }
 
@@ -1618,7 +1624,7 @@ class BattleScene extends Phaser.Scene {
 
     updateTimerDisplay() {
         let timeText;
-        let timeColor = '#f1f5f9';
+        let timeColor = CanvasTheme.colors.text;
 
         if (this.overtimeActive) {
             // Overtime display
@@ -1717,14 +1723,16 @@ class BattleScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 6,
+            radius: 2,
             fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.94,
+            fillAlpha: 0.95,
             stroke: accent,
-            strokeAlpha: 0.55,
+            strokeAlpha: 0.6,
             accent,
             accentAlpha: 0.9,
             shadowAlpha: 0.34,
+            rivets: true,
+            rivetAlpha: 0.4,
             brackets: true,
             bracketColor: accent,
             bracketAlpha: 0.5,
@@ -1738,7 +1746,7 @@ class BattleScene extends Phaser.Scene {
             fontFamily: CanvasTheme.fonts.display,
             fontStyle: 'bold',
             letterSpacing: 3,
-            stroke: '#05080d',
+            stroke: CanvasTheme.hex(CanvasTheme.colors.ink),
             strokeThickness: 3
         }).setOrigin(0.5);
         banner.add(titleText);
@@ -2788,20 +2796,20 @@ class BattleScene extends Phaser.Scene {
         if (isValidPosition && hasEnoughEnergy) {
             // Valid position and enough energy
             if (this.spellPreview.cardType === CARD_TYPES.SPELL) {
-                circleColor = 0x66ccff; // Blue for spells
+                circleColor = CanvasTheme.colors.blue; // Struck-target marker for spells
             } else {
-                circleColor = 0x00ff00; // Green for buildings
+                circleColor = CanvasTheme.colors.green; // Approved ground for buildings
             }
-            fillAlpha = 0.25;
+            fillAlpha = 0.22;
             strokeAlpha = 0.9;
         } else if (isValidPosition && !hasEnoughEnergy) {
-            // Valid position but not enough energy - gray
-            circleColor = 0x888888;
+            // Valid position but not enough supply - muted
+            circleColor = CanvasTheme.colors.lineSoft;
             fillAlpha = 0.15;
             strokeAlpha = 0.6;
         } else {
-            // Invalid position - red
-            circleColor = 0xff4444;
+            // Invalid position - signal red
+            circleColor = CanvasTheme.colors.danger;
             fillAlpha = 0.2;
             strokeAlpha = 0.7;
         }
@@ -2991,7 +2999,7 @@ class BattleScene extends Phaser.Scene {
             fontSize: '10px',
             fill: CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.mono,
-            stroke: '#05080d',
+            stroke: CanvasTheme.hex(CanvasTheme.colors.ink),
             strokeThickness: 2,
             fontStyle: 'bold'
         }).setOrigin(0.5);
@@ -3023,8 +3031,8 @@ class BattleScene extends Phaser.Scene {
 
         tank.healthFill.clear();
 
-        // Use team colors: blue for player, red for enemy
-        const healthColor = tank.isPlayerTank ? 0x2d7dd2 : 0xd22d2d;
+        // Use team colors: olive for player, rust for enemy
+        const healthColor = tank.isPlayerTank ? CanvasTheme.colors.green : CanvasTheme.colors.danger;
 
         tank.healthFill.fillStyle(healthColor);
         tank.healthFill.fillRect(
@@ -3044,8 +3052,8 @@ class BattleScene extends Phaser.Scene {
 
         building.healthFill.clear();
 
-        // Use team colors: blue for player, red for enemy
-        const healthColor = building.isPlayerOwned ? 0x2d7dd2 : 0xd22d2d;
+        // Use team colors: olive for player, rust for enemy
+        const healthColor = building.isPlayerOwned ? CanvasTheme.colors.green : CanvasTheme.colors.danger;
 
         building.healthFill.fillStyle(healthColor);
         building.healthFill.fillRect(
@@ -3205,7 +3213,7 @@ class BattleScene extends Phaser.Scene {
         // Update health bar position
         if (tank.healthBg) {
             tank.healthBg.clear();
-            tank.healthBg.fillStyle(0x333333);
+            tank.healthBg.fillStyle(CanvasTheme.colors.ink);
             tank.healthBg.fillRect(tank.x - 20, tank.y - 30, 40, 4);
             this.updateTankHealth(tank);
 
@@ -3216,7 +3224,7 @@ class BattleScene extends Phaser.Scene {
         // Update selection circle position
         if (tank.selectionCircle) {
             tank.selectionCircle.clear();
-            tank.selectionCircle.lineStyle(3, 0xffff00);
+            tank.selectionCircle.lineStyle(3, CanvasTheme.colors.amber);
             tank.selectionCircle.strokeCircle(tank.x, tank.y, 35);
         }
 
@@ -3224,7 +3232,7 @@ class BattleScene extends Phaser.Scene {
         if (tank.rangeCircle) {
             tank.rangeCircle.clear();
             tank.rangeCircle.setDepth(1200); // Above tanks
-            tank.rangeCircle.lineStyle(2, 0x00ff00, 0.3);
+            tank.rangeCircle.lineStyle(2, CanvasTheme.colors.green, 0.3);
             tank.rangeCircle.strokeCircle(tank.x, tank.y, tank.unitData.stats.range);
         }
 
@@ -3361,22 +3369,32 @@ class BattleScene extends Phaser.Scene {
         const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
         const strategy = this.aiController.aiStrategy;
 
-        // Compact single-line display
-        let strategyText = 'AI: ';
-
+        let mode = (strategy.mode || 'balanced').substring(0, 3).toUpperCase();
+        let color = CanvasTheme.colors.amberCss;
         if (strategy.rushMode) {
-            strategyText += 'RUSH';
-            this.aiStrategyText.setFill(CanvasTheme.colors.dangerCss);
+            mode = 'RUSH';
+            color = CanvasTheme.colors.dangerCss;
         } else if (strategy.defensiveMode) {
-            strategyText += 'DEF';
-            this.aiStrategyText.setFill(CanvasTheme.colors.blueCss);
-        } else {
-            strategyText += strategy.mode.substring(0, 3).toUpperCase();
-            this.aiStrategyText.setFill(CanvasTheme.colors.amberCss);
+            mode = 'DEF';
+            color = CanvasTheme.colors.blueCss;
         }
 
-        strategyText += ` [${aiTanks.length}]`;
-        this.aiStrategyText.setText(strategyText);
+        const baseHealth = Number.isFinite(strategy.baseHealthPercent)
+            ? Math.round(strategy.baseHealthPercent * 100)
+            : 100;
+        const lane = (strategy.activeLane || 'left').toUpperCase();
+        const advantage = Number.isFinite(strategy.energyAdvantage) ? strategy.energyAdvantage : 0;
+        const aiTankCount = Number.isFinite(strategy.aiTankCount) ? strategy.aiTankCount : aiTanks.length;
+        const playerTankCount = Number.isFinite(strategy.playerTankCount) ? strategy.playerTankCount : 0;
+
+        this.aiStrategyText.setFill(color);
+        this.aiStrategyText.setText([
+            `FOE: ${mode} [${aiTanks.length}]`,
+            `BASE ${baseHealth}%`,
+            `TANKS ${aiTankCount} vs ${playerTankCount}`,
+            `LANE ${lane}`,
+            `SUPPLY ${advantage >= 0 ? '+' : ''}${advantage}`
+        ].join('\n'));
     }
 
     shouldAIDeploy() {
@@ -4031,32 +4049,34 @@ class BattleScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 8,
+            radius: 2,
             fill: CanvasTheme.colors.panelStrong,
             fillAlpha: 0.97,
             stroke: CanvasTheme.colors.danger,
-            strokeAlpha: 0.55,
+            strokeAlpha: 0.6,
             accent: CanvasTheme.colors.danger,
             accentAlpha: 0.9,
             shadowAlpha: 0.4,
+            rivets: true,
+            rivetAlpha: 0.45,
             brackets: true,
             bracketColor: CanvasTheme.colors.danger,
             bracketAlpha: 0.4,
             bracketLength: 10
         });
         // Alert header band
-        bg.fillStyle(CanvasTheme.colors.danger, 0.12);
-        bg.fillRoundedRect(-panelW / 2 + 1, -panelH / 2 + 1, panelW - 2, 32, 7);
+        bg.fillStyle(CanvasTheme.colors.danger, 0.16);
+        bg.fillRoundedRect(-panelW / 2 + 1, -panelH / 2 + 1, panelW - 2, 32, 2);
         CanvasTheme.rule(bg, -panelW / 2 + 14, -panelH / 2 + 33, panelW / 2 - 14, -panelH / 2 + 33, CanvasTheme.colors.line, 0.18);
 
-        const eyebrow = this.add.text(-panelW / 2 + 16, -panelH / 2 + 7, 'SYS ALERT', {
+        const eyebrow = this.add.text(-panelW / 2 + 16, -panelH / 2 + 7, 'SUPPLY ALERT', {
             fontSize: '7px',
             fill: CanvasTheme.colors.dangerCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
 
-        const title = this.add.text(0, -panelH / 2 + 20, 'INSUFFICIENT ENERGY', {
+        const title = this.add.text(0, -panelH / 2 + 20, 'INSUFFICIENT SUPPLY', {
             fontSize: '19px',
             fill: CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.display,
@@ -4064,7 +4084,7 @@ class BattleScene extends Phaser.Scene {
         }).setOrigin(0.5);
 
         const detail = this.add.text(0, -12,
-            `${displayName} requires ${cost} energy\n` +
+            `${displayName} requires ${cost} supply\n` +
             `AVAILABLE ${this.energy}   ·   SHORT ${energyNeeded}`, {
             fontSize: '10px',
             fill: CanvasTheme.colors.textDim,
@@ -4078,7 +4098,7 @@ class BattleScene extends Phaser.Scene {
         const regenRate = this.getEnergyRegenDelay() / 1000; // Convert to seconds
         const timeToEnergy = Math.ceil(energyNeeded * regenRate);
         const regen = this.add.text(0, 35,
-            `CELL ${regenRate}s  ·  FULL CHARGE ~${timeToEnergy}s`, {
+            `ISSUE ${regenRate}s  ·  FULL STOCK ~${timeToEnergy}s`, {
             fontSize: '8px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
@@ -4581,17 +4601,17 @@ class BattleScene extends Phaser.Scene {
             actionLabel = 'DEPLOY';
             infoText = canAfford
                 ? `${displayName} - TAP A VALID TILE TO DEPLOY`
-                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
+                : `${displayName} - NEED ${costVal - this.energy} MORE SUPPLY`;
         } else if (card.cardType === CARD_TYPES.SPELL) {
             actionLabel = 'CAST';
             infoText = canAfford
                 ? `${displayName} - TAP A TARGET TO CAST`
-                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
+                : `${displayName} - NEED ${costVal - this.energy} MORE SUPPLY`;
         } else {
             actionLabel = 'PLACE';
             infoText = canAfford
                 ? `${displayName} - TAP A VALID TILE TO PLACE`
-                : `${displayName} - NEED ${costVal - this.energy} MORE ENERGY`;
+                : `${displayName} - NEED ${costVal - this.energy} MORE SUPPLY`;
         }
 
         const accent = canAfford ? CanvasTheme.colors.green : CanvasTheme.colors.danger;
@@ -4678,7 +4698,7 @@ class BattleScene extends Phaser.Scene {
         });
 
         // Add a permanent glow effect or indicator
-        const glowColor = tower.isPlayerOwned ? 0x60a5fa : 0xf87171;
+        const glowColor = tower.isPlayerOwned ? CanvasTheme.colors.green : CanvasTheme.colors.danger;
 
         // Brief activation flash
         const flash = this.add.graphics();
@@ -5021,8 +5041,9 @@ class BattleScene extends Phaser.Scene {
         console.log(`📊 towerStats.enemy: destroyed=${this.towerStats.enemy.towersDestroyed}, mainDestroyed=${this.towerStats.enemy.mainTowerDestroyed}`);
         console.log('═══════════════════════════════════════════════════════');
 
-        // Clean up any active deployment preview
+        // Clean up any active deployment preview and hover readout
         this.endDeploymentPreview();
+        this.hideCardTooltip(true);
 
         // Record battle end time and finalize statistics
         this.battleStats.battle.endTime = this.time.now;
@@ -5107,8 +5128,9 @@ class BattleScene extends Phaser.Scene {
     }
 
     pauseGame() {
-        // Cancel any active deployment preview
+        // Cancel any active deployment preview and hover readout
         this.endDeploymentPreview();
+        this.hideCardTooltip(true);
 
         // Pause physics, tweens, and timers
         if (this.physics && this.physics.world) {
@@ -5171,22 +5193,24 @@ class BattleScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 7,
+            radius: 2,
             fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.96,
+            fillAlpha: 0.97,
             stroke: CanvasTheme.colors.amber,
-            strokeAlpha: 0.42,
+            strokeAlpha: 0.48,
             accent: CanvasTheme.colors.amber,
             accentAlpha: 0.9,
-            shadowAlpha: 0.34,
+            shadowAlpha: 0.38,
+            rivets: true,
+            rivetAlpha: 0.45,
             brackets: true,
             bracketColor: CanvasTheme.colors.amber,
             bracketAlpha: 0.4,
             bracketLength: 8
         });
-        CanvasTheme.rule(bg, -panelW / 2 + 16, 6, panelW / 2 - 16, 6, CanvasTheme.colors.line, 0.18);
+        CanvasTheme.rule(bg, -panelW / 2 + 16, 6, panelW / 2 - 16, 6, CanvasTheme.colors.line, 0.24);
 
-        const title = this.add.text(0, -9, 'SIMULATION PAUSED', {
+        const title = this.add.text(0, -9, 'BATTLE PAUSED', {
             fontSize: '19px',
             fill: CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.display,

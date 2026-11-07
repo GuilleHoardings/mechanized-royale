@@ -91,31 +91,33 @@ class BootScene extends Phaser.Scene {
         // Card frame is generated at the size the battle hand actually uses
         // (100x80) so the border, art well and name plate keep crisp edges.
         graphics.clear();
-        graphics.fillStyle(0x0b1422, 1);
-        graphics.fillRoundedRect(0, 0, 100, 80, 7);
+        graphics.fillStyle(0x2d2a1c, 1);
+        graphics.fillRoundedRect(0, 0, 100, 80, 3);
 
-        // Top sheen
-        graphics.fillStyle(0xffffff, 0.045);
-        graphics.fillRoundedRect(1, 1, 98, 26, 6);
+        // Printed card-stock highlight
+        graphics.fillStyle(0xf5e6bd, 0.06);
+        graphics.fillRoundedRect(1, 1, 98, 24, 2);
 
-        // Art well
-        graphics.fillStyle(0x111b2b, 0.92);
-        graphics.fillRoundedRect(5, 19, 90, 42, 4);
-        graphics.lineStyle(1, 0x3d5a80, 0.45);
-        graphics.strokeRoundedRect(5, 19, 90, 42, 4);
+        // Art well - recessed field-manual illustration box
+        graphics.fillStyle(0x1c1a11, 0.94);
+        graphics.fillRoundedRect(5, 19, 90, 42, 2);
+        graphics.lineStyle(1, 0x6f6748, 0.6);
+        graphics.strokeRoundedRect(5, 19, 90, 42, 2);
 
-        // Neutral accent strip; per-card type colour is layered in BattleScene
-        graphics.fillStyle(0x60a5fa, 0.55);
+        // Neutral brass strip; per-card type colour is layered in BattleScene
+        graphics.fillStyle(0xc9a24b, 0.55);
         graphics.fillRoundedRect(9, 6, 82, 2, 1);
 
         // Name plate
-        graphics.fillStyle(0x090f19, 0.82);
-        graphics.fillRoundedRect(4, 61, 92, 15, 4);
+        graphics.fillStyle(0x16140d, 0.88);
+        graphics.fillRoundedRect(4, 61, 92, 15, 2);
 
         // Outer border + corner ticks
-        graphics.lineStyle(1, 0x7da3ce, 0.45);
-        graphics.strokeRoundedRect(0.5, 0.5, 99, 79, 7);
-        graphics.lineStyle(2, 0x4fd1c5, 0.32);
+        graphics.lineStyle(2, 0x16140d, 0.55);
+        graphics.strokeRoundedRect(0.5, 0.5, 99, 79, 3);
+        graphics.lineStyle(1, 0xb5a578, 0.5);
+        graphics.strokeRoundedRect(2.5, 2.5, 95, 75, 2);
+        graphics.lineStyle(2, 0xc9a24b, 0.4);
         graphics.lineBetween(4, 4, 12, 4);
         graphics.lineBetween(4, 4, 4, 12);
         graphics.lineBetween(96, 76, 88, 76);
@@ -123,7 +125,7 @@ class BootScene extends Phaser.Scene {
         graphics.generateTexture('card_bg', 100, 80);
 
         graphics.clear();
-        graphics.fillStyle(0x4a90e2);
+        graphics.fillStyle(0x5b6540);
         graphics.fillRect(0, 0, 200, 40);
         graphics.generateTexture('button', 200, 40);
 
@@ -159,8 +161,8 @@ class BootScene extends Phaser.Scene {
     }
 
     createLoadingBar() {
-        // Match the dark command-console theme used by the HTML chrome
-        this.cameras.main.setBackgroundColor('#0a111c');
+        // Match the olive field-dossier theme used by the HTML chrome
+        this.cameras.main.setBackgroundColor('#1b1a12');
 
         const width = 300;
         const height = 10;
@@ -171,53 +173,41 @@ class BootScene extends Phaser.Scene {
 
         // Status chip above the title
         const chip = this.add.graphics();
-        CanvasTheme.chip(chip, GAME_CONFIG.WIDTH / 2 - 64, GAME_CONFIG.HEIGHT / 2 - 160, 128, 22, CanvasTheme.colors.accent, {
-            fillAlpha: 0.12,
-            strokeAlpha: 0.4,
+        CanvasTheme.chip(chip, GAME_CONFIG.WIDTH / 2 - 74, GAME_CONFIG.HEIGHT / 2 - 160, 148, 22, CanvasTheme.colors.accent, {
+            fillAlpha: 0.14,
+            strokeAlpha: 0.55,
             dot: true
         });
-        this.add.text(GAME_CONFIG.WIDTH / 2 + 6, GAME_CONFIG.HEIGHT / 2 - 149, 'TACTICAL LINK', {
+        this.add.text(GAME_CONFIG.WIDTH / 2 + 6, GAME_CONFIG.HEIGHT / 2 - 149, 'ALLIED FIELD COMMAND', {
             fontFamily: CanvasTheme.fonts.mono,
             fontSize: '10px',
             fill: CanvasTheme.colors.accentCss,
-            letterSpacing: 2
+            letterSpacing: 1
         }).setOrigin(0.5);
 
-        // Title with glow effect
-        const titleGlow = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 100, 'MECHANIZED ROYALE', {
+        // Painted stencil title with a hard letterpress shadow (no neon glow)
+        this.add.text(GAME_CONFIG.WIDTH / 2 + 2, GAME_CONFIG.HEIGHT / 2 - 98, 'MECHANIZED ROYALE', {
             fontSize: '40px',
-            fill: '#60a5fa',
+            fill: '#0f0d08',
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6
-        }).setOrigin(0.5);
-        titleGlow.setAlpha(0.35);
-        titleGlow.setBlendMode(Phaser.BlendModes.ADD);
+        }).setOrigin(0.5).setAlpha(0.55);
 
-        const title = this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 100, 'MECHANIZED ROYALE', {
+        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 100, 'MECHANIZED ROYALE', {
             fontSize: '40px',
-            fill: '#e8f1fb',
+            fill: CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6,
-            stroke: '#2563eb',
+            stroke: '#282315',
             strokeThickness: 3
         }).setOrigin(0.5);
 
-        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 66, 'FIELD COMMAND SYSTEM', {
+        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT / 2 - 66, 'ARMOURED FIELD COMMAND', {
             fontSize: '11px',
-            fill: '#8ea3bd',
+            fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 4
         }).setOrigin(0.5);
-
-        // Animate title glow
-        this.tweens.add({
-            targets: titleGlow,
-            alpha: 0.55,
-            duration: 1500,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
 
         // Loading panel
         const panelX = x - 16;
@@ -226,25 +216,27 @@ class BootScene extends Phaser.Scene {
         const panelH = 88;
         const barPanel = this.add.graphics();
         CanvasTheme.panel(barPanel, panelX, panelY, panelW, panelH, {
-            radius: 10,
+            radius: 3,
             fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.9,
+            fillAlpha: 0.92,
             stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.3,
+            strokeAlpha: 0.4,
             accent: CanvasTheme.colors.accent,
+            accentAlpha: 0.8,
+            rivets: true,
             brackets: true,
             bracketColor: CanvasTheme.colors.accent,
-            bracketAlpha: 0.45
+            bracketAlpha: 0.4
         });
 
-        this.add.text(panelX + 16, panelY + 12, 'INITIALIZING BATTLEFIELD', {
+        this.add.text(panelX + 18, panelY + 13, 'PREPARING THE FRONT', {
             fontSize: '9px',
-            fill: '#8ea3bd',
+            fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         });
 
-        const statusText = this.add.text(panelX + panelW - 16, panelY + 12, 'SECURE', {
+        const statusText = this.add.text(panelX + panelW - 18, panelY + 13, 'STAND BY', {
             fontSize: '9px',
             fill: CanvasTheme.colors.greenCss,
             fontFamily: CanvasTheme.fonts.mono,
@@ -253,10 +245,10 @@ class BootScene extends Phaser.Scene {
 
         // Bar container
         const barContainer = this.add.graphics();
-        barContainer.fillStyle(0x05080d, 0.85);
-        barContainer.fillRoundedRect(x, y, width, height, 5);
-        barContainer.lineStyle(1, CanvasTheme.colors.lineSoft, 0.55);
-        barContainer.strokeRoundedRect(x, y, width, height, 5);
+        barContainer.fillStyle(CanvasTheme.colors.ink, 0.9);
+        barContainer.fillRoundedRect(x, y, width, height, 2);
+        barContainer.lineStyle(1, CanvasTheme.colors.lineSoft, 0.7);
+        barContainer.strokeRoundedRect(x, y, width, height, 2);
 
         // Loading bar fill
         const fillBar = this.add.graphics();
@@ -264,15 +256,15 @@ class BootScene extends Phaser.Scene {
         // Percentage text
         const percentText = this.add.text(GAME_CONFIG.WIDTH / 2, y + 26, '0%', {
             fontSize: '11px',
-            fill: '#b7c8dd',
+            fill: CanvasTheme.colors.textDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(0.5);
 
         // Footer
-        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'BUILD 0.1  /  AWAITING DEPLOYMENT', {
+        this.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'WAR OFFICE ISSUE 0.1  /  AWAITING ORDERS', {
             fontSize: '9px',
-            fill: '#64748b',
+            fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setOrigin(0.5);
@@ -287,25 +279,25 @@ class BootScene extends Phaser.Scene {
 
                 fillBar.clear();
 
-                // Main fill
+                // Main fill - olive with a brass leading edge
                 fillBar.fillStyle(CanvasTheme.colors.blueDeep, 1);
-                fillBar.fillRoundedRect(x + 2, y + 2, Math.max(0, (width - 4) * progress), height - 4, 4);
+                fillBar.fillRect(x + 2, y + 2, Math.max(0, (width - 4) * progress), height - 4);
 
                 // Brighter leading edge
                 if (progress > 0.04) {
                     const fillWidth = (width - 4) * progress;
                     fillBar.fillStyle(CanvasTheme.colors.accent, 0.9);
-                    fillBar.fillRoundedRect(x + 2 + Math.max(0, fillWidth - 18), y + 2, Math.min(18, fillWidth), height - 4, 4);
-                    fillBar.fillStyle(0xffffff, 0.18);
-                    fillBar.fillRoundedRect(x + 2, y + 2, fillWidth, 3, 2);
+                    fillBar.fillRect(x + 2 + Math.max(0, fillWidth - 18), y + 2, Math.min(18, fillWidth), height - 4);
+                    fillBar.fillStyle(CanvasTheme.colors.lineBright, 0.16);
+                    fillBar.fillRect(x + 2, y + 2, fillWidth, 3);
                 }
 
                 // Update percentage
-                percentText.setText(`${Math.floor(progress * 100)}%  ·  ${progress < 1 ? 'SYNCING' : 'READY'}`);
+                percentText.setText(`${Math.floor(progress * 100)}%  ·  ${progress < 1 ? 'ISSUING' : 'READY'}`);
 
                 if (progress >= 1) {
                     timer.remove();
-                    statusText.setText('ONLINE');
+                    statusText.setText('READY');
                     // Brief delay before transitioning
                     this.time.delayedCall(200, () => {
                         this.scene.start('MenuScene');
@@ -320,26 +312,27 @@ class BootScene extends Phaser.Scene {
         const W = GAME_CONFIG.WIDTH;
         const H = GAME_CONFIG.HEIGHT;
 
-        // Blueprint grid + edge vignette
-        const grid = this.add.graphics();
-        CanvasTheme.grid(grid, 0, 0, W, H, 40, CanvasTheme.colors.blue, 0.055);
-        CanvasTheme.vignette(grid, 0, 0, W, H, 5, 0.05);
+        // Aged map paper + survey grid + edge vignette
+        const paper = this.add.graphics();
+        CanvasTheme.paper(paper, 0, 0, W, H);
+        CanvasTheme.grid(paper, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.085);
+        CanvasTheme.vignette(paper, 0, 0, W, H, 5, 0.05);
 
-        // Soft diagonal command lines
+        // Soft contour lines, like a field map
         const lines = this.add.graphics();
-        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.12);
-        for (let i = 0; i < 4; i++) {
-            const ly = 90 + i * 180;
-            lines.lineBetween(0, ly, W, ly + 50);
+        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.18);
+        for (let i = 0; i < 5; i++) {
+            const ly = 70 + i * 150;
+            lines.lineBetween(0, ly, W, ly + 26);
         }
 
-        // Sparse status lights
+        // Sparse dust flecks
         const particles = this.add.graphics();
         for (let i = 0; i < 18; i++) {
             const px = Math.random() * W;
             const py = Math.random() * H;
             const size = Math.random() * 1.8 + 0.8;
-            particles.fillStyle(i % 4 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.blue, Math.random() * 0.22 + 0.06);
+            particles.fillStyle(i % 4 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.mudLight, Math.random() * 0.2 + 0.05);
             particles.fillCircle(px, py, size);
         }
     }

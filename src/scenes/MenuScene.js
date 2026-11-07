@@ -13,16 +13,16 @@ class MenuScene extends Phaser.Scene {
             window.refreshSpeedButtonState();
         }
 
-        // Enhanced background with gradient effect
-        this.cameras.main.setBackgroundColor('#0f172a');
+        // Olive field-map backdrop
+        this.cameras.main.setBackgroundColor('#1b1a12');
 
-        // Add animated background particles
+        // Add weathered map background
         this.createBackgroundEffects();
 
-        // Title with glow effect
+        // Painted stencil title
         this.createTitle();
 
-        // Menu buttons with modern styling
+        // Field orders menu
         this.createMenuButtons();
 
         // Load or create game state
@@ -36,24 +36,25 @@ class MenuScene extends Phaser.Scene {
         const W = GAME_CONFIG.WIDTH;
         const H = GAME_CONFIG.HEIGHT;
 
-        // Blueprint grid and edge vignette
+        // Aged paper + survey grid and edge vignette
         const backdrop = this.add.graphics();
-        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.blue, 0.055);
+        CanvasTheme.paper(backdrop, 0, 0, W, H);
+        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.09);
         CanvasTheme.vignette(backdrop, 0, 0, W, H, 6, 0.05);
 
         // Framing brackets
-        CanvasTheme.brackets(backdrop, 14, 14, W - 28, H - 28, CanvasTheme.colors.accent, 0.35, 16, 0);
+        CanvasTheme.brackets(backdrop, 14, 14, W - 28, H - 28, CanvasTheme.colors.accent, 0.4, 16, 0);
 
         // Header rail
-        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.2);
+        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.28);
         backdrop.lineBetween(24, 58, W - 24, 58);
-        this.add.text(24, 40, 'MECHANIZED ROYALE / COMMAND', {
+        this.add.text(24, 40, 'MECHANIZED ROYALE  /  FIELD COMMAND', {
             fontSize: '9px',
             fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
-        this.add.text(W - 24, 40, 'LINK ONLINE', {
+        this.add.text(W - 24, 40, 'ALLIED COMMAND  ·  READY', {
             fontSize: '9px',
             fill: CanvasTheme.colors.greenCss,
             fontFamily: CanvasTheme.fonts.mono,
@@ -61,36 +62,36 @@ class MenuScene extends Phaser.Scene {
         }).setOrigin(1, 0);
 
         // Footer rail
-        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.16);
+        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.22);
         backdrop.lineBetween(24, H - 26, W - 24, H - 26);
-        this.add.text(24, H - 20, 'BUILD 0.1  ·  SECTOR 07', {
+        this.add.text(24, H - 20, 'WAR OFFICE ISSUE 0.1  ·  WESTERN FRONT', {
             fontSize: '8px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         });
-        this.add.text(W - 24, H - 20, 'STANDBY', {
+        this.add.text(W - 24, H - 20, 'AWAITING ORDERS', {
             fontSize: '8px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
 
-        // Soft diagonal command lines
+        // Soft contour lines, like a field map
         const lines = this.add.graphics();
-        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.14);
-        for (let i = 0; i < 4; i++) {
-            const ly = 110 + i * 160;
-            lines.lineBetween(0, ly, W, ly + 46);
+        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.18);
+        for (let i = 0; i < 5; i++) {
+            const ly = 84 + i * 150;
+            lines.lineBetween(0, ly, W, ly + 30);
         }
 
-        // Sparse status lights
+        // Sparse dust flecks
         const particles = this.add.graphics();
         for (let i = 0; i < 18; i++) {
             const px = Math.random() * W;
             const py = Math.random() * H;
             const size = Math.random() * 1.8 + 0.8;
-            particles.fillStyle(i % 5 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.blue, Math.random() * 0.18 + 0.05);
+            particles.fillStyle(i % 5 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.mudLight, Math.random() * 0.18 + 0.05);
             particles.fillCircle(px, py, size);
         }
     }
@@ -98,62 +99,52 @@ class MenuScene extends Phaser.Scene {
     createTitle() {
         const W = GAME_CONFIG.WIDTH;
 
-        // Title plate
+        // Title plate - a riveted field-order board
         const plate = this.add.graphics();
-        CanvasTheme.panel(plate, 74, 76, W - 148, 120, {
-            radius: 12,
+        CanvasTheme.panel(plate, 64, 76, W - 128, 120, {
+            radius: 3,
             fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.72,
+            fillAlpha: 0.82,
             stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.28,
+            strokeAlpha: 0.38,
             accent: CanvasTheme.colors.accent,
-            accentAlpha: 0.65,
+            accentAlpha: 0.8,
+            rivets: true,
+            rivetAlpha: 0.55,
             brackets: true,
             bracketAlpha: 0.35
         });
 
-        // Glow effect
-        const titleGlow = this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
-            fontSize: '44px',
-            fill: '#60a5fa',
+        // Hard letterpress shadow instead of a neon glow
+        this.add.text(W / 2 + 2, 119, 'MECHANIZED ROYALE', {
+            fontSize: '40px',
+            fill: '#0e0c07',
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6
-        }).setOrigin(0.5);
-        titleGlow.setAlpha(0.35);
-        titleGlow.setBlendMode(Phaser.BlendModes.ADD);
+        }).setOrigin(0.5).setAlpha(0.55);
 
         // Main title
-        const title = this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
-            fontSize: '44px',
-            fill: '#e8f1fb',
+        this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
+            fontSize: '40px',
+            fill: CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6,
-            stroke: '#2563eb',
+            stroke: '#282315',
             strokeThickness: 3
         }).setOrigin(0.5);
 
-        // Subtle animation on glow
-        this.tweens.add({
-            targets: titleGlow,
-            alpha: 0.55,
-            duration: 2000,
-            yoyo: true,
-            repeat: -1,
-            ease: 'Sine.easeInOut'
-        });
-
         // Subtitle + rule
-        this.add.text(W / 2, 158, 'TACTICAL ARMOURED COMMAND', {
+        this.add.text(W / 2, 158, 'ARMOURED FIELD COMMAND  ·  1939 - 1945', {
             fontSize: '10px',
             fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
-            letterSpacing: 4
+            letterSpacing: 3
         }).setOrigin(0.5);
 
         const rule = this.add.graphics();
-        CanvasTheme.rule(rule, W / 2 - 90, 174, W / 2 + 90, 174, CanvasTheme.colors.accent, 0.4);
-        rule.fillStyle(CanvasTheme.colors.accent, 0.8);
-        rule.fillCircle(W / 2, 174, 2);
+        CanvasTheme.rule(rule, W / 2 - 110, 174, W / 2 + 110, 174, CanvasTheme.colors.accent, 0.5);
+        rule.fillStyle(CanvasTheme.colors.accent, 0.9);
+        rule.fillRect(W / 2 - 2, 172, 4, 4);
     }
 
     createMenuButtons() {
@@ -163,27 +154,29 @@ class MenuScene extends Phaser.Scene {
         const spacing = 66;
         const buttonX = GAME_CONFIG.WIDTH / 2 - buttonWidth / 2;
 
-        // Operations panel behind the menu
+        // Field orders panel behind the menu
         const panel = this.add.graphics();
         CanvasTheme.panel(panel, buttonX - 24, startY - 62, buttonWidth + 48, spacing * 3 + buttonHeight + 44, {
-            radius: 14,
+            radius: 3,
             fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.7,
+            fillAlpha: 0.8,
             stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.24,
-            accent: CanvasTheme.colors.blue,
-            accentAlpha: 0.5,
+            strokeAlpha: 0.3,
+            accent: CanvasTheme.colors.accent,
+            accentAlpha: 0.6,
+            rivets: true,
+            rivetAlpha: 0.5,
             brackets: true,
             bracketAlpha: 0.3
         });
 
-        this.add.text(buttonX - 8, startY - 50, 'OPERATIONS', {
+        this.add.text(buttonX - 8, startY - 50, 'FIELD ORDERS', {
             fontSize: '9px',
             fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
-        this.add.text(buttonX + buttonWidth + 8, startY - 50, '4 AVAILABLE', {
+        this.add.text(buttonX + buttonWidth + 8, startY - 50, 'ISSUED 04', {
             fontSize: '9px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
@@ -196,9 +189,9 @@ class MenuScene extends Phaser.Scene {
             y: startY - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '▶  BATTLE',
-            color: 0x3b82f6,
-            hoverColor: 0x60a5fa,
+            label: 'DEPLOY',
+            color: CanvasTheme.colors.accent,
+            hoverColor: CanvasTheme.colors.amber,
             onClick: () => this.scene.start('BattleScene', { gameState: this.gameState })
         });
 
@@ -207,9 +200,9 @@ class MenuScene extends Phaser.Scene {
             y: startY + spacing - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '▤  DECK',
-            color: 0x8b5cf6,
-            hoverColor: 0xa78bfa,
+            label: 'LOADOUT',
+            color: CanvasTheme.colors.blue,
+            hoverColor: CanvasTheme.colors.green,
             onClick: () => this.scene.start('DeckScene', { gameState: this.gameState })
         });
 
@@ -219,7 +212,7 @@ class MenuScene extends Phaser.Scene {
             y: startY + spacing * 2 - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '⌬  RESEARCH',
+            label: 'RESEARCH',
             disabled: true
         });
 
@@ -228,7 +221,7 @@ class MenuScene extends Phaser.Scene {
             y: startY + spacing * 3 - buttonHeight / 2,
             width: buttonWidth,
             height: buttonHeight,
-            label: '⚙  SETTINGS',
+            label: 'SETTINGS',
             disabled: true
         });
     }
@@ -236,29 +229,29 @@ class MenuScene extends Phaser.Scene {
     /**
      * Draws a menu button. Disabled buttons show a "SOON" badge and ignore input.
      */
-    createMenuButton({ x, y, width, height, label, color = 0x475569, hoverColor = null, disabled = false, onClick = null }) {
+    createMenuButton({ x, y, width, height, label, color = 0x6f6748, hoverColor = null, disabled = false, onClick = null }) {
         const bg = this.add.graphics();
-        this.drawModernButton(bg, x, y, width, height, color, !disabled);
+        this.drawCommandButton(bg, x, y, width, height, color, !disabled);
 
         const text = this.add.text(x + width / 2, y + height / 2, label, {
-            fontSize: disabled ? '14px' : '18px',
-            fill: disabled ? '#64748b' : '#e8f1fb',
+            fontSize: disabled ? '13px' : '17px',
+            fill: disabled ? CanvasTheme.colors.faint : CanvasTheme.colors.text,
             fontFamily: CanvasTheme.fonts.ui,
             fontWeight: '700',
-            letterSpacing: 2
+            letterSpacing: 3
         }).setOrigin(0.5);
 
         if (disabled) {
-            const badgeX = x + width - 48;
+            const badgeX = x + width - 60;
             const badgeY = y + height / 2 - 8;
             const badge = this.add.graphics();
-            badge.fillStyle(0x334155, 0.9);
-            badge.fillRoundedRect(badgeX, badgeY, 40, 16, 8);
-            badge.lineStyle(1, CanvasTheme.colors.line, 0.25);
-            badge.strokeRoundedRect(badgeX, badgeY, 40, 16, 8);
-            this.add.text(badgeX + 20, badgeY + 8, 'SOON', {
+            badge.fillStyle(CanvasTheme.colors.panelStrong, 0.9);
+            badge.fillRoundedRect(badgeX, badgeY, 52, 16, 2);
+            badge.lineStyle(1, CanvasTheme.colors.lineSoft, 0.55);
+            badge.strokeRoundedRect(badgeX, badgeY, 52, 16, 2);
+            this.add.text(badgeX + 26, badgeY + 8, 'PENDING', {
                 fontSize: '8px',
-                fill: '#8ea3bd',
+                fill: CanvasTheme.colors.muted,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 1
             }).setOrigin(0.5);
@@ -271,64 +264,68 @@ class MenuScene extends Phaser.Scene {
 
         hit.on('pointerover', () => {
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true, true);
-            text.setFill('#ffffff');
+            this.drawCommandButton(bg, x, y, width, height, hoverColor || color, true, true);
+            text.setFill('#fff8e4');
         });
 
         hit.on('pointerout', () => {
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, color, true, false);
-            text.setFill('#e8f1fb');
+            this.drawCommandButton(bg, x, y, width, height, color, true, false);
+            text.setFill(CanvasTheme.colors.text);
         });
 
         hit.on('pointerdown', () => {
             // Brief flash effect then transition
             bg.clear();
-            this.drawModernButton(bg, x, y, width, height, hoverColor || color, true, true);
+            this.drawCommandButton(bg, x, y, width, height, hoverColor || color, true, true);
             this.time.delayedCall(100, onClick);
         });
     }
 
-    drawModernButton(graphics, x, y, width, height, color, isActive, hovered = false) {
-        // Outer glow for active buttons
+    /**
+     * Draws a stamped field-order plate. Flat surfaces, a heavy dark keyline,
+     * a brass order stripe and a hard drop shadow keep it period-appropriate.
+     */
+    drawCommandButton(graphics, x, y, width, height, color, isActive, hovered = false) {
+        // Hard cast shadow
+        graphics.fillStyle(0x000000, 0.34);
+        graphics.fillRoundedRect(x + 3, y + 4, width, height, 2);
+
+        // Main plate
+        graphics.fillStyle(isActive
+            ? (hovered ? CanvasTheme.colors.raisedAlt : CanvasTheme.colors.raised)
+            : CanvasTheme.colors.deep, isActive ? 0.98 : 0.7);
+        graphics.fillRoundedRect(x, y, width, height, 2);
+
+        // Tinted order stripe across the plate
+        graphics.fillStyle(color, isActive ? (hovered ? 0.22 : 0.13) : 0.05);
+        graphics.fillRoundedRect(x, y, width, height, 2);
+
+        // Left order bar
+        graphics.fillStyle(isActive ? color : CanvasTheme.colors.lineSoft, isActive ? 0.95 : 0.4);
+        graphics.fillRect(x + 1, y + 7, 4, height - 14);
+
+        // Printed highlight (top edge only)
         if (isActive) {
-            graphics.fillStyle(color, hovered ? 0.26 : 0.14);
-            graphics.fillRoundedRect(x - 4, y - 4, width + 8, height + 8, 13);
+            graphics.fillStyle(CanvasTheme.colors.lineBright, hovered ? 0.1 : 0.06);
+            graphics.fillRect(x + 2, y + 2, width - 4, 2);
         }
 
-        // Drop shadow
-        graphics.fillStyle(0x000000, 0.3);
-        graphics.fillRoundedRect(x + 2, y + 3, width, height, 9);
+        // Heavy outer keyline + inner rule
+        graphics.lineStyle(2, CanvasTheme.colors.ink, 0.6);
+        graphics.strokeRoundedRect(x + 0.5, y + 0.5, width - 1, height - 1, 2);
+        graphics.lineStyle(1, isActive ? color : CanvasTheme.colors.lineSoft, isActive ? (hovered ? 0.9 : 0.65) : 0.35);
+        graphics.strokeRoundedRect(x + 3.5, y + 3.5, width - 7, height - 7, 1);
 
-        // Main button background
-        graphics.fillStyle(isActive ? CanvasTheme.colors.raised : CanvasTheme.colors.deep, isActive ? 0.96 : 0.7);
-        graphics.fillRoundedRect(x, y, width, height, 9);
-
-        // Tinted inner glass
-        graphics.fillStyle(color, isActive ? (hovered ? 0.3 : 0.18) : 0.06);
-        graphics.fillRoundedRect(x, y, width, height, 9);
-
-        // Left accent bar
-        graphics.fillStyle(isActive ? (hovered ? 0xffffff : color) : 0x475569, isActive ? 0.9 : 0.4);
-        graphics.fillRoundedRect(x + 1, y + 7, 3, height - 14, 2);
-
-        // Inner highlight
+        // Stamped corner ticks and a small arrow, not a glowing chevron
         if (isActive) {
-            graphics.fillStyle(0xffffff, 0.05);
-            graphics.fillRoundedRect(x + 2, y + 2, width - 4, height / 2 - 4, 7);
-        }
-
-        // Border
-        graphics.lineStyle(1, isActive ? color : 0x475569, isActive ? (hovered ? 0.9 : 0.55) : 0.3);
-        graphics.strokeRoundedRect(x, y, width, height, 9);
-
-        // Right chevron
-        if (isActive) {
-            graphics.lineStyle(2, color, hovered ? 0.95 : 0.6);
-            const cx = x + width - 22;
+            graphics.lineStyle(1, color, hovered ? 0.95 : 0.55);
+            const cx = x + width - 24;
             const cy = y + height / 2;
             graphics.lineBetween(cx - 4, cy - 5, cx + 2, cy);
             graphics.lineBetween(cx + 2, cy, cx - 4, cy + 5);
+            graphics.fillStyle(color, hovered ? 0.95 : 0.6);
+            graphics.fillRect(x + 9, y + height - 7, 14, 2);
         }
     }
 
@@ -342,18 +339,20 @@ class MenuScene extends Phaser.Scene {
         // Panel background
         const infoPanelBg = this.add.graphics();
         CanvasTheme.panel(infoPanelBg, panelX, panelY, panelWidth, panelHeight, {
-            radius: 12,
+            radius: 3,
             fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.82,
+            fillAlpha: 0.88,
             stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.28,
+            strokeAlpha: 0.36,
             accent: CanvasTheme.colors.amber,
-            accentAlpha: 0.55,
+            accentAlpha: 0.7,
+            rivets: true,
+            rivetAlpha: 0.45,
             brackets: true,
             bracketAlpha: 0.3
         });
 
-        this.add.text(panelX + 16, panelY + 12, 'OPERATOR DOSSIER', {
+        this.add.text(panelX + 16, panelY + 12, 'OFFICER SERVICE RECORD', {
             fontSize: '9px',
             fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
@@ -364,9 +363,9 @@ class MenuScene extends Phaser.Scene {
         const deck = GameHelpers.getPlayerDeck(this.gameState);
 
         const rows = [
-            { label: 'LEVEL', value: `LV ${player.progress.level}`, color: CanvasTheme.colors.text },
-            { label: 'CREDITS', value: `${player.resources.credits}`, color: CanvasTheme.colors.amberCss },
-            { label: 'DECK', value: `${deck.length}/${DECK_CONFIG.SIZE} CARDS`, color: CanvasTheme.colors.greenCss }
+            { label: 'RANK', value: `RANK ${player.progress.level}`, color: CanvasTheme.colors.text },
+            { label: 'REQUISITION', value: `${player.resources.credits}`, color: CanvasTheme.colors.amberCss },
+            { label: 'LOADOUT', value: `${deck.length}/${DECK_CONFIG.SIZE} CARDS`, color: CanvasTheme.colors.greenCss }
         ];
 
         rows.forEach((row, index) => {

@@ -102,77 +102,77 @@ const BATTLE_CONFIG = {
 };
 
 const UI_COLORS = {
-    // Game Over Screen Colors
+    // Game Over Screen Colors - after-action report on field card stock
     GAME_OVER: {
-        OVERLAY_COLOR: 0x05080d,
-        CARD_BACKGROUND: 0x0b1422,
-        CARD_BORDER: 0x7da3ce,
+        OVERLAY_COLOR: 0x16140d,
+        CARD_BACKGROUND: 0x1e1c12,
+        CARD_BORDER: 0xb5a578,
 
         // Result specific colors
         VICTORY: {
-            PRIMARY: '#4ade80',
-            ACCENT: '#22c55e',
-            BACKGROUND: '#065f46',
-            GLOW: 0x22c55e
+            PRIMARY: '#afc186',
+            ACCENT: '#a6b47b',
+            BACKGROUND: '#3a4022',
+            GLOW: 0x9cae73
         },
         DEFEAT: {
-            PRIMARY: '#f87171',
-            ACCENT: '#ef4444',
-            BACKGROUND: '#991b1b',
-            GLOW: 0xef4444
+            PRIMARY: '#d47962',
+            ACCENT: '#c25a44',
+            BACKGROUND: '#5c241a',
+            GLOW: 0xc25a44
         },
         DRAW: {
-            PRIMARY: '#fbbf24',
-            ACCENT: '#f59e0b',
-            BACKGROUND: '#92400e',
-            GLOW: 0xf59e0b
+            PRIMARY: '#dcb35f',
+            ACCENT: '#c9a24b',
+            BACKGROUND: '#4c3d1f',
+            GLOW: 0xd1a04a
         },
 
         // Text colors
         TEXT: {
-            PRIMARY: '#e8f1fb',
-            SECONDARY: '#b7c8dd',
-            MUTED: '#8ea3bd',
-            OVERTIME: '#fb923c',
-            HIGHLIGHT: '#60a5fa'
+            PRIMARY: '#f2ead3',
+            SECONDARY: '#d8cdac',
+            MUTED: '#b0a47f',
+            OVERTIME: '#dcb35f',
+            HIGHLIGHT: '#d3ad58'
         }
     },
 
-    // General UI Colors  
+    // General UI Colors
     TEXT: {
-        WHITE: '#ffffff',
-        ERROR: '#f87171',
-        SUCCESS: '#4ade80',
-        WARNING: '#fbbf24'
+        WHITE: '#f7f0dc',
+        ERROR: '#d47962',
+        SUCCESS: '#afc186',
+        WARNING: '#dcb35f'
     },
 
     // Menu Colors
     MENU: {
-        BACKGROUND: 0x0f1826,
-        TITLE_GRADIENT_START: '#60a5fa',
-        TITLE_GRADIENT_END: '#4fd1c5',
-        BUTTON_PRIMARY: 0x3b82f6,
-        BUTTON_HOVER: 0x60a5fa,
-        BUTTON_DISABLED: 0x475569,
-        ACCENT: 0xfbbf24
+        BACKGROUND: 0x1e1c12,
+        TITLE_GRADIENT_START: '#f2ead3',
+        TITLE_GRADIENT_END: '#d3ad58',
+        BUTTON_PRIMARY: 0xc9a24b,
+        BUTTON_HOVER: 0xd1a04a,
+        BUTTON_DISABLED: 0x6f6748,
+        ACCENT: 0xc9a24b
     },
 
-    // Energy Bar Colors
+    // Energy Bar Colors - olive supply cells
     ENERGY: {
-        FULL: 0x60a5fa,
-        CHARGING: 0x3b82f6,
-        GLOW: 0x93c5fd,
-        BACKGROUND: 0x0f1826
+        FULL: 0x9cae73,
+        CHARGING: 0x5b6540,
+        GLOW: 0xa6b47b,
+        BACKGROUND: 0x1e1c12
     },
 
     // Card Colors
     CARDS: {
-        BACKGROUND: 0x0f1826,
-        BORDER: 0x3d5a80,
-        SELECTED: 0xfbbf24,
-        HOVER: 0x60a5fa,
-        AFFORDABLE: 0x4ade80,
-        UNAFFORDABLE: 0xf87171
+        BACKGROUND: 0x2d2a1c,
+        BORDER: 0x6f6748,
+        SELECTED: 0xd1a04a,
+        HOVER: 0xa6b47b,
+        AFFORDABLE: 0x9cae73,
+        UNAFFORDABLE: 0xc25a44
     }
 };
 
@@ -183,11 +183,11 @@ const UI_CONFIG = {
             HEIGHT: 4,
             OFFSET_X: 20,
             OFFSET_Y: 30,
-            BACKGROUND_COLOR: 0x0b1220,
+            BACKGROUND_COLOR: 0x16140d,
             COLORS: {
-                HIGH: 0x4ade80,    // > 50% health
-                MEDIUM: 0xfbbf24,  // 25-50% health  
-                LOW: 0xf87171      // < 25% health
+                HIGH: 0x9cae73,    // > 50% health
+                MEDIUM: 0xd1a04a,  // 25-50% health
+                LOW: 0xc25a44      // < 25% health
             }
         },
         TOWER: {
@@ -195,12 +195,12 @@ const UI_CONFIG = {
             HEIGHT: 10,
             OFFSET_X: 25,
             OFFSET_Y: 45,
-            BACKGROUND_COLOR: 0x0b1220,
+            BACKGROUND_COLOR: 0x16140d,
             COLORS: {
-                HIGH: 0x4ade80,
-                MEDIUM_HIGH: 0xfbbf24,  // 50-75% health
-                MEDIUM: 0xfbbf24,       // 25-50% health
-                LOW: 0xf87171           // < 25% health
+                HIGH: 0x9cae73,
+                MEDIUM_HIGH: 0xd1a04a,  // 50-75% health
+                MEDIUM: 0xd1a04a,       // 25-50% health
+                LOW: 0xc25a44           // < 25% health
             }
         },
         BUILDING: {
@@ -208,11 +208,11 @@ const UI_CONFIG = {
             HEIGHT: 6,
             OFFSET_X: 20,
             OFFSET_Y: 35,
-            BACKGROUND_COLOR: 0x0b1220,
+            BACKGROUND_COLOR: 0x16140d,
             COLORS: {
-                HIGH: 0x4ade80,
-                MEDIUM: 0xfbbf24,
-                LOW: 0xf87171
+                HIGH: 0x9cae73,
+                MEDIUM: 0xd1a04a,
+                LOW: 0xc25a44
             }
         }
     },
@@ -223,36 +223,36 @@ const UI_CONFIG = {
         MARGIN_BELOW_BATTLEFIELD: 10,
         SELECTION_BORDER_WIDTH: 3,
         SELECTION_BORDER_COLOR: UI_COLORS.CARDS.SELECTED,
-        BORDER_RADIUS: 8,
+        BORDER_RADIUS: 3,
         COST_TEXT: {
             FONT_SIZE: '16px',
-            COLOR: '#fbbf24',
-            STROKE_COLOR: '#05080d',
+            COLOR: '#dcb35f',
+            STROKE_COLOR: '#16140d',
             STROKE_THICKNESS: 3
         },
         NAME_TEXT: {
             FONT_SIZE: '11px',
-            COLOR: '#e8f1fb'
+            COLOR: '#f2ead3'
         },
-        GLOW_COLOR: 0x60a5fa,
-        GLOW_ALPHA: 0.3
+        GLOW_COLOR: 0xd1a04a,
+        GLOW_ALPHA: 0.2
     },
     ENERGY_BAR: {
         WIDTH: 200,
         HEIGHT: 20,
         BOTTOM_MARGIN: 20,
         TEXT_OFFSET_Y: 10,
-        BACKGROUND_COLOR: 0x0f1826,
-        FILL_COLOR: 0x60a5fa,
-        GLOW_COLOR: 0x93c5fd,
-        BORDER_COLOR: 0x7da3ce,
-        BORDER_RADIUS: 4
+        BACKGROUND_COLOR: 0x1e1c12,
+        FILL_COLOR: 0x5b6540,
+        GLOW_COLOR: 0xa6b47b,
+        BORDER_COLOR: 0xb5a578,
+        BORDER_RADIUS: 2
     },
     DEBUG: {
         ATTACK_RANGE_CIRCLES: {
             ENABLED: false,
-            PLAYER_COLOR: 0x4ade80,      // Teal-green for player tanks
-            ENEMY_COLOR: 0xf87171,       // Console red for enemy tanks
+            PLAYER_COLOR: 0x9cae73,      // Olive for player tanks
+            ENEMY_COLOR: 0xc25a44,       // Rust for enemy tanks
             LINE_WIDTH: 2,
             ALPHA: 0.35
         }

@@ -311,7 +311,7 @@ function main() {
         subtitle: 'normalised to a 64x48 icon box (troops rotate to portrait in the hand)',
         items: Object.keys(CARDS).map((id) => ({
             label: CARDS[id].name,
-            sub: `${id} • ${CARDS[id].type} • ${CARDS[id].cost} elixir`,
+            sub: `${id} • ${CARDS[id].type} • ${CARDS[id].cost} supply`,
             node: cardNode(id)
         })),
         zoom: 5,

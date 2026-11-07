@@ -201,7 +201,7 @@ press(inspectTile.hit);
 check('selecting a card fills the detail panel',
     scene.detailName.text === CARDS[scene.deck[0]].name, scene.detailName.text);
 check('detail panel shows cost and type',
-    scene.detailMeta.text.includes('elixir'), scene.detailMeta.text);
+    scene.detailMeta.text.includes('supply'), scene.detailMeta.text);
 
 // --- Limited-lifetime unit ------------------------------------------------
 const wirbelTile = scene.collectionTiles.find((tile) => tile.cardId === 'flak_panzer');

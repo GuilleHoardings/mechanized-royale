@@ -29,13 +29,14 @@ class UIManager {
         const W = GAME_CONFIG.WIDTH;
         const H = GAME_CONFIG.HEIGHT;
 
-        // Dim the battlefield behind a command-console scrim
+        // Dim the battlefield behind an aged report-paper scrim
         const overlay = this.scene.add.graphics();
-        overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.86);
+        overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.88);
         overlay.fillRect(0, 0, W, H);
+        CanvasTheme.paper(overlay, 0, 0, W, H);
         CanvasTheme.vignette(overlay, 0, 0, W, H, 7, 0.04);
-        CanvasTheme.grid(overlay, 0, 0, W, H, 40, CanvasTheme.colors.blue, 0.035);
-        CanvasTheme.brackets(overlay, 8, 8, W - 16, H - 16, CanvasTheme.colors.accent, 0.22, 24, 0);
+        CanvasTheme.grid(overlay, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.06);
+        CanvasTheme.brackets(overlay, 8, 8, W - 16, H - 16, CanvasTheme.colors.accent, 0.3, 24, 0);
         overlay.setScrollFactor(0);
         overlay.setDepth(2000);
         overlay.setAlpha(0);
@@ -128,20 +129,22 @@ class UIManager {
     _createResultCard(container, accent = CanvasTheme.colors.accent) {
         const resultCard = this.scene.add.graphics();
 
-        // Outer glow effect
-        resultCard.fillStyle(accent, 0.08);
-        resultCard.fillRoundedRect(-286, -266, 572, 512, 20);
+        // Hard cast shadow instead of an outer glow
+        resultCard.fillStyle(0x000000, 0.34);
+        resultCard.fillRoundedRect(-276, -254, 560, 500, 3);
 
-        // Console panel body with a tinted header band
+        // Field report card with a tinted header band and riveted corners
         CanvasTheme.panel(resultCard, -280, -260, 560, 500, {
-            radius: 14,
+            radius: 3,
             fill: UI_COLORS.GAME_OVER.CARD_BACKGROUND,
             fillAlpha: 0.98,
             stroke: accent,
-            strokeAlpha: 0.38,
+            strokeAlpha: 0.45,
             accent: accent,
             accentAlpha: 0.95,
             shadowAlpha: 0.46,
+            rivets: true,
+            rivetAlpha: 0.5,
             brackets: true,
             bracketColor: accent,
             bracketAlpha: 0.32,
@@ -149,17 +152,17 @@ class UIManager {
         });
 
         // Header band wash
-        resultCard.fillStyle(accent, 0.08);
-        resultCard.fillRoundedRect(-279, -259, 558, 98, 13);
-        CanvasTheme.rule(resultCard, -246, -164, 246, -164, CanvasTheme.colors.line, 0.22);
+        resultCard.fillStyle(accent, 0.1);
+        resultCard.fillRoundedRect(-279, -259, 558, 98, 2);
+        CanvasTheme.rule(resultCard, -246, -164, 246, -164, CanvasTheme.colors.line, 0.3);
 
         // Footer rail separating the button from the report
-        CanvasTheme.rule(resultCard, -246, 224, 246, 224, CanvasTheme.colors.line, 0.14);
+        CanvasTheme.rule(resultCard, -246, 224, 246, 224, CanvasTheme.colors.line, 0.22);
 
         container.add(resultCard);
 
         // Header micro-labels
-        const eyebrow = this.scene.add.text(-252, -244, 'BATTLE REPORT', {
+        const eyebrow = this.scene.add.text(-252, -244, 'AFTER-ACTION REPORT', {
             fontSize: '8px',
             fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
@@ -167,7 +170,7 @@ class UIManager {
         });
         container.add(eyebrow);
 
-        const sector = this.scene.add.text(252, -244, 'SECTOR 07', {
+        const sector = this.scene.add.text(252, -244, 'WESTERN FRONT', {
             fontSize: '8px',
             fill: CanvasTheme.colors.faint,
             fontFamily: CanvasTheme.fonts.mono,
@@ -180,18 +183,15 @@ class UIManager {
      * Creates the title text and reason
      */
     _createTitle(container, titleText, titleColor, reason) {
-        // Glow effect behind title
-        const titleGlow = this.scene.add.text(0, -200, titleText, {
+        // Hard letterpress shadow instead of a neon glow
+        const titleShadow = this.scene.add.text(3, -197, titleText, {
             fontSize: '48px',
-            fill: titleColor,
+            fill: CanvasTheme.hex(CanvasTheme.colors.ink),
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 5
         }).setOrigin(0.5);
-        titleGlow.setAlpha(0.35);
-        if (Phaser.BlendModes) {
-            titleGlow.setBlendMode(Phaser.BlendModes.ADD);
-        }
-        container.add(titleGlow);
+        titleShadow.setAlpha(0.6);
+        container.add(titleShadow);
 
         // Main title
         const title = this.scene.add.text(0, -200, titleText, {
@@ -213,13 +213,11 @@ class UIManager {
             container.add(reasonText);
         }
 
-        // Subtle pulsing animation on the glow
+        // Quiet stamped pulse, not a glow
         this.scene.tweens.add({
-            targets: titleGlow,
-            alpha: 0.55,
-            scaleX: 1.04,
-            scaleY: 1.04,
-            duration: 1500,
+            targets: title,
+            alpha: { from: 1, to: 0.82 },
+            duration: 1800,
             yoyo: true,
             repeat: -1,
             ease: 'Sine.easeInOut'
@@ -274,7 +272,7 @@ class UIManager {
         playerLine.fillRect(-200, -56, 14, 2);
         statsContainer.add(playerLine);
 
-        const playerHeader = this.scene.add.text(-120, -41, 'PLAYER', {
+        const playerHeader = this.scene.add.text(-120, -41, 'ALLIED FORCES', {
             fontSize: '10px',
             fill: CanvasTheme.colors.blueCss,
             fontFamily: CanvasTheme.fonts.mono,
@@ -290,7 +288,7 @@ class UIManager {
         aiLine.fillRect(186, -56, 14, 2);
         statsContainer.add(aiLine);
 
-        const aiHeader = this.scene.add.text(120, -41, 'OPPONENT', {
+        const aiHeader = this.scene.add.text(120, -41, 'ENEMY FORCES', {
             fontSize: '10px',
             fill: CanvasTheme.colors.dangerCss,
             fontFamily: CanvasTheme.fonts.mono,
@@ -312,10 +310,10 @@ class UIManager {
 
             // Background cell for each stat
             const statBg = this.scene.add.graphics();
-            statBg.fillStyle(0xffffff, 0.025);
-            statBg.fillRoundedRect(x - 5, y - 8, 90, 38, 5);
-            statBg.lineStyle(1, CanvasTheme.colors.line, 0.12);
-            statBg.strokeRoundedRect(x - 5, y - 8, 90, 38, 5);
+            statBg.fillStyle(CanvasTheme.colors.lineBright, 0.03);
+            statBg.fillRoundedRect(x - 5, y - 8, 90, 38, 2);
+            statBg.lineStyle(1, CanvasTheme.colors.line, 0.18);
+            statBg.strokeRoundedRect(x - 5, y - 8, 90, 38, 2);
             statBg.fillStyle(accent, 0.7);
             statBg.fillRect(x - 5, y - 3, 2, 28);
             statsContainer.add(statBg);
@@ -351,13 +349,13 @@ class UIManager {
 
         const durationBg = this.scene.add.graphics();
         CanvasTheme.chip(durationBg, -78, -13, 156, 28, CanvasTheme.colors.blue, {
-            fillAlpha: 0.08,
-            strokeAlpha: 0.28,
-            radius: 5
+            fillAlpha: 0.1,
+            strokeAlpha: 0.36,
+            radius: 2
         });
         bottomContainer.add(durationBg);
 
-        const duration = this.scene.add.text(0, 1, `DURATION  ${durationText}`, {
+        const duration = this.scene.add.text(0, 1, `ENGAGEMENT  ${durationText}`, {
             fontSize: '10px',
             fill: CanvasTheme.colors.textDim,
             fontFamily: CanvasTheme.fonts.mono,
@@ -372,9 +370,9 @@ class UIManager {
         if (overtimeActive) {
             const overtimeBg = this.scene.add.graphics();
             CanvasTheme.chip(overtimeBg, -66, 50, 132, 26, CanvasTheme.colors.amber, {
-                fillAlpha: 0.14,
-                strokeAlpha: 0.45,
-                radius: 5
+                fillAlpha: 0.16,
+                strokeAlpha: 0.5,
+                radius: 2
             });
             bottomContainer.add(overtimeBg);
 
@@ -406,13 +404,13 @@ class UIManager {
         if (result === 'victory') {
             const rewardsBg = this.scene.add.graphics();
             CanvasTheme.chip(rewardsBg, -118, 25, 236, 30, CanvasTheme.colors.green, {
-                fillAlpha: 0.1,
-                strokeAlpha: 0.32,
-                radius: 5
+                fillAlpha: 0.12,
+                strokeAlpha: 0.4,
+                radius: 2
             });
             bottomContainer.add(rewardsBg);
 
-            const rewardsText = this.scene.add.text(0, 40, 'VICTORY BONUS   +100 XP   ·   +50 CREDITS', {
+            const rewardsText = this.scene.add.text(0, 40, 'VICTORY BONUS   +100 XP   ·   +50 REQUISITION', {
                 fontSize: '9px',
                 fill: CanvasTheme.colors.greenCss,
                 fontFamily: CanvasTheme.fonts.mono,
@@ -423,9 +421,9 @@ class UIManager {
         } else if (result === 'defeat') {
             const consolationBg = this.scene.add.graphics();
             CanvasTheme.chip(consolationBg, -80, 25, 160, 30, CanvasTheme.colors.line, {
-                fillAlpha: 0.07,
-                strokeAlpha: 0.24,
-                radius: 5
+                fillAlpha: 0.09,
+                strokeAlpha: 0.32,
+                radius: 2
             });
             bottomContainer.add(consolationBg);
 
@@ -449,14 +447,14 @@ class UIManager {
         continueButton.setAlpha(0.3);
         bottomContainer.add(continueButton);
 
-        // Console-style button
+        // Stamped field-order button
         const buttonBg = this.scene.add.graphics();
         CanvasTheme.panel(buttonBg, -80, -18, 160, 36, {
-            radius: 6,
+            radius: 2,
             fill: CanvasTheme.colors.raisedAlt,
             fillAlpha: 0.98,
             stroke: accent,
-            strokeAlpha: 0.66,
+            strokeAlpha: 0.7,
             accent: accent,
             accentAlpha: 0.95,
             shadowAlpha: 0.28,
@@ -468,7 +466,7 @@ class UIManager {
         continueButton.add(buttonBg);
 
         // Button text
-        const buttonText = this.scene.add.text(0, 0, 'CONTINUE', {
+        const buttonText = this.scene.add.text(0, 0, 'RETURN TO HQ', {
             fontSize: '11px',
             fill: resultTitleColor,
             fontFamily: CanvasTheme.fonts.mono,
@@ -513,7 +511,7 @@ class UIManager {
      */
     _setupClickHandling(overlay, container, result, gameState, battleStats, continueButton) {
         // Add wait message
-        const waitMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'ESTABLISHING UPLINK...', {
+        const waitMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'FILING AFTER-ACTION REPORT...', {
             fontSize: '8px',
             fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
             fontFamily: CanvasTheme.fonts.mono,

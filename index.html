@@ -9,20 +9,20 @@
 <body>
     <button class="menu-toggle" onclick="toggleMenu()" aria-expanded="false" aria-controls="side-controls">
         <span class="menu-toggle-icon" aria-hidden="true">☰</span>
-        <span class="menu-toggle-label">Tools</span>
+        <span class="menu-toggle-label">Field Kit</span>
     </button>
 
     <aside class="side-controls" id="side-controls" aria-label="Game tools">
         <div class="panel-heading">
             <div class="panel-heading-copy">
-                <span class="panel-eyebrow">Command</span>
-                <span class="panel-title">Tools</span>
+                <span class="panel-eyebrow">Field Command</span>
+                <span class="panel-title">Field Kit</span>
             </div>
-            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Online</span>
+            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Ready</span>
         </div>
 
         <div class="control-group">
-            <div class="control-group-title">Overlays</div>
+            <div class="control-group-title">Recon</div>
             <button class="tool-button debug-toggle" type="button" onclick="toggleDebugPanel()" aria-pressed="false">
                 <span class="tool-glyph" aria-hidden="true">▤</span>
                 <span class="tool-label">Debug Panel</span>
@@ -46,7 +46,7 @@
         </div>
 
         <div class="control-group">
-            <div class="control-group-title">Simulation</div>
+            <div class="control-group-title">Battle Drill</div>
             <button class="tool-button speed-toggle" id="speed-toggle" type="button" onclick="cycleGameSpeed()" disabled>
                 <span class="tool-glyph" aria-hidden="true">◷</span>
                 <span class="tool-label">Speed</span>
@@ -63,27 +63,27 @@
     <div class="game-shell">
         <div class="shell-rail" aria-hidden="true">
             <span class="shell-brand"><span class="shell-led"></span>Mechanized Royale</span>
-            <span class="shell-meta">Tactical Link <span class="shell-divider">/</span> Ready</span>
+            <span class="shell-meta">Field Command <span class="shell-divider">/</span> Ready</span>
         </div>
         <div id="game-container">
             <div id="loading">
                 <h2>Mechanized Royale</h2>
-                <p>Loading battlefield</p>
+                <p>Preparing the front</p>
             </div>
         </div>
     </div>
 
-    <aside id="debug-panel" aria-label="Live telemetry">
+    <aside id="debug-panel" aria-label="Situation report">
         <div class="panel-heading debug-heading">
             <div class="panel-heading-copy">
-                <span class="panel-eyebrow">Live</span>
-                <span class="panel-title">Telemetry</span>
+                <span class="panel-eyebrow">Field Log</span>
+                <span class="panel-title">Situation Report</span>
             </div>
-            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Stream</span>
-            <button class="panel-close" type="button" onclick="toggleDebugPanel()" aria-label="Close telemetry">✕</button>
+            <span class="panel-status"><span class="status-dot" aria-hidden="true"></span>Active</span>
+            <button class="panel-close" type="button" onclick="toggleDebugPanel()" aria-label="Close field log">✕</button>
         </div>
         <div class="debug-section">
-            <div class="debug-title">Game State</div>
+            <div class="debug-title">Battle State</div>
             <div class="debug-item">
                 <span class="debug-label">Scene:</span>
                 <span class="debug-value" id="debug-scene">-</span>
@@ -99,9 +99,9 @@
         </div>
         
         <div class="debug-section">
-            <div class="debug-title">Player Stats</div>
+            <div class="debug-title">Allied Status</div>
             <div class="debug-item">
-                <span class="debug-label">Energy:</span>
+                <span class="debug-label">Supply:</span>
                 <span class="debug-value" id="debug-player-energy">-</span>
             </div>
             <div class="debug-item">
@@ -115,9 +115,9 @@
         </div>
         
         <div class="debug-section">
-            <div class="debug-title">AI Stats</div>
+            <div class="debug-title">Enemy Intel</div>
             <div class="debug-item">
-                <span class="debug-label">Energy:</span>
+                <span class="debug-label">Supply:</span>
                 <span class="debug-value" id="debug-ai-energy">-</span>
             </div>
             <div class="debug-item">
@@ -135,7 +135,7 @@
         </div>
         
         <div class="debug-section">
-            <div class="debug-title">Battle Stats</div>
+            <div class="debug-title">Engagement Totals</div>
             <div class="debug-item">
                 <span class="debug-label">Total Tanks:</span>
                 <span class="debug-value" id="debug-total-tanks">-</span>
@@ -167,7 +167,7 @@
         </div>
         
         <div class="debug-section">
-            <div class="debug-title">Tower Status</div>
+            <div class="debug-title">Strongpoints</div>
             <div class="debug-item">
                 <span class="debug-label">Player Towers:</span>
                 <span class="debug-value" id="debug-player-towers">-</span>
@@ -179,7 +179,7 @@
         </div>
         
         <div class="debug-section">
-            <div class="debug-title">Deployment Zones</div>
+            <div class="debug-title">Deployment Sectors</div>
             <div class="debug-item">
                 <span class="debug-label">Player Expanded:</span>
                 <span class="debug-value" id="debug-player-expanded">-</span>
@@ -224,7 +224,7 @@
             const icon = menuBtn.querySelector('.menu-toggle-icon');
             const label = menuBtn.querySelector('.menu-toggle-label');
             if (icon) icon.textContent = isVisible ? '✕' : '☰';
-            if (label) label.textContent = isVisible ? 'Close' : 'Tools';
+            if (label) label.textContent = isVisible ? 'Close' : 'Field Kit';
         }
 
         function toggleMenu() {
