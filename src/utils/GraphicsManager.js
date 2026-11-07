@@ -21,10 +21,16 @@ const UNIT_BASE_COLORS = {
 };
 
 /**
+ * Size every card icon is fitted into. It leaves a clear margin inside the
+ * 100x80 card frame instead of letting the art touch the border.
+ */
+const CARD_ICON_BOX = { width: 64, height: 48 };
+
+/**
  * Procedural card art is drawn around the turret, so long barrels bias the
  * silhouette to the right. `offset` re-centres each icon inside its icon box.
  * `width`/`height` are the unrotated drawn content bounds and are used to scale
- * every icon to the same 80x60 box the image-based cards use. Measured with
+ * every icon into CARD_ICON_BOX. Measured with
  * tools/graphics-harness/render-gallery.js --check, which fails if an icon
  * drifts off-centre or escapes its box.
  */
@@ -259,14 +265,14 @@ class GraphicsManager {
         if (!this.scene.useGraphicsMode && this.scene.textures.exists(textureKey)) {
             const image = this.scene.add.image(0, 0, textureKey);
 
-            // Fit the trimmed silhouette inside the 80x60 icon box, preserving aspect
+            // Fit the trimmed silhouette inside CARD_ICON_BOX, preserving aspect
             // ratio and centring on the artwork rather than the padded canvas.
             const metrics = (typeof CARD_METRICS !== 'undefined') ? CARD_METRICS[cardId] : null;
             const sourceW = image.width;
             const sourceH = image.height;
             const contentW = metrics ? metrics.contentW : sourceW;
             const contentH = metrics ? metrics.contentH : sourceH;
-            const scale = Math.min(80 / contentW, 60 / contentH);
+            const scale = Math.min(CARD_ICON_BOX.width / contentW, CARD_ICON_BOX.height / contentH);
 
             image.setDisplaySize(sourceW * scale, sourceH * scale);
             if (metrics) {
@@ -282,13 +288,12 @@ class GraphicsManager {
             const artMetrics = CARD_ART_METRICS[cardId];
             const artOffset = artMetrics && artMetrics.offset;
 
-            // Troop icons are rotated a quarter turn in the hand. Fit their
-            // unrotated art into a 60x80 box, which becomes the same 80x60
-            // on-screen box the image-based cards fill.
+            // Troop icons are rotated a quarter turn in the hand, so swap the
+            // box dimensions while fitting the unrotated artwork.
             let iconScale = 1;
             if (artMetrics) {
-                const boxWidth = cardDef.type === CARD_TYPES.TROOP ? 60 : 80;
-                const boxHeight = cardDef.type === CARD_TYPES.TROOP ? 80 : 60;
+                const boxWidth = cardDef.type === CARD_TYPES.TROOP ? CARD_ICON_BOX.height : CARD_ICON_BOX.width;
+                const boxHeight = cardDef.type === CARD_TYPES.TROOP ? CARD_ICON_BOX.width : CARD_ICON_BOX.height;
                 iconScale = Math.min(boxWidth / artMetrics.width, boxHeight / artMetrics.height);
             }
 

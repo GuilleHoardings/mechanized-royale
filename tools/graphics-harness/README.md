@@ -28,11 +28,11 @@ node tools/graphics-harness/targeting-smoke.js   # headless AI target-priority t
 `--check` also verifies, and exits non-zero on failure:
 
 - every unit, tower, building and card icon is drawn inside a sane size range
-  (units ~8–80 x 60 px, towers ~40–120 x 140 px, card art ≤ 85 x 85 px, …)
+  (units ~8–80 x 60 px, towers ~40–120 x 140 px, card art ≤ 70 x 70 px, …)
 - each procedural card icon is visually centred on its icon box (±1.5 px),
   which catches barrel-length changes that silently push art off-centre
-- card icons are normalised to the same 80x60 box as the image-based cards, so
-  small units read clearly in the battle hand on phones
+- card icons are normalised to a 64x48 box, so small units read clearly in the
+  battle hand on phones without touching the card border
 - deck rules in `GameHelpers.sanitizeDeck()` produce 8 unique, known cards from
   the default deck, legacy `player.tanks` saves, junk input and overlong input
 - air targeting follows `GameHelpers.canTarget()`: tanks cannot hit aircraft,

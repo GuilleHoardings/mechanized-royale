@@ -308,7 +308,7 @@ function main() {
 
     renderSheet('cards.png', {
         title: 'Card icons — vector art',
-        subtitle: 'normalised to an 80x60 icon box (troops rotate to portrait in the hand)',
+        subtitle: 'normalised to a 64x48 icon box (troops rotate to portrait in the hand)',
         items: Object.keys(CARDS).map((id) => ({
             label: CARDS[id].name,
             sub: `${id} • ${CARDS[id].type} • ${CARDS[id].cost} elixir`,
@@ -345,7 +345,7 @@ function runChecks() {
     record('tower', 'side', towerNode(true, false), 40, { w: 80, h: 100 });
     record('building', 'v1_launcher', buildingNode('v1_launcher', true), 30, { w: 80, h: 80 });
     for (const id of Object.keys(CARDS)) {
-        record('card', id, cardNode(id), 30, { w: 85, h: 85 });
+        record('card', id, cardNode(id), 25, { w: 70, h: 70 });
     }
 
     for (const r of rows) {
