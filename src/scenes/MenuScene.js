@@ -13,8 +13,8 @@ class MenuScene extends Phaser.Scene {
             window.refreshSpeedButtonState();
         }
 
-        // Olive field-map backdrop
-        this.cameras.main.setBackgroundColor('#1b1a12');
+        // Aged field-map paper backdrop
+        this.cameras.main.setBackgroundColor('#cbb98d');
 
         // Add weathered map background
         this.createBackgroundEffects();
@@ -36,62 +36,65 @@ class MenuScene extends Phaser.Scene {
         const W = GAME_CONFIG.WIDTH;
         const H = GAME_CONFIG.HEIGHT;
 
-        // Aged paper + survey grid and edge vignette
+        // Aged paper sheet with a survey grid, like a map board on a desk
         const backdrop = this.add.graphics();
         CanvasTheme.paper(backdrop, 0, 0, W, H);
-        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.09);
+        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.paperEdge, 0.11);
         CanvasTheme.vignette(backdrop, 0, 0, W, H, 6, 0.05);
 
-        // Framing brackets
-        CanvasTheme.brackets(backdrop, 14, 14, W - 28, H - 28, CanvasTheme.colors.accent, 0.4, 16, 0);
+        // Double ink frame with a stitched inner rule
+        backdrop.lineStyle(2, CanvasTheme.colors.ink, 0.55);
+        backdrop.strokeRect(14, 14, W - 28, H - 28);
+        CanvasTheme.stitchBorder(backdrop, 20, 20, W - 40, H - 40, CanvasTheme.colors.ink, 0.28, 6, 4);
 
         // Header rail
-        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.28);
+        backdrop.lineStyle(1, CanvasTheme.colors.ink, 0.5);
         backdrop.lineBetween(24, 58, W - 24, 58);
         this.add.text(24, 40, 'MECHANIZED ROYALE  /  FIELD COMMAND', {
             fontSize: '9px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
         this.add.text(W - 24, 40, 'ALLIED COMMAND  ·  READY', {
             fontSize: '9px',
-            fill: CanvasTheme.colors.greenCss,
+            fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setOrigin(1, 0);
 
         // Footer rail
-        backdrop.lineStyle(1, CanvasTheme.colors.line, 0.22);
+        backdrop.lineStyle(1, CanvasTheme.colors.ink, 0.42);
         backdrop.lineBetween(24, H - 26, W - 24, H - 26);
         this.add.text(24, H - 20, 'WAR OFFICE ISSUE 0.1  ·  WESTERN FRONT', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         });
         this.add.text(W - 24, H - 20, 'AWAITING ORDERS', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
 
         // Soft contour lines, like a field map
         const lines = this.add.graphics();
-        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.18);
+        lines.lineStyle(1, CanvasTheme.colors.paperEdge, 0.34);
         for (let i = 0; i < 5; i++) {
             const ly = 84 + i * 150;
             lines.lineBetween(0, ly, W, ly + 30);
         }
 
-        // Sparse dust flecks
+        // Sparse dust and ink flecks
         const particles = this.add.graphics();
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 20; i++) {
             const px = Math.random() * W;
             const py = Math.random() * H;
-            const size = Math.random() * 1.8 + 0.8;
-            particles.fillStyle(i % 5 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.mudLight, Math.random() * 0.18 + 0.05);
+            const size = Math.random() * 1.6 + 0.7;
+            particles.fillStyle(i % 6 === 0 ? CanvasTheme.colors.stamp : CanvasTheme.colors.ink,
+                Math.random() * 0.12 + 0.04);
             particles.fillCircle(px, py, size);
         }
     }
@@ -99,52 +102,58 @@ class MenuScene extends Phaser.Scene {
     createTitle() {
         const W = GAME_CONFIG.WIDTH;
 
-        // Title plate - a riveted field-order board
+        // Title plate - a typed order docket pasted onto the map board
         const plate = this.add.graphics();
-        CanvasTheme.panel(plate, 64, 76, W - 128, 120, {
-            radius: 3,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.82,
-            stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.38,
-            accent: CanvasTheme.colors.accent,
-            accentAlpha: 0.8,
-            rivets: true,
-            rivetAlpha: 0.55,
-            brackets: true,
-            bracketAlpha: 0.35
+        CanvasTheme.sheet(plate, 64, 76, W - 128, 120, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
+            shadowAlpha: 0.22,
+            accent: CanvasTheme.colors.stamp,
+            accentAlpha: 0.75,
+            stitches: false
         });
 
-        // Hard letterpress shadow instead of a neon glow
+        // Letterpress title, printed in black ink
         this.add.text(W / 2 + 2, 119, 'MECHANIZED ROYALE', {
             fontSize: '40px',
-            fill: '#0e0c07',
+            fill: CanvasTheme.colors.ink,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 6
-        }).setOrigin(0.5).setAlpha(0.55);
+        }).setOrigin(0.5).setAlpha(0.16);
 
-        // Main title
         this.add.text(W / 2, 116, 'MECHANIZED ROYALE', {
             fontSize: '40px',
-            fill: CanvasTheme.colors.text,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.display,
-            letterSpacing: 6,
-            stroke: '#282315',
-            strokeThickness: 3
+            letterSpacing: 6
         }).setOrigin(0.5);
 
-        // Subtitle + rule
+        // Subtitle + typed rule
         this.add.text(W / 2, 158, 'ARMOURED FIELD COMMAND  ·  1939 - 1945', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 3
         }).setOrigin(0.5);
 
         const rule = this.add.graphics();
-        CanvasTheme.rule(rule, W / 2 - 110, 174, W / 2 + 110, 174, CanvasTheme.colors.accent, 0.5);
-        rule.fillStyle(CanvasTheme.colors.accent, 0.9);
+        CanvasTheme.stitch(rule, W / 2 - 120, 174, W / 2 + 120, 174, CanvasTheme.colors.ink, 0.42, 5, 3);
+        rule.fillStyle(CanvasTheme.colors.stamp, 0.85);
         rule.fillRect(W / 2 - 2, 172, 4, 4);
+
+        // Red rubber stamp in the lower-right corner of the docket, clear of
+        // the title so it stays legible on the narrow portrait canvas.
+        const stampX = W - 64 - 84 - 12;
+        const stampY = 177;
+        CanvasTheme.stampBox(plate, stampX, stampY, 84, 16, CanvasTheme.colors.stamp, 0.62);
+        this.add.text(stampX + 42, stampY + 8, 'RESTRICTED', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.stampCss,
+            fontFamily: CanvasTheme.fonts.display,
+            letterSpacing: 2
+        }).setOrigin(0.5).setAlpha(0.82);
     }
 
     createMenuButtons() {
@@ -154,31 +163,27 @@ class MenuScene extends Phaser.Scene {
         const spacing = 66;
         const buttonX = GAME_CONFIG.WIDTH / 2 - buttonWidth / 2;
 
-        // Field orders panel behind the menu
+        // Field orders docket behind the menu
         const panel = this.add.graphics();
-        CanvasTheme.panel(panel, buttonX - 24, startY - 62, buttonWidth + 48, spacing * 3 + buttonHeight + 44, {
-            radius: 3,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.8,
-            stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.3,
-            accent: CanvasTheme.colors.accent,
-            accentAlpha: 0.6,
-            rivets: true,
-            rivetAlpha: 0.5,
-            brackets: true,
-            bracketAlpha: 0.3
+        CanvasTheme.sheet(panel, buttonX - 24, startY - 62, buttonWidth + 48, spacing * 3 + buttonHeight + 44, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
+            shadowAlpha: 0.2,
+            accent: CanvasTheme.colors.ink,
+            accentAlpha: 0.28
         });
 
         this.add.text(buttonX - 8, startY - 50, 'FIELD ORDERS', {
             fontSize: '9px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
         this.add.text(buttonX + buttonWidth + 8, startY - 50, 'ISSUED 04', {
             fontSize: '9px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
@@ -190,8 +195,8 @@ class MenuScene extends Phaser.Scene {
             width: buttonWidth,
             height: buttonHeight,
             label: 'DEPLOY',
-            color: CanvasTheme.colors.accent,
-            hoverColor: CanvasTheme.colors.amber,
+            color: CanvasTheme.colors.oliveInk,
+            hoverColor: CanvasTheme.colors.stamp,
             onClick: () => this.scene.start('BattleScene', { gameState: this.gameState })
         });
 
@@ -201,8 +206,8 @@ class MenuScene extends Phaser.Scene {
             width: buttonWidth,
             height: buttonHeight,
             label: 'LOADOUT',
-            color: CanvasTheme.colors.blue,
-            hoverColor: CanvasTheme.colors.green,
+            color: CanvasTheme.colors.oliveInk,
+            hoverColor: CanvasTheme.colors.stamp,
             onClick: () => this.scene.start('DeckScene', { gameState: this.gameState })
         });
 
@@ -227,31 +232,28 @@ class MenuScene extends Phaser.Scene {
     }
 
     /**
-     * Draws a menu button. Disabled buttons show a "SOON" badge and ignore input.
+     * Draws a menu button. Disabled buttons show a "PENDING" stamp and ignore input.
      */
-    createMenuButton({ x, y, width, height, label, color = 0x6f6748, hoverColor = null, disabled = false, onClick = null }) {
+    createMenuButton({ x, y, width, height, label, color = 0x746444, hoverColor = null, disabled = false, onClick = null }) {
         const bg = this.add.graphics();
         this.drawCommandButton(bg, x, y, width, height, color, !disabled);
 
         const text = this.add.text(x + width / 2, y + height / 2, label, {
             fontSize: disabled ? '13px' : '17px',
-            fill: disabled ? CanvasTheme.colors.faint : CanvasTheme.colors.text,
+            fill: disabled ? CanvasTheme.colors.inkFaint : CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.ui,
             fontWeight: '700',
             letterSpacing: 3
         }).setOrigin(0.5);
 
         if (disabled) {
-            const badgeX = x + width - 60;
-            const badgeY = y + height / 2 - 8;
+            const badgeX = x + width - 66;
+            const badgeY = y + height / 2 - 9;
             const badge = this.add.graphics();
-            badge.fillStyle(CanvasTheme.colors.panelStrong, 0.9);
-            badge.fillRoundedRect(badgeX, badgeY, 52, 16, 2);
-            badge.lineStyle(1, CanvasTheme.colors.lineSoft, 0.55);
-            badge.strokeRoundedRect(badgeX, badgeY, 52, 16, 2);
-            this.add.text(badgeX + 26, badgeY + 8, 'PENDING', {
+            CanvasTheme.stampBox(badge, badgeX, badgeY, 54, 18, CanvasTheme.colors.inkFaint, 0.5);
+            this.add.text(badgeX + 27, badgeY + 9, 'PENDING', {
                 fontSize: '8px',
-                fill: CanvasTheme.colors.muted,
+                fill: CanvasTheme.colors.inkFaint,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 1
             }).setOrigin(0.5);
@@ -265,96 +267,86 @@ class MenuScene extends Phaser.Scene {
         hit.on('pointerover', () => {
             bg.clear();
             this.drawCommandButton(bg, x, y, width, height, hoverColor || color, true, true);
-            text.setFill('#fff8e4');
+            text.setFill(CanvasTheme.colors.paperLight);
         });
 
         hit.on('pointerout', () => {
             bg.clear();
             this.drawCommandButton(bg, x, y, width, height, color, true, false);
-            text.setFill(CanvasTheme.colors.text);
+            text.setFill(CanvasTheme.colors.inkText);
         });
 
         hit.on('pointerdown', () => {
             // Brief flash effect then transition
             bg.clear();
             this.drawCommandButton(bg, x, y, width, height, hoverColor || color, true, true);
+            text.setFill(CanvasTheme.colors.paperLight);
             this.time.delayedCall(100, onClick);
         });
     }
 
     /**
-     * Draws a stamped field-order plate. Flat surfaces, a heavy dark keyline,
-     * a brass order stripe and a hard drop shadow keep it period-appropriate.
+     * Draws a stamped field-order strip: card stock, an ink keyline, a coloured
+     * order bar and a typed arrow. Flat, pressed and period-appropriate.
      */
     drawCommandButton(graphics, x, y, width, height, color, isActive, hovered = false) {
         // Hard cast shadow
-        graphics.fillStyle(0x000000, 0.34);
-        graphics.fillRoundedRect(x + 3, y + 4, width, height, 2);
+        graphics.fillStyle(CanvasTheme.colors.ink, 0.22);
+        graphics.fillRoundedRect(x + 2, y + 3, width, height, 1);
 
-        // Main plate
-        graphics.fillStyle(isActive
-            ? (hovered ? CanvasTheme.colors.raisedAlt : CanvasTheme.colors.raised)
-            : CanvasTheme.colors.deep, isActive ? 0.98 : 0.7);
-        graphics.fillRoundedRect(x, y, width, height, 2);
+        // Main card stock
+        graphics.fillStyle(hovered ? color : CanvasTheme.colors.paperLight, hovered ? 0.92 : 1);
+        graphics.fillRoundedRect(x, y, width, height, 1);
 
-        // Tinted order stripe across the plate
-        graphics.fillStyle(color, isActive ? (hovered ? 0.22 : 0.13) : 0.05);
-        graphics.fillRoundedRect(x, y, width, height, 2);
+        // Aged tint over the stock
+        graphics.fillStyle(CanvasTheme.colors.paperShade, isActive ? (hovered ? 0.08 : 0.16) : 0.1);
+        graphics.fillRoundedRect(x, y, width, height, 1);
 
         // Left order bar
-        graphics.fillStyle(isActive ? color : CanvasTheme.colors.lineSoft, isActive ? 0.95 : 0.4);
+        graphics.fillStyle(isActive ? color : CanvasTheme.colors.inkFaint, isActive ? 0.9 : 0.35);
         graphics.fillRect(x + 1, y + 7, 4, height - 14);
 
-        // Printed highlight (top edge only)
-        if (isActive) {
-            graphics.fillStyle(CanvasTheme.colors.lineBright, hovered ? 0.1 : 0.06);
-            graphics.fillRect(x + 2, y + 2, width - 4, 2);
-        }
+        // Ink keyline + inner rule
+        graphics.lineStyle(1, CanvasTheme.colors.ink, isActive ? 0.7 : 0.35);
+        graphics.strokeRoundedRect(x + 0.5, y + 0.5, width - 1, height - 1, 1);
+        graphics.lineStyle(1, CanvasTheme.colors.ink, isActive ? 0.22 : 0.12);
+        graphics.strokeRoundedRect(x + 3.5, y + 3.5, width - 7, height - 7, 0);
 
-        // Heavy outer keyline + inner rule
-        graphics.lineStyle(2, CanvasTheme.colors.ink, 0.6);
-        graphics.strokeRoundedRect(x + 0.5, y + 0.5, width - 1, height - 1, 2);
-        graphics.lineStyle(1, isActive ? color : CanvasTheme.colors.lineSoft, isActive ? (hovered ? 0.9 : 0.65) : 0.35);
-        graphics.strokeRoundedRect(x + 3.5, y + 3.5, width - 7, height - 7, 1);
-
-        // Stamped corner ticks and a small arrow, not a glowing chevron
+        // Stamped arrow and order tick
         if (isActive) {
-            graphics.lineStyle(1, color, hovered ? 0.95 : 0.55);
+            const ink = hovered ? CanvasTheme.colors.paperLight : CanvasTheme.colors.ink;
+            graphics.lineStyle(1, ink, hovered ? 0.9 : 0.6);
             const cx = x + width - 24;
             const cy = y + height / 2;
             graphics.lineBetween(cx - 4, cy - 5, cx + 2, cy);
             graphics.lineBetween(cx + 2, cy, cx - 4, cy + 5);
-            graphics.fillStyle(color, hovered ? 0.95 : 0.6);
-            graphics.fillRect(x + 9, y + height - 7, 14, 2);
+            graphics.fillStyle(ink, hovered ? 0.9 : 0.55);
+            graphics.fillRect(x + 9, y + height - 8, 14, 2);
         }
     }
 
     showPlayerInfo() {
-        // Player info panel - positioned below the menu buttons
+        // Service record docket - positioned below the menu buttons
         const panelWidth = 260;
         const panelHeight = 104;
         const panelX = GAME_CONFIG.WIDTH / 2 - panelWidth / 2;
         const panelY = 540;
 
-        // Panel background
+        // Paper form with a typed header and ruled rows
         const infoPanelBg = this.add.graphics();
-        CanvasTheme.panel(infoPanelBg, panelX, panelY, panelWidth, panelHeight, {
-            radius: 3,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.88,
-            stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.36,
-            accent: CanvasTheme.colors.amber,
-            accentAlpha: 0.7,
-            rivets: true,
-            rivetAlpha: 0.45,
-            brackets: true,
-            bracketAlpha: 0.3
+        CanvasTheme.sheet(infoPanelBg, panelX, panelY, panelWidth, panelHeight, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
+            shadowAlpha: 0.2,
+            accent: CanvasTheme.colors.stamp,
+            accentAlpha: 0.55
         });
 
         this.add.text(panelX + 16, panelY + 12, 'OFFICER SERVICE RECORD', {
             fontSize: '9px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
@@ -363,19 +355,19 @@ class MenuScene extends Phaser.Scene {
         const deck = GameHelpers.getPlayerDeck(this.gameState);
 
         const rows = [
-            { label: 'RANK', value: `RANK ${player.progress.level}`, color: CanvasTheme.colors.text },
-            { label: 'REQUISITION', value: `${player.resources.credits}`, color: CanvasTheme.colors.amberCss },
-            { label: 'LOADOUT', value: `${deck.length}/${DECK_CONFIG.SIZE} CARDS`, color: CanvasTheme.colors.greenCss }
+            { label: 'RANK', value: `RANK ${player.progress.level}`, color: CanvasTheme.colors.inkText },
+            { label: 'REQUISITION', value: `${player.resources.credits}`, color: CanvasTheme.colors.oliveInkCss },
+            { label: 'LOADOUT', value: `${deck.length}/${DECK_CONFIG.SIZE} CARDS`, color: CanvasTheme.colors.inkTextDim }
         ];
 
         rows.forEach((row, index) => {
             const rowY = panelY + 36 + index * 22;
             if (index > 0) {
-                CanvasTheme.rule(infoPanelBg, panelX + 16, rowY - 7, panelX + panelWidth - 16, rowY - 7, CanvasTheme.colors.line, 0.14);
+                CanvasTheme.rule(infoPanelBg, panelX + 16, rowY - 7, panelX + panelWidth - 16, rowY - 7, CanvasTheme.colors.ink, 0.18);
             }
             this.add.text(panelX + 16, rowY, row.label, {
                 fontSize: '9px',
-                fill: CanvasTheme.colors.faint,
+                fill: CanvasTheme.colors.inkFaint,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 1
             });

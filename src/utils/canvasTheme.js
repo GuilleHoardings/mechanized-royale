@@ -2,12 +2,17 @@
  * CanvasTheme - shared visual language for the in-canvas UI.
  *
  * The game is set in the armoured warfare of the 1940s, so the chrome is
- * styled like a field command dossier: olive drab card stock, khaki rules,
- * brass stencilling, typewriter readouts and riveted map boards. Phaser
- * scenes cannot use CSS, so this helper mirrors the HTML shell's palette,
- * fonts and panel primitives for everything drawn inside the game canvas:
- * HUD panels, cards, tooltips, menu/deck/result screens and battlefield
- * framing. Battlefield/unit art intentionally keeps its own colours.
+ * styled like an analogue field dossier: aged paper, typewriter reports,
+ * ink rules, red rubber stamps and olive canvas webbing. Phaser scenes cannot
+ * use CSS, so this helper mirrors the HTML shell's palette, fonts and panel
+ * primitives for everything drawn inside the game canvas: HUD panels, cards,
+ * tooltips, menu/deck/result screens and battlefield framing.
+ *
+ * Two surface families are provided:
+ *   - paper / sheet / stamp  -> menus, deck, loading and after-action reports
+ *   - panel / stitch          -> battle HUD webbing over the battlefield
+ *
+ * Battlefield/unit art intentionally keeps its own colours.
  *
  * Only Graphics APIs supported by the graphics harness are used here:
  * fillStyle, lineStyle, fillRect, fillRoundedRect, strokeRoundedRect,
@@ -15,41 +20,60 @@
  */
 const CanvasTheme = {
     colors: {
-        // Surfaces - olive drab, field brown and aged card stock
+        // Paper surfaces - menus, deck, loading and reports
+        paper: 0xcbb98d,
+        paperLight: 0xdccca4,
+        paperShade: 0xb9a677,
+        paperDeep: 0x9d8b63,
+        paperEdge: 0x746444,
+        inkText: '#2b2416',
+        inkTextDim: '#4d4128',
+        inkMuted: '#6b5d3f',
+        inkFaint: '#746444',
+        stamp: 0x8e3327,
+        stampCss: '#8e3327',
+        oliveInk: 0x4f5636,
+        oliveInkCss: '#4f5636',
+
+        // Canvas / webbing surfaces - battle HUD over the field
         ink: 0x16140d,
         deep: 0x1d1b12,
-        panel: 0x2d2a1c,
-        panelStrong: 0x1e1c12,
-        raised: 0x373223,
-        raisedAlt: 0x433d2b,
-        glass: 0x514a33,
+        panel: 0x3a3b26,
+        panelStrong: 0x2a2b1a,
+        raised: 0x4a4c31,
+        raisedAlt: 0x585a3b,
+        glass: 0x63643f,
+        canvas: 0x3f4129,
+        canvasDark: 0x2b2c1a,
+        canvasLight: 0x55583a,
+        thread: 0xc9b98d,
 
         // Lines - khaki, faded brass and parchment
-        line: 0xb5a578,
+        line: 0xbfae80,
         lineSoft: 0x6f6748,
-        lineBright: 0xe0d2a6,
+        lineBright: 0xe6d7ab,
 
-        // Text (Phaser text styles need CSS strings)
-        text: '#f2ead3',
-        textDim: '#d8cdac',
-        muted: '#b0a47f',
-        faint: '#857a5b',
+        // Text for dark canvas surfaces (Phaser text styles need CSS strings)
+        text: '#f3e9cc',
+        textDim: '#d9cba6',
+        muted: '#b7a97f',
+        faint: '#8c7e5b',
 
         // Accents - brass, allied olive, signal red
-        accent: 0xc9a24b,
-        accentCss: '#d3ad58',
-        blue: 0x8d9b67,
-        blueCss: '#a6b47b',
-        blueDeep: 0x5b6540,
-        green: 0x9cae73,
-        greenCss: '#afc186',
-        amber: 0xd1a04a,
-        amberCss: '#dcb35f',
-        violet: 0x9d8055,
-        violetCss: '#b5966a',
-        danger: 0xc25a44,
+        accent: 0xa8843f,
+        accentCss: '#c2a05a',
+        blue: 0x6f7f5a,
+        blueCss: '#8fa06f',
+        blueDeep: 0x4b573a,
+        green: 0x8a9a63,
+        greenCss: '#a3b37b',
+        amber: 0xc09a4e,
+        amberCss: '#d3ad58',
+        violet: 0x8d7a58,
+        violetCss: '#a8926a',
+        danger: 0xa84a38,
         dangerCss: '#d47962',
-        dangerDeep: 0x8b3627,
+        dangerDeep: 0x74291d,
 
         // Battlefield (kept close to the existing art so gameplay is unchanged)
         ground: 0x16241c,
@@ -69,13 +93,14 @@ const CanvasTheme = {
         concrete: 0x5b6675,
         concreteLight: 0x8a97a8,
         concreteDark: 0x3b4657,
-        hazard: 0xd1a04a
+        hazard: 0xc09a4e
     },
 
     fonts: {
-        ui: 'Bahnschrift, "DIN Alternate", "Segoe UI", Arial, sans-serif',
-        mono: '"Courier New", "Cascadia Mono", Consolas, monospace',
-        display: 'Stencil, "Copperplate Gothic Bold", "Bahnschrift Condensed", "Arial Narrow", Impact, sans-serif'
+        ui: 'Georgia, "Book Antiqua", "Palatino Linotype", "Times New Roman", serif',
+        serif: 'Georgia, "Book Antiqua", "Palatino Linotype", "Times New Roman", serif',
+        mono: '"Courier New", "Courier", "Cascadia Mono", monospace',
+        display: 'Stencil, "Copperplate Gothic Bold", "Georgia", "Times New Roman", serif'
     },
 
     /** Converts a 0xRRGGBB number to a CSS hex string. */
@@ -84,11 +109,97 @@ const CanvasTheme = {
     },
 
     /**
-     * Draws a field-dossier panel: flat olive card stock, a dark keyline,
-     * an inner khaki rule, optional brass strip, rivets and corner brackets.
+     * Paints an aged paper sheet across a rectangle. This is a real fill, not
+     * just grain, so menu/deck/loading/report screens read as paper rather
+     * than as a dark console.
+     */
+    paper(graphics, x, y, w, h, options = {}) {
+        const fill = options.fill !== undefined ? options.fill : this.colors.paper;
+        graphics.fillStyle(fill, options.fillAlpha !== undefined ? options.fillAlpha : 1);
+        graphics.fillRect(x, y, w, h);
+
+        // Paper fibres
+        graphics.lineStyle(1, this.colors.paperDeep, 0.16);
+        for (let i = 0; i < 44; i++) {
+            const fy = y + ((i + 0.5) / 44) * h;
+            const fx = x + ((i * 53) % 100) / 100 * w;
+            graphics.lineBetween(fx, fy, Math.min(x + w, fx + w * 0.1), fy);
+        }
+
+        // Fold lines
+        graphics.lineStyle(1, this.colors.paperDeep, 0.24);
+        graphics.lineBetween(x + w * 0.34, y, x + w * 0.34, y + h);
+        graphics.lineBetween(x, y + h * 0.52, x + w, y + h * 0.52);
+
+        // Old damp stains
+        const stains = [
+            [0.16, 0.22, 0.30, 0.18, this.colors.paperDeep, 0.1],
+            [0.78, 0.16, 0.24, 0.14, this.colors.stamp, 0.035],
+            [0.58, 0.76, 0.36, 0.22, this.colors.paperDeep, 0.08],
+            [0.10, 0.84, 0.26, 0.16, this.colors.ink, 0.035]
+        ];
+        stains.forEach(([sx, sy, sw, sh, color, alpha]) => {
+            graphics.fillStyle(color, alpha);
+            graphics.fillEllipse(x + sx * w, y + sy * h, sw * w, sh * h);
+        });
+
+        // Darkened deckle edge
+        graphics.lineStyle(2, this.colors.paperEdge, 0.28);
+        graphics.strokeRect(x + 1, y + 1, Math.max(1, w - 2), Math.max(1, h - 2));
+    },
+
+    /**
+     * Draws a paper document panel: light card stock, an ink keyline, an inner
+     * double rule and an optional stitched border. Used by menus, deck and
+     * after-action reports.
+     */
+    sheet(graphics, x, y, w, h, options = {}) {
+        const radius = options.radius !== undefined ? options.radius : 1;
+        const fill = options.fill !== undefined ? options.fill : this.colors.paperLight;
+        const edge = options.edge !== undefined ? options.edge : this.colors.paperEdge;
+        const ink = options.ink !== undefined ? options.ink : this.colors.ink;
+
+        if (options.shadow !== false) {
+            graphics.fillStyle(ink, options.shadowAlpha !== undefined ? options.shadowAlpha : 0.26);
+            graphics.fillRoundedRect(x + 3, y + 4, w, h, radius);
+        }
+
+        graphics.fillStyle(fill, options.fillAlpha !== undefined ? options.fillAlpha : 1);
+        graphics.fillRoundedRect(x, y, w, h, radius);
+
+        // Slightly darker bottom/right edge, like a stacked paper pad.
+        graphics.fillStyle(edge, 0.28);
+        graphics.fillRect(x + 2, y + h - 2, Math.max(1, w - 4), 1);
+        graphics.fillRect(x + w - 2, y + 2, 1, Math.max(1, h - 4));
+
+        // Ink keyline plus an inner double rule.
+        graphics.lineStyle(options.strokeWidth !== undefined ? options.strokeWidth : 1, ink,
+            options.strokeAlpha !== undefined ? options.strokeAlpha : 0.72);
+        graphics.strokeRoundedRect(x + 0.5, y + 0.5, w - 1, h - 1, radius);
+        if (options.doubleRule !== false) {
+            graphics.lineStyle(1, ink, options.doubleRuleAlpha !== undefined ? options.doubleRuleAlpha : 0.24);
+            graphics.strokeRoundedRect(x + 3.5, y + 3.5, Math.max(1, w - 7), Math.max(1, h - 7),
+                Math.max(0, radius - 1));
+        }
+
+        if (options.accent !== undefined && options.accent !== null) {
+            graphics.fillStyle(options.accent, options.accentAlpha !== undefined ? options.accentAlpha : 0.9);
+            graphics.fillRect(x + 10, y, Math.max(8, w - 20), 2);
+        }
+
+        if (options.stitches) {
+            this.stitchBorder(graphics, x + 6, y + 6, w - 12, h - 12,
+                options.stitchColor !== undefined ? options.stitchColor : ink,
+                options.stitchAlpha !== undefined ? options.stitchAlpha : 0.32);
+        }
+    },
+
+    /**
+     * Draws an olive-canvas HUD panel with a stitched edge. Used by the battle
+     * HUD so it reads as webbing and field kit rather than a glowing console.
      */
     panel(graphics, x, y, w, h, options = {}) {
-        const radius = options.radius !== undefined ? options.radius : 2;
+        const radius = options.radius !== undefined ? options.radius : 1;
         const fill = options.fill !== undefined ? options.fill : this.colors.panel;
         const fillAlpha = options.fillAlpha !== undefined ? options.fillAlpha : 0.94;
         const stroke = options.stroke !== undefined ? options.stroke : this.colors.line;
@@ -102,8 +213,8 @@ const CanvasTheme = {
         graphics.fillStyle(fill, fillAlpha);
         graphics.fillRoundedRect(x, y, w, h, radius);
 
-        // Faint printed-paper highlight along the top edge.
-        graphics.fillStyle(0xf5e6bd, options.sheenAlpha !== undefined ? options.sheenAlpha : 0.055);
+        // Faint cloth highlight along the top edge.
+        graphics.fillStyle(this.colors.thread, options.sheenAlpha !== undefined ? options.sheenAlpha : 0.06);
         graphics.fillRoundedRect(x + 1, y + 1, w - 2, Math.max(2, Math.min(8, h * 0.22)), Math.max(1, radius - 1));
 
         // Heavy outer keyline keeps panels looking pressed rather than glowing.
@@ -119,17 +230,58 @@ const CanvasTheme = {
             graphics.fillRoundedRect(x + 10, y + 1, Math.max(8, w - 20), 2, 1);
         }
 
-        if (options.rivets) {
-            this.rivets(graphics, x, y, w, h, options.rivetColor, options.rivetAlpha);
+        if (options.stitches) {
+            this.stitchBorder(graphics, x + 6, y + 6, w - 12, h - 12,
+                options.stitchColor !== undefined ? options.stitchColor : this.colors.thread,
+                options.stitchAlpha !== undefined ? options.stitchAlpha : 0.3);
         }
+    },
 
-        if (options.brackets) {
-            this.brackets(
-                graphics, x, y, w, h,
-                options.bracketColor !== undefined ? options.bracketColor : (options.accent || this.colors.accent),
-                options.bracketAlpha !== undefined ? options.bracketAlpha : 0.55,
-                options.bracketLength !== undefined ? options.bracketLength : 9
-            );
+    /** Draws a dashed line (thread stitches or a typed rule). */
+    stitch(graphics, x1, y1, x2, y2, color = this.colors.ink, alpha = 0.4, dash = 4, gap = 3, width = 1) {
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+        if (length <= 0) return;
+
+        const ux = dx / length;
+        const uy = dy / length;
+        graphics.lineStyle(width, color, alpha);
+        for (let d = 0; d < length; d += dash + gap) {
+            const end = Math.min(d + dash, length);
+            graphics.lineBetween(x1 + ux * d, y1 + uy * d, x1 + ux * end, y1 + uy * end);
+        }
+    },
+
+    /** Dashed border around a rectangle. */
+    stitchBorder(graphics, x, y, w, h, color = this.colors.thread, alpha = 0.3, dash = 5, gap = 3) {
+        this.stitch(graphics, x, y, x + w, y, color, alpha, dash, gap);
+        this.stitch(graphics, x + w, y, x + w, y + h, color, alpha, dash, gap);
+        this.stitch(graphics, x + w, y + h, x, y + h, color, alpha, dash, gap);
+        this.stitch(graphics, x, y + h, x, y, color, alpha, dash, gap);
+    },
+
+    /** Double-ruled rubber-stamp box, as used on period paperwork. */
+    stampBox(graphics, x, y, w, h, color = this.colors.stamp, alpha = 0.75) {
+        graphics.lineStyle(2, color, alpha);
+        graphics.strokeRect(x, y, w, h);
+        graphics.lineStyle(1, color, alpha * 0.65);
+        graphics.strokeRect(x + 3, y + 3, Math.max(1, w - 6), Math.max(1, h - 6));
+    },
+
+    /** Simple five-pointed service star. */
+    star(graphics, cx, cy, outer, inner, color = this.colors.stamp, alpha = 0.8, width = 1.5) {
+        const points = [];
+        for (let i = 0; i < 10; i++) {
+            const radius = i % 2 === 0 ? outer : inner;
+            const angle = -Math.PI / 2 + (i * Math.PI) / 5;
+            points.push([cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius]);
+        }
+        graphics.lineStyle(width, color, alpha);
+        for (let i = 0; i < points.length; i++) {
+            const a = points[i];
+            const b = points[(i + 1) % points.length];
+            graphics.lineBetween(a[0], a[1], b[0], b[1]);
         }
     },
 
@@ -159,16 +311,12 @@ const CanvasTheme = {
         const y1 = y + h - inset;
 
         graphics.lineStyle(2, color, alpha);
-        // Top-left
         graphics.lineBetween(x0, y0, x0 + length, y0);
         graphics.lineBetween(x0, y0, x0, y0 + length);
-        // Top-right
         graphics.lineBetween(x1 - length, y0, x1, y0);
         graphics.lineBetween(x1, y0, x1, y0 + length);
-        // Bottom-left
         graphics.lineBetween(x0, y1 - length, x0, y1);
         graphics.lineBetween(x0, y1, x0 + length, y1);
-        // Bottom-right
         graphics.lineBetween(x1 - length, y1, x1, y1);
         graphics.lineBetween(x1, y1 - length, x1, y1);
     },
@@ -181,7 +329,7 @@ const CanvasTheme = {
 
     /** Small stamped tag used for status labels and badges. */
     chip(graphics, x, y, w, h, color, options = {}) {
-        const radius = options.radius !== undefined ? options.radius : 2;
+        const radius = options.radius !== undefined ? options.radius : 1;
         graphics.fillStyle(color, options.fillAlpha !== undefined ? options.fillAlpha : 0.16);
         graphics.fillRoundedRect(x, y, w, h, radius);
         graphics.lineStyle(1, color, options.strokeAlpha !== undefined ? options.strokeAlpha : 0.55);
@@ -197,8 +345,8 @@ const CanvasTheme = {
     },
 
     /** Faded map grid used behind menu, deck, boot and battlefield screens. */
-    grid(graphics, x, y, w, h, step = 40, color = this.colors.blue, alpha = 0.06) {
-        const majorAlpha = Math.min(1, alpha * 2.4);
+    grid(graphics, x, y, w, h, step = 40, color = this.colors.paperEdge, alpha = 0.1) {
+        const majorAlpha = Math.min(1, alpha * 2.2);
         graphics.lineStyle(1, color, alpha);
         for (let gx = x; gx <= x + w + 0.5; gx += step) {
             graphics.lineBetween(gx, y, gx, y + h);
@@ -214,34 +362,6 @@ const CanvasTheme = {
         }
         for (let gy = y; gy <= y + h + 0.5; gy += step * 5) {
             graphics.lineBetween(x, gy, x + w, gy);
-        }
-    },
-
-    /** Aged-paper fold lines, dust and fibre marks behind a screen. */
-    paper(graphics, x, y, w, h) {
-        // Fold lines
-        graphics.lineStyle(1, this.colors.lineBright, 0.05);
-        graphics.lineBetween(x + w * 0.34, y, x + w * 0.34, y + h);
-        graphics.lineBetween(x, y + h * 0.52, x + w, y + h * 0.52);
-
-        // Old damp stains
-        const stains = [
-            [0.16, 0.22, 0.30, 0.18, this.colors.mud, 0.04],
-            [0.78, 0.16, 0.24, 0.14, this.colors.amber, 0.025],
-            [0.58, 0.76, 0.36, 0.22, this.colors.mud, 0.035],
-            [0.10, 0.84, 0.26, 0.16, this.colors.ink, 0.05]
-        ];
-        stains.forEach(([sx, sy, sw, sh, color, alpha]) => {
-            graphics.fillStyle(color, alpha);
-            graphics.fillEllipse(x + sx * w, y + sy * h, sw * w, sh * h);
-        });
-
-        // Paper fibres / wear
-        graphics.lineStyle(1, this.colors.lineBright, 0.03);
-        for (let i = 0; i < 16; i++) {
-            const fy = y + ((i + 0.5) / 16) * h;
-            const fx = x + ((i * 37) % 100) / 100 * w;
-            graphics.lineBetween(fx, fy, Math.min(x + w, fx + w * 0.08), fy);
         }
     },
 

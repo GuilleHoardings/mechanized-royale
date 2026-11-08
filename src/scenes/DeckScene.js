@@ -25,7 +25,7 @@ class DeckScene extends Phaser.Scene {
         if (window.refreshSpeedButtonState) window.refreshSpeedButtonState();
         if (window.refreshPauseButtonState) window.refreshPauseButtonState();
 
-        this.cameras.main.setBackgroundColor('#1b1a12');
+        this.cameras.main.setBackgroundColor('#cbb98d');
         this.graphicsManager = new GraphicsManager(this);
 
         this._computeLayout();
@@ -72,42 +72,47 @@ class DeckScene extends Phaser.Scene {
         // Aged map paper + survey grid, matching the menu/boot screens
         const backdrop = this.add.graphics();
         CanvasTheme.paper(backdrop, 0, 0, W, H);
-        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.09);
+        CanvasTheme.grid(backdrop, 0, 0, W, H, 40, CanvasTheme.colors.paperEdge, 0.11);
         CanvasTheme.vignette(backdrop, 0, 0, W, H, 6, 0.05);
-        CanvasTheme.brackets(backdrop, 14, 14, W - 28, H - 28, CanvasTheme.colors.accent, 0.3, 16, 0);
+
+        // Double ink frame with a stitched inner rule
+        backdrop.lineStyle(2, CanvasTheme.colors.ink, 0.55);
+        backdrop.strokeRect(14, 14, W - 28, H - 28);
+        CanvasTheme.stitchBorder(backdrop, 20, 20, W - 40, H - 40, CanvasTheme.colors.ink, 0.26, 6, 4);
 
         // Header / footer rails
-        CanvasTheme.rule(backdrop, 24, 58, W - 24, 58, CanvasTheme.colors.line, 0.28);
-        CanvasTheme.rule(backdrop, 24, H - 26, W - 24, H - 26, CanvasTheme.colors.line, 0.2);
+        CanvasTheme.rule(backdrop, 24, 58, W - 24, 58, CanvasTheme.colors.ink, 0.45);
+        CanvasTheme.rule(backdrop, 24, H - 26, W - 24, H - 26, CanvasTheme.colors.ink, 0.35);
 
         this.add.text(24, H - 20, 'FIELD DEPOT  ·  ISSUE 07', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         });
         this.add.text(W - 24, H - 20, 'QUARTERMASTER COPY', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
 
         // Soft contour lines, like a field map
         const lines = this.add.graphics();
-        lines.lineStyle(1, CanvasTheme.colors.lineSoft, 0.18);
+        lines.lineStyle(1, CanvasTheme.colors.paperEdge, 0.32);
         for (let i = 0; i < 5; i++) {
             const y = 84 + i * 160;
             lines.lineBetween(0, y, W, y + 28);
         }
 
-        // Sparse dust flecks
+        // Sparse dust and ink flecks
         const particles = this.add.graphics();
-        for (let i = 0; i < 18; i++) {
+        for (let i = 0; i < 20; i++) {
             const px = Math.random() * W;
             const py = Math.random() * H;
-            particles.fillStyle(i % 5 === 0 ? CanvasTheme.colors.accent : CanvasTheme.colors.mudLight, Math.random() * 0.16 + 0.04);
-            particles.fillCircle(px, py, Math.random() * 1.8 + 0.8);
+            particles.fillStyle(i % 6 === 0 ? CanvasTheme.colors.stamp : CanvasTheme.colors.ink,
+                Math.random() * 0.12 + 0.04);
+            particles.fillCircle(px, py, Math.random() * 1.6 + 0.7);
         }
     }
 
@@ -120,23 +125,21 @@ class DeckScene extends Phaser.Scene {
 
         this.add.text(W / 2 + 2, 32, 'LOADOUT DOSSIER', {
             fontSize: '28px',
-            fill: '#0e0c07',
+            fill: CanvasTheme.colors.ink,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 4
-        }).setOrigin(0.5).setAlpha(0.5);
+        }).setOrigin(0.5).setAlpha(0.14);
 
         this.add.text(W / 2, 30, 'LOADOUT DOSSIER', {
             fontSize: '28px',
-            fill: CanvasTheme.colors.text,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.display,
-            letterSpacing: 4,
-            stroke: '#282315',
-            strokeThickness: 2
+            letterSpacing: 4
         }).setOrigin(0.5);
 
         this.headerSubtitle = this.add.text(W / 2, 55, '', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(0.5);
@@ -154,18 +157,18 @@ class DeckScene extends Phaser.Scene {
 
     _createSmallButton(x, y, w, h, label, onClick) {
         const bg = this.add.graphics();
-        CanvasTheme.panel(bg, x, y, w, h, {
-            radius: 5,
-            fill: CanvasTheme.colors.raised,
-            fillAlpha: 0.9,
-            stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.36,
-            shadow: false
-        });
+        bg.fillStyle(CanvasTheme.colors.paperLight, 1);
+        bg.fillRoundedRect(x, y, w, h, 1);
+        bg.fillStyle(CanvasTheme.colors.paperShade, 0.2);
+        bg.fillRoundedRect(x, y, w, h, 1);
+        bg.lineStyle(1, CanvasTheme.colors.ink, 0.62);
+        bg.strokeRoundedRect(x + 0.5, y + 0.5, w - 1, h - 1, 1);
+        bg.lineStyle(1, CanvasTheme.colors.ink, 0.2);
+        bg.strokeRoundedRect(x + 3.5, y + 3.5, w - 7, h - 7, 0);
 
         const text = this.add.text(x + w / 2, y + h / 2, label, {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(0.5);
@@ -174,41 +177,41 @@ class DeckScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true })
             .setAlpha(0.01);
 
-        hit.on('pointerover', () => text.setFill(CanvasTheme.colors.accentCss));
-        hit.on('pointerout', () => text.setFill(CanvasTheme.colors.textDim));
+        hit.on('pointerover', () => text.setFill(CanvasTheme.colors.stampCss));
+        hit.on('pointerout', () => text.setFill(CanvasTheme.colors.inkTextDim));
         hit.on('pointerdown', onClick);
     }
 
     _createPanels() {
         const L = this.layout;
 
-        this._drawPanel(L.deckX, L.deckY, L.deckW, L.deckH, CanvasTheme.colors.blue);
-        this._drawPanel(L.collectionX, L.collectionY, L.collectionW, L.collectionH, CanvasTheme.colors.violet);
+        this._drawPanel(L.deckX, L.deckY, L.deckW, L.deckH, CanvasTheme.colors.oliveInk);
+        this._drawPanel(L.collectionX, L.collectionY, L.collectionW, L.collectionH, CanvasTheme.colors.ink);
 
         this.add.text(L.deckX + 16, L.deckY + 13, 'ACTIVE LOADOUT', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
 
         this.deckCountText = this.add.text(L.deckX + L.deckW - 16, L.deckY + 13, '', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.blueCss,
+            fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
 
         this.add.text(L.collectionX + 16, L.collectionY + 13, 'ARSENAL', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
 
         this.collectionCountText = this.add.text(L.collectionX + L.collectionW - 16, L.collectionY + 13, '', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.greenCss,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(1, 0);
@@ -219,7 +222,7 @@ class DeckScene extends Phaser.Scene {
             '',
             {
                 fontSize: '10px',
-                fill: CanvasTheme.colors.muted,
+                fill: CanvasTheme.colors.inkMuted,
                 fontFamily: CanvasTheme.fonts.mono,
                 align: 'center',
                 wordWrap: { width: L.collectionW - 40 }
@@ -227,24 +230,19 @@ class DeckScene extends Phaser.Scene {
         ).setOrigin(0.5);
     }
 
-    _drawPanel(x, y, w, h, accent = CanvasTheme.colors.accent, divider = true) {
+    _drawPanel(x, y, w, h, accent = CanvasTheme.colors.ink, divider = true) {
         const g = this.add.graphics();
-        CanvasTheme.panel(g, x, y, w, h, {
-            radius: 3,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.9,
-            stroke: CanvasTheme.colors.line,
-            strokeAlpha: 0.34,
+        CanvasTheme.sheet(g, x, y, w, h, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
+            shadowAlpha: 0.18,
             accent,
-            accentAlpha: 0.7,
-            rivets: true,
-            rivetAlpha: 0.45,
-            brackets: true,
-            bracketAlpha: 0.26,
-            bracketLength: 10
+            accentAlpha: 0.5
         });
         if (divider) {
-            CanvasTheme.rule(g, x + 16, y + 30, x + w - 16, y + 30, CanvasTheme.colors.line, 0.24);
+            CanvasTheme.rule(g, x + 16, y + 30, x + w - 16, y + 30, CanvasTheme.colors.ink, 0.28);
         }
         return g;
     }
@@ -328,22 +326,22 @@ class DeckScene extends Phaser.Scene {
 
         tile.cost = this.add.text(x + w - 6, y + 5, '', {
             fontSize: `${Math.round(nameSize + 3)}px`,
-            fill: CanvasTheme.colors.amberCss,
+            fill: CanvasTheme.colors.stampCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold',
-            stroke: CanvasTheme.hex(CanvasTheme.colors.ink),
+            stroke: CanvasTheme.hex(CanvasTheme.colors.paperLight),
             strokeThickness: 2
         }).setOrigin(1, 0);
 
         tile.name = this.add.text(x + w / 2, y + h - 9, '', {
             fontSize: `${nameSize}px`,
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.ui
         }).setOrigin(0.5);
 
         tile.check = this.add.text(x + 9, y + 9, '✓', {
             fontSize: '11px',
-            fill: CanvasTheme.colors.greenCss,
+            fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold'
         }).setOrigin(0.5).setVisible(false);
@@ -365,7 +363,7 @@ class DeckScene extends Phaser.Scene {
 
         tile.cost.setText(cardId ? String(CARDS[cardId].cost) : '');
         tile.name.setText(cardId ? CARDS[cardId].name : 'Empty');
-        tile.name.setFill(cardId ? CanvasTheme.colors.textDim : CanvasTheme.colors.faint);
+        tile.name.setFill(cardId ? CanvasTheme.colors.inkTextDim : CanvasTheme.colors.inkFaint);
 
         if (!cardId) return;
 
@@ -393,53 +391,57 @@ class DeckScene extends Phaser.Scene {
 
         bg.clear();
 
-        // Panel body: olive card stock with an illustration well and name plate.
-        bg.fillStyle(0x000000, 0.3);
-        bg.fillRoundedRect(x + 2, y + 3, w, h, 3);
+        // Card stock: a printed equipment slip with an illustration well.
+        bg.fillStyle(CanvasTheme.colors.ink, 0.18);
+        bg.fillRoundedRect(x + 2, y + 3, w, h, 1);
 
-        bg.fillStyle(empty ? CanvasTheme.colors.panelStrong : CanvasTheme.colors.raised, empty ? 0.65 : 0.97);
-        bg.fillRoundedRect(x, y, w, h, 3);
+        bg.fillStyle(empty ? CanvasTheme.colors.paperShade : CanvasTheme.colors.paperLight,
+            empty ? 0.55 : 1);
+        bg.fillRoundedRect(x, y, w, h, 1);
 
-        bg.fillStyle(CanvasTheme.colors.lineBright, 0.05);
-        bg.fillRoundedRect(x + 1, y + 1, w - 2, Math.min(18, h * 0.3), 2);
+        // Aged tint over the stock
+        bg.fillStyle(CanvasTheme.colors.paperShade, empty ? 0.08 : 0.16);
+        bg.fillRoundedRect(x, y, w, h, 1);
 
         if (!empty) {
-            // Art well
-            bg.fillStyle(CanvasTheme.colors.panelStrong, 0.82);
-            bg.fillRoundedRect(x + 5, y + 17, w - 10, h - 32, 2);
-            bg.lineStyle(1, CanvasTheme.colors.lineSoft, 0.6);
-            bg.strokeRoundedRect(x + 5, y + 17, w - 10, h - 32, 2);
+            // Art well - a recessed printed plate
+            bg.fillStyle(CanvasTheme.colors.paperDeep, 0.3);
+            bg.fillRoundedRect(x + 5, y + 17, w - 10, h - 32, 1);
+            bg.lineStyle(1, CanvasTheme.colors.ink, 0.42);
+            bg.strokeRoundedRect(x + 5, y + 17, w - 10, h - 32, 1);
         }
 
-        // Name plate
-        bg.fillStyle(CanvasTheme.colors.ink, empty ? 0.4 : 0.7);
-        bg.fillRoundedRect(x + 4, y + h - 17, w - 8, 13, 2);
+        // Name plate - a ruled strip along the bottom
+        bg.fillStyle(CanvasTheme.colors.paperShade, empty ? 0.35 : 0.72);
+        bg.fillRoundedRect(x + 4, y + h - 17, w - 8, 13, 1);
+        bg.lineStyle(1, CanvasTheme.colors.ink, empty ? 0.18 : 0.32);
+        bg.strokeRoundedRect(x + 4, y + h - 17, w - 8, 13, 1);
 
-        const accent = selected ? CanvasTheme.colors.amber
-            : available ? CanvasTheme.colors.blue
-            : tile.kind === 'collection' ? CanvasTheme.colors.green
-            : CanvasTheme.colors.line;
+        const accent = selected ? CanvasTheme.colors.stamp
+            : available ? CanvasTheme.colors.oliveInk
+            : tile.kind === 'collection' ? CanvasTheme.colors.ink
+            : CanvasTheme.colors.paperEdge;
 
         // Accent strip
         if (!empty || selected) {
-            bg.fillStyle(accent, selected ? 0.95 : 0.5);
+            bg.fillStyle(accent, selected ? 0.95 : 0.55);
             bg.fillRoundedRect(x + 8, y, Math.max(8, w - 16), 2, 1);
         }
 
         if (selected) {
-            bg.lineStyle(2, CanvasTheme.colors.amber, 1);
+            bg.lineStyle(2, CanvasTheme.colors.stamp, 0.9);
         } else if (available) {
-            bg.lineStyle(1, CanvasTheme.colors.blue, 0.8);
+            bg.lineStyle(1, CanvasTheme.colors.oliveInk, 0.75);
         } else if (tile.kind === 'collection') {
-            bg.lineStyle(1, CanvasTheme.colors.green, 0.55);
+            bg.lineStyle(1, CanvasTheme.colors.ink, 0.45);
         } else {
-            bg.lineStyle(1, CanvasTheme.colors.line, empty ? 0.24 : 0.5);
+            bg.lineStyle(1, CanvasTheme.colors.ink, empty ? 0.2 : 0.55);
         }
-        bg.strokeRoundedRect(x, y, w, h, 3);
+        bg.strokeRoundedRect(x, y, w, h, 1);
 
-        // Selected corner brackets
+        // Selected card gets a rubber-stamp double box
         if (selected) {
-            CanvasTheme.brackets(bg, x, y, w, h, CanvasTheme.colors.amber, 0.85, 7, 3);
+            CanvasTheme.stampBox(bg, x + 3, y + 3, w - 6, h - 6, CanvasTheme.colors.stamp, 0.7);
         }
 
         if (tile.art) {
@@ -455,32 +457,32 @@ class DeckScene extends Phaser.Scene {
 
     _createDetailPanel() {
         const L = this.layout;
-        this._drawPanel(L.detailX, L.detailY, L.detailW, L.detailH, CanvasTheme.colors.amber, false);
+        this._drawPanel(L.detailX, L.detailY, L.detailW, L.detailH, CanvasTheme.colors.stamp, false);
 
         this.add.text(L.detailX + 16, L.detailY + 9, 'EQUIPMENT FILE', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
 
         this.detailName = this.add.text(L.detailX + 16, L.detailY + 22, '', {
             fontSize: '16px',
-            fill: CanvasTheme.colors.text,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.ui,
             fontWeight: '700'
         });
 
         this.detailMeta = this.add.text(L.detailX + 16, L.detailY + 44, '', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.blueCss,
+            fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         });
 
         this.detailDesc = this.add.text(L.detailX + 16, L.detailY + 62, '', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.ui,
             wordWrap: { width: L.detailW - 32 },
             lineSpacing: 2
@@ -514,38 +516,36 @@ class DeckScene extends Phaser.Scene {
         const container = this.add.container(x, y);
 
         const bg = this.add.graphics();
-        const accent = primary ? CanvasTheme.colors.accent : CanvasTheme.colors.lineSoft;
+        const accent = primary ? CanvasTheme.colors.stamp : CanvasTheme.colors.ink;
 
         // Hard cast shadow
-        bg.fillStyle(0x000000, 0.34);
-        bg.fillRoundedRect(2, 3, w, h, 2);
+        bg.fillStyle(CanvasTheme.colors.ink, 0.22);
+        bg.fillRoundedRect(2, 3, w, h, 1);
 
-        // Stamped plate
-        bg.fillStyle(primary ? CanvasTheme.colors.raisedAlt : CanvasTheme.colors.raised, primary ? 0.98 : 0.9);
-        bg.fillRoundedRect(0, 0, w, h, 2);
-        bg.fillStyle(primary ? CanvasTheme.colors.accent : CanvasTheme.colors.lineSoft, primary ? 0.14 : 0.05);
-        bg.fillRoundedRect(0, 0, w, h, 2);
+        // Printed card-stock strip
+        bg.fillStyle(primary ? CanvasTheme.colors.paper : CanvasTheme.colors.paperLight, 1);
+        bg.fillRoundedRect(0, 0, w, h, 1);
+        bg.fillStyle(CanvasTheme.colors.paperShade, primary ? 0.24 : 0.16);
+        bg.fillRoundedRect(0, 0, w, h, 1);
 
         // Left order bar
-        bg.fillStyle(accent, primary ? 0.95 : 0.45);
+        bg.fillStyle(accent, primary ? 0.9 : 0.5);
         bg.fillRect(1, 8, 4, h - 16);
 
         if (primary) {
-            bg.fillStyle(CanvasTheme.colors.lineBright, 0.07);
-            bg.fillRect(2, 2, w - 4, 2);
             bg.fillStyle(accent, 0.6);
             bg.fillRect(w - 26, h - 7, 16, 2);
         }
 
-        // Heavy keyline + inner rule
-        bg.lineStyle(2, CanvasTheme.colors.ink, 0.6);
-        bg.strokeRoundedRect(0.5, 0.5, w - 1, h - 1, 2);
-        bg.lineStyle(1, accent, primary ? 0.85 : 0.4);
-        bg.strokeRoundedRect(3.5, 3.5, w - 7, h - 7, 1);
+        // Ink keyline + inner rule
+        bg.lineStyle(1, CanvasTheme.colors.ink, primary ? 0.7 : 0.5);
+        bg.strokeRoundedRect(0.5, 0.5, w - 1, h - 1, 1);
+        bg.lineStyle(1, CanvasTheme.colors.ink, 0.2);
+        bg.strokeRoundedRect(3.5, 3.5, w - 7, h - 7, 0);
 
         const text = this.add.text(w / 2, h / 2, label, {
             fontSize: '12px',
-            fill: primary ? CanvasTheme.colors.text : CanvasTheme.colors.textDim,
+            fill: primary ? CanvasTheme.colors.inkText : CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.ui,
             fontWeight: '700',
             letterSpacing: 2
@@ -665,7 +665,7 @@ class DeckScene extends Phaser.Scene {
                 ? 'Unsaved deck changes - press SAVE DECK to keep them'
                 : 'Tap a card to inspect it - tap a deck card to remove it'
         );
-        this.headerSubtitle.setFill(dirty ? CanvasTheme.colors.amberCss : CanvasTheme.colors.muted);
+        this.headerSubtitle.setFill(dirty ? CanvasTheme.colors.stampCss : CanvasTheme.colors.inkMuted);
     }
 
     _refreshSaveButton() {

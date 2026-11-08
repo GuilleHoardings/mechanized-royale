@@ -31,12 +31,14 @@ class UIManager {
 
         // Dim the battlefield behind an aged report-paper scrim
         const overlay = this.scene.add.graphics();
-        overlay.fillStyle(UI_COLORS.GAME_OVER.OVERLAY_COLOR, 0.88);
+        overlay.fillStyle(CanvasTheme.colors.ink, 0.6);
         overlay.fillRect(0, 0, W, H);
         CanvasTheme.paper(overlay, 0, 0, W, H);
         CanvasTheme.vignette(overlay, 0, 0, W, H, 7, 0.04);
-        CanvasTheme.grid(overlay, 0, 0, W, H, 40, CanvasTheme.colors.lineSoft, 0.06);
-        CanvasTheme.brackets(overlay, 8, 8, W - 16, H - 16, CanvasTheme.colors.accent, 0.3, 24, 0);
+        CanvasTheme.grid(overlay, 0, 0, W, H, 40, CanvasTheme.colors.paperEdge, 0.09);
+        overlay.lineStyle(2, CanvasTheme.colors.ink, 0.5);
+        overlay.strokeRect(10, 10, W - 20, H - 20);
+        CanvasTheme.stitchBorder(overlay, 16, 16, W - 32, H - 32, CanvasTheme.colors.ink, 0.24, 6, 4);
         overlay.setScrollFactor(0);
         overlay.setDepth(2000);
         overlay.setAlpha(0);
@@ -104,19 +106,19 @@ class UIManager {
         let accent, accentColor, resultTitleColor, titleText;
 
         if (result === 'victory') {
-            accent = UI_COLORS.GAME_OVER.VICTORY.GLOW;
-            accentColor = UI_COLORS.GAME_OVER.VICTORY.ACCENT;
-            resultTitleColor = UI_COLORS.GAME_OVER.VICTORY.PRIMARY;
+            accent = CanvasTheme.colors.oliveInk;
+            accentColor = CanvasTheme.colors.oliveInkCss;
+            resultTitleColor = CanvasTheme.colors.oliveInkCss;
             titleText = 'VICTORY';
         } else if (result === 'defeat') {
-            accent = UI_COLORS.GAME_OVER.DEFEAT.GLOW;
-            accentColor = UI_COLORS.GAME_OVER.DEFEAT.ACCENT;
-            resultTitleColor = UI_COLORS.GAME_OVER.DEFEAT.PRIMARY;
+            accent = CanvasTheme.colors.stamp;
+            accentColor = CanvasTheme.colors.stampCss;
+            resultTitleColor = CanvasTheme.colors.stampCss;
             titleText = 'DEFEAT';
         } else {
-            accent = UI_COLORS.GAME_OVER.DRAW.GLOW;
-            accentColor = UI_COLORS.GAME_OVER.DRAW.ACCENT;
-            resultTitleColor = UI_COLORS.GAME_OVER.DRAW.PRIMARY;
+            accent = CanvasTheme.colors.ink;
+            accentColor = CanvasTheme.colors.inkTextDim;
+            resultTitleColor = CanvasTheme.colors.inkTextDim;
             titleText = 'DRAW';
         }
 
@@ -126,45 +128,34 @@ class UIManager {
     /**
      * Creates the result card background
      */
-    _createResultCard(container, accent = CanvasTheme.colors.accent) {
+    _createResultCard(container, accent = CanvasTheme.colors.ink) {
         const resultCard = this.scene.add.graphics();
 
-        // Hard cast shadow instead of an outer glow
-        resultCard.fillStyle(0x000000, 0.34);
-        resultCard.fillRoundedRect(-276, -254, 560, 500, 3);
-
-        // Field report card with a tinted header band and riveted corners
-        CanvasTheme.panel(resultCard, -280, -260, 560, 500, {
-            radius: 3,
-            fill: UI_COLORS.GAME_OVER.CARD_BACKGROUND,
-            fillAlpha: 0.98,
-            stroke: accent,
-            strokeAlpha: 0.45,
-            accent: accent,
-            accentAlpha: 0.95,
-            shadowAlpha: 0.46,
-            rivets: true,
-            rivetAlpha: 0.5,
-            brackets: true,
-            bracketColor: accent,
-            bracketAlpha: 0.32,
-            bracketLength: 16
+        // Field report form on card stock
+        CanvasTheme.sheet(resultCard, -280, -260, 560, 500, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
+            shadowAlpha: 0.28,
+            accent,
+            accentAlpha: 0.85
         });
 
         // Header band wash
-        resultCard.fillStyle(accent, 0.1);
-        resultCard.fillRoundedRect(-279, -259, 558, 98, 2);
-        CanvasTheme.rule(resultCard, -246, -164, 246, -164, CanvasTheme.colors.line, 0.3);
+        resultCard.fillStyle(CanvasTheme.colors.paperShade, 0.22);
+        resultCard.fillRoundedRect(-279, -259, 558, 98, 1);
+        CanvasTheme.rule(resultCard, -246, -164, 246, -164, CanvasTheme.colors.ink, 0.36);
 
         // Footer rail separating the button from the report
-        CanvasTheme.rule(resultCard, -246, 224, 246, 224, CanvasTheme.colors.line, 0.22);
+        CanvasTheme.rule(resultCard, -246, 224, 246, 224, CanvasTheme.colors.ink, 0.3);
 
         container.add(resultCard);
 
         // Header micro-labels
         const eyebrow = this.scene.add.text(-252, -244, 'AFTER-ACTION REPORT', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 3
         });
@@ -172,11 +163,22 @@ class UIManager {
 
         const sector = this.scene.add.text(252, -244, 'WESTERN FRONT', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setOrigin(1, 0);
         container.add(sector);
+
+        // Red rubber stamp in the lower-right of the form, clear of the
+        // header copy and the continue button.
+        CanvasTheme.stampBox(resultCard, 160, 168, 84, 22, CanvasTheme.colors.stamp, 0.6);
+        const stampText = this.scene.add.text(202, 179, 'FILED', {
+            fontSize: '9px',
+            fill: CanvasTheme.colors.stampCss,
+            fontFamily: CanvasTheme.fonts.display,
+            letterSpacing: 2
+        }).setOrigin(0.5).setAlpha(0.8);
+        container.add(stampText);
     }
 
     /**
@@ -186,11 +188,11 @@ class UIManager {
         // Hard letterpress shadow instead of a neon glow
         const titleShadow = this.scene.add.text(3, -197, titleText, {
             fontSize: '48px',
-            fill: CanvasTheme.hex(CanvasTheme.colors.ink),
+            fill: CanvasTheme.colors.ink,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 5
         }).setOrigin(0.5);
-        titleShadow.setAlpha(0.6);
+        titleShadow.setAlpha(0.14);
         container.add(titleShadow);
 
         // Main title
@@ -206,7 +208,7 @@ class UIManager {
         if (reason) {
             const reasonText = this.scene.add.text(0, -151, reason.toUpperCase(), {
                 fontSize: '9px',
-                fill: CanvasTheme.colors.textDim,
+                fill: CanvasTheme.colors.inkMuted,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 2
             }).setOrigin(0.5);
@@ -257,8 +259,8 @@ class UIManager {
         this._addSectionHeaders(statsContainer);
 
         // Display stats
-        this._displayStats(statsContainer, playerStats, -200, CanvasTheme.colors.blue);
-        this._displayStats(statsContainer, aiStats, 40, CanvasTheme.colors.danger);
+        this._displayStats(statsContainer, playerStats, -200, CanvasTheme.colors.oliveInk);
+        this._displayStats(statsContainer, aiStats, 40, CanvasTheme.colors.stamp);
     }
 
     /**
@@ -267,14 +269,14 @@ class UIManager {
     _addSectionHeaders(statsContainer) {
         // Decorative rule above player stats
         const playerLine = this.scene.add.graphics();
-        CanvasTheme.rule(playerLine, -200, -55, -40, -55, CanvasTheme.colors.blue, 0.55, 1);
-        playerLine.fillStyle(CanvasTheme.colors.blue, 0.9);
+        CanvasTheme.rule(playerLine, -200, -55, -40, -55, CanvasTheme.colors.oliveInk, 0.55, 1);
+        playerLine.fillStyle(CanvasTheme.colors.oliveInk, 0.9);
         playerLine.fillRect(-200, -56, 14, 2);
         statsContainer.add(playerLine);
 
         const playerHeader = this.scene.add.text(-120, -41, 'ALLIED FORCES', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.blueCss,
+            fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold',
             letterSpacing: 3
@@ -283,14 +285,14 @@ class UIManager {
 
         // Decorative rule above AI stats
         const aiLine = this.scene.add.graphics();
-        CanvasTheme.rule(aiLine, 40, -55, 200, -55, CanvasTheme.colors.danger, 0.55, 1);
-        aiLine.fillStyle(CanvasTheme.colors.danger, 0.9);
+        CanvasTheme.rule(aiLine, 40, -55, 200, -55, CanvasTheme.colors.stamp, 0.55, 1);
+        aiLine.fillStyle(CanvasTheme.colors.stamp, 0.9);
         aiLine.fillRect(186, -56, 14, 2);
         statsContainer.add(aiLine);
 
         const aiHeader = this.scene.add.text(120, -41, 'ENEMY FORCES', {
             fontSize: '10px',
-            fill: CanvasTheme.colors.dangerCss,
+            fill: CanvasTheme.colors.stampCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold',
             letterSpacing: 3
@@ -301,26 +303,26 @@ class UIManager {
     /**
      * Displays stats with generous spacing
      */
-    _displayStats(statsContainer, stats, baseX, accent = CanvasTheme.colors.line) {
+    _displayStats(statsContainer, stats, baseX, accent = CanvasTheme.colors.ink) {
         stats.forEach((stat, index) => {
             const row = Math.floor(index / 2);
             const col = index % 2;
             const x = baseX + (col * 100);
             const y = 0 + (row * 45);
 
-            // Background cell for each stat
+            // Ruled cell for each stat
             const statBg = this.scene.add.graphics();
-            statBg.fillStyle(CanvasTheme.colors.lineBright, 0.03);
-            statBg.fillRoundedRect(x - 5, y - 8, 90, 38, 2);
-            statBg.lineStyle(1, CanvasTheme.colors.line, 0.18);
-            statBg.strokeRoundedRect(x - 5, y - 8, 90, 38, 2);
-            statBg.fillStyle(accent, 0.7);
+            statBg.fillStyle(CanvasTheme.colors.paperShade, 0.24);
+            statBg.fillRoundedRect(x - 5, y - 8, 90, 38, 1);
+            statBg.lineStyle(1, CanvasTheme.colors.ink, 0.2);
+            statBg.strokeRoundedRect(x - 5, y - 8, 90, 38, 1);
+            statBg.fillStyle(accent, 0.8);
             statBg.fillRect(x - 5, y - 3, 2, 28);
             statsContainer.add(statBg);
 
             const label = this.scene.add.text(x + 2, y - 1, stat.label.toUpperCase(), {
                 fontSize: '8px',
-                fill: CanvasTheme.colors.muted,
+                fill: CanvasTheme.colors.inkFaint,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 1
             }).setOrigin(0, 0.5);
@@ -328,7 +330,7 @@ class UIManager {
 
             const value = this.scene.add.text(x + 2, y + 17, stat.value.toString(), {
                 fontSize: '17px',
-                fill: CanvasTheme.colors.text,
+                fill: CanvasTheme.colors.inkText,
                 fontFamily: CanvasTheme.fonts.mono,
                 fontStyle: 'bold'
             }).setOrigin(0, 0.5);
@@ -348,16 +350,16 @@ class UIManager {
         const durationText = `${Math.floor(battleDuration / 60)}:${(battleDuration % 60).toFixed(0).padStart(2, '0')}`;
 
         const durationBg = this.scene.add.graphics();
-        CanvasTheme.chip(durationBg, -78, -13, 156, 28, CanvasTheme.colors.blue, {
-            fillAlpha: 0.1,
-            strokeAlpha: 0.36,
-            radius: 2
+        CanvasTheme.chip(durationBg, -78, -13, 156, 28, CanvasTheme.colors.oliveInk, {
+            fillAlpha: 0.12,
+            strokeAlpha: 0.5,
+            radius: 1
         });
         bottomContainer.add(durationBg);
 
         const duration = this.scene.add.text(0, 1, `ENGAGEMENT  ${durationText}`, {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setOrigin(0.5);
@@ -369,16 +371,16 @@ class UIManager {
         // Overtime indicator
         if (overtimeActive) {
             const overtimeBg = this.scene.add.graphics();
-            CanvasTheme.chip(overtimeBg, -66, 50, 132, 26, CanvasTheme.colors.amber, {
-                fillAlpha: 0.16,
-                strokeAlpha: 0.5,
-                radius: 2
+            CanvasTheme.chip(overtimeBg, -66, 50, 132, 26, CanvasTheme.colors.stamp, {
+                fillAlpha: 0.14,
+                strokeAlpha: 0.55,
+                radius: 1
             });
             bottomContainer.add(overtimeBg);
 
             const overtimeText = this.scene.add.text(0, 63, 'OVERTIME ACTIVE', {
                 fontSize: '9px',
-                fill: CanvasTheme.colors.amberCss,
+                fill: CanvasTheme.colors.stampCss,
                 fontFamily: CanvasTheme.fonts.mono,
                 fontStyle: 'bold',
                 letterSpacing: 2
@@ -403,16 +405,16 @@ class UIManager {
     _addRewards(bottomContainer, result, resultTitleColor) {
         if (result === 'victory') {
             const rewardsBg = this.scene.add.graphics();
-            CanvasTheme.chip(rewardsBg, -118, 25, 236, 30, CanvasTheme.colors.green, {
+            CanvasTheme.chip(rewardsBg, -118, 25, 236, 30, CanvasTheme.colors.oliveInk, {
                 fillAlpha: 0.12,
-                strokeAlpha: 0.4,
-                radius: 2
+                strokeAlpha: 0.5,
+                radius: 1
             });
             bottomContainer.add(rewardsBg);
 
             const rewardsText = this.scene.add.text(0, 40, 'VICTORY BONUS   +100 XP   ·   +50 REQUISITION', {
                 fontSize: '9px',
-                fill: CanvasTheme.colors.greenCss,
+                fill: CanvasTheme.colors.oliveInkCss,
                 fontFamily: CanvasTheme.fonts.mono,
                 fontStyle: 'bold',
                 letterSpacing: 1
@@ -420,16 +422,16 @@ class UIManager {
             bottomContainer.add(rewardsText);
         } else if (result === 'defeat') {
             const consolationBg = this.scene.add.graphics();
-            CanvasTheme.chip(consolationBg, -80, 25, 160, 30, CanvasTheme.colors.line, {
-                fillAlpha: 0.09,
+            CanvasTheme.chip(consolationBg, -80, 25, 160, 30, CanvasTheme.colors.ink, {
+                fillAlpha: 0.07,
                 strokeAlpha: 0.32,
-                radius: 2
+                radius: 1
             });
             bottomContainer.add(consolationBg);
 
             const consolationText = this.scene.add.text(0, 40, 'SERVICE RECORD   +25 XP', {
                 fontSize: '9px',
-                fill: CanvasTheme.colors.muted,
+                fill: CanvasTheme.colors.inkMuted,
                 fontFamily: CanvasTheme.fonts.mono,
                 letterSpacing: 1
             }).setOrigin(0.5);
@@ -440,35 +442,33 @@ class UIManager {
     /**
      * Creates the continue button
      */
-    _createContinueButton(container, resultTitleColor, accent = CanvasTheme.colors.accent) {
+    _createContinueButton(container, resultTitleColor, accent = CanvasTheme.colors.stamp) {
         const bottomContainer = container.list.find(child => child.y === 100);
 
         const continueButton = this.scene.add.container(0, 98);
         continueButton.setAlpha(0.3);
         bottomContainer.add(continueButton);
 
-        // Stamped field-order button
+        // Printed field-order strip
         const buttonBg = this.scene.add.graphics();
-        CanvasTheme.panel(buttonBg, -80, -18, 160, 36, {
-            radius: 2,
-            fill: CanvasTheme.colors.raisedAlt,
-            fillAlpha: 0.98,
-            stroke: accent,
-            strokeAlpha: 0.7,
-            accent: accent,
-            accentAlpha: 0.95,
-            shadowAlpha: 0.28,
-            brackets: true,
-            bracketColor: accent,
-            bracketAlpha: 0.32,
-            bracketLength: 6
-        });
+        buttonBg.fillStyle(CanvasTheme.colors.ink, 0.2);
+        buttonBg.fillRoundedRect(-78, -16, 160, 36, 1);
+        buttonBg.fillStyle(CanvasTheme.colors.paper, 1);
+        buttonBg.fillRoundedRect(-80, -18, 160, 36, 1);
+        buttonBg.fillStyle(CanvasTheme.colors.paperShade, 0.24);
+        buttonBg.fillRoundedRect(-80, -18, 160, 36, 1);
+        buttonBg.fillStyle(accent, 0.85);
+        buttonBg.fillRect(-79, -10, 4, 20);
+        buttonBg.lineStyle(1, CanvasTheme.colors.ink, 0.7);
+        buttonBg.strokeRoundedRect(-79.5, -17.5, 159, 35, 1);
+        buttonBg.lineStyle(1, CanvasTheme.colors.ink, 0.22);
+        buttonBg.strokeRoundedRect(-76.5, -14.5, 153, 29, 0);
         continueButton.add(buttonBg);
 
         // Button text
         const buttonText = this.scene.add.text(0, 0, 'RETURN TO HQ', {
             fontSize: '11px',
-            fill: resultTitleColor,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold',
             letterSpacing: 3
@@ -513,7 +513,7 @@ class UIManager {
         // Add wait message
         const waitMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'FILING AFTER-ACTION REPORT...', {
             fontSize: '8px',
-            fill: UI_COLORS.GAME_OVER.TEXT.MUTED,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2,
             alpha: 0.8
@@ -557,7 +557,7 @@ class UIManager {
         // Show ready message briefly
         const readyMessage = this.scene.add.text(GAME_CONFIG.WIDTH / 2, GAME_CONFIG.HEIGHT - 30, 'TAP ANYWHERE OR PRESS ANY KEY TO CONTINUE', {
             fontSize: '8px',
-            fill: UI_COLORS.GAME_OVER.TEXT.PRIMARY,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2,
             alpha: 0

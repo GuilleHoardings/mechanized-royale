@@ -104,75 +104,75 @@ const BATTLE_CONFIG = {
 const UI_COLORS = {
     // Game Over Screen Colors - after-action report on field card stock
     GAME_OVER: {
-        OVERLAY_COLOR: 0x16140d,
-        CARD_BACKGROUND: 0x1e1c12,
-        CARD_BORDER: 0xb5a578,
+        OVERLAY_COLOR: 0xcbb98d,
+        CARD_BACKGROUND: 0xdccca4,
+        CARD_BORDER: 0x2b2416,
 
         // Result specific colors
         VICTORY: {
-            PRIMARY: '#afc186',
-            ACCENT: '#a6b47b',
-            BACKGROUND: '#3a4022',
-            GLOW: 0x9cae73
+            PRIMARY: '#4f5636',
+            ACCENT: '#4f5636',
+            BACKGROUND: '#dccca4',
+            GLOW: 0x4f5636
         },
         DEFEAT: {
-            PRIMARY: '#d47962',
-            ACCENT: '#c25a44',
-            BACKGROUND: '#5c241a',
-            GLOW: 0xc25a44
+            PRIMARY: '#8e3327',
+            ACCENT: '#8e3327',
+            BACKGROUND: '#dccca4',
+            GLOW: 0x8e3327
         },
         DRAW: {
-            PRIMARY: '#dcb35f',
-            ACCENT: '#c9a24b',
-            BACKGROUND: '#4c3d1f',
-            GLOW: 0xd1a04a
+            PRIMARY: '#4d4128',
+            ACCENT: '#4d4128',
+            BACKGROUND: '#dccca4',
+            GLOW: 0x746444
         },
 
         // Text colors
         TEXT: {
-            PRIMARY: '#f2ead3',
-            SECONDARY: '#d8cdac',
-            MUTED: '#b0a47f',
-            OVERTIME: '#dcb35f',
-            HIGHLIGHT: '#d3ad58'
+            PRIMARY: '#2b2416',
+            SECONDARY: '#4d4128',
+            MUTED: '#6b5d3f',
+            OVERTIME: '#8e3327',
+            HIGHLIGHT: '#4f5636'
         }
     },
 
     // General UI Colors
     TEXT: {
-        WHITE: '#f7f0dc',
-        ERROR: '#d47962',
-        SUCCESS: '#afc186',
-        WARNING: '#dcb35f'
+        WHITE: '#f3e9cc',
+        ERROR: '#c26850',
+        SUCCESS: '#a3b37b',
+        WARNING: '#d3ad58'
     },
 
     // Menu Colors
     MENU: {
-        BACKGROUND: 0x1e1c12,
-        TITLE_GRADIENT_START: '#f2ead3',
-        TITLE_GRADIENT_END: '#d3ad58',
-        BUTTON_PRIMARY: 0xc9a24b,
-        BUTTON_HOVER: 0xd1a04a,
-        BUTTON_DISABLED: 0x6f6748,
-        ACCENT: 0xc9a24b
+        BACKGROUND: 0xcbb98d,
+        TITLE_GRADIENT_START: '#2b2416',
+        TITLE_GRADIENT_END: '#4f5636',
+        BUTTON_PRIMARY: 0x4f5636,
+        BUTTON_HOVER: 0x8e3327,
+        BUTTON_DISABLED: 0x8a7b58,
+        ACCENT: 0x8e3327
     },
 
     // Energy Bar Colors - olive supply cells
     ENERGY: {
-        FULL: 0x9cae73,
-        CHARGING: 0x5b6540,
-        GLOW: 0xa6b47b,
-        BACKGROUND: 0x1e1c12
+        FULL: 0x8a9a63,
+        CHARGING: 0x4f5636,
+        GLOW: 0xa3b37b,
+        BACKGROUND: 0x2a2b1a
     },
 
-    // Card Colors
+    // Card Colors - printed paper card stock
     CARDS: {
-        BACKGROUND: 0x2d2a1c,
-        BORDER: 0x6f6748,
-        SELECTED: 0xd1a04a,
-        HOVER: 0xa6b47b,
-        AFFORDABLE: 0x9cae73,
-        UNAFFORDABLE: 0xc25a44
+        BACKGROUND: 0xdccca4,
+        BORDER: 0x746444,
+        SELECTED: 0x8e3327,
+        HOVER: 0x4f5636,
+        AFFORDABLE: 0x4f5636,
+        UNAFFORDABLE: 0x8e3327
     }
 };
 
@@ -226,15 +226,15 @@ const UI_CONFIG = {
         BORDER_RADIUS: 3,
         COST_TEXT: {
             FONT_SIZE: '16px',
-            COLOR: '#dcb35f',
-            STROKE_COLOR: '#16140d',
-            STROKE_THICKNESS: 3
+            COLOR: '#8e3327',
+            STROKE_COLOR: '#dccca4',
+            STROKE_THICKNESS: 2
         },
         NAME_TEXT: {
             FONT_SIZE: '11px',
-            COLOR: '#f2ead3'
+            COLOR: '#2b2416'
         },
-        GLOW_COLOR: 0xd1a04a,
+        GLOW_COLOR: 0x8e3327,
         GLOW_ALPHA: 0.2
     },
     ENERGY_BAR: {

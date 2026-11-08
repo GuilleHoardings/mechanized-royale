@@ -327,10 +327,11 @@ class BattleScene extends Phaser.Scene {
             this.battlefieldGraphics.lineBetween(offsetX, y, offsetX + worldW, y);
         }
 
-        // Edge frame: hairline rail plus corner brackets
+        // Edge frame: hairline rail plus a stitched map border
         this.battlefieldGraphics.lineStyle(1, CanvasTheme.colors.line, 0.3);
         this.battlefieldGraphics.strokeRect(offsetX, 0.5, worldW, worldH - 1);
-        CanvasTheme.brackets(this.battlefieldGraphics, offsetX, 0, worldW, worldH, CanvasTheme.colors.lineBright, 0.4, 18, 4);
+        CanvasTheme.stitchBorder(this.battlefieldGraphics, offsetX + 3, 3, worldW - 6, worldH - 6,
+            CanvasTheme.colors.lineBright, 0.28, 8, 6);
 
         // Center line dividing the sectors
         this.battlefieldGraphics.lineStyle(1, CanvasTheme.colors.lineBright, 0.28);
@@ -610,36 +611,35 @@ class BattleScene extends Phaser.Scene {
         // Enemy command readout - sized for the five-line intel summary
         const aiStatusBg = this.add.graphics();
         CanvasTheme.panel(aiStatusBg, 5, 32, 105, 74, {
-            radius: 2,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.9,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.92,
             stroke: CanvasTheme.colors.amber,
             strokeAlpha: 0.38,
             accent: CanvasTheme.colors.amber,
-            accentAlpha: 0.75,
+            accentAlpha: 0.7,
             shadow: false,
-            rivets: true,
-            rivetAlpha: 0.4,
-            brackets: true,
-            bracketColor: CanvasTheme.colors.amber,
-            bracketAlpha: 0.28,
-            bracketLength: 7
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.18
         });
         aiStatusBg.setScrollFactor(0);
         aiStatusBg.setDepth(1000);
 
         this.add.text(10, 37, 'ENEMY COMMAND', {
             fontSize: '7px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.muted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setScrollFactor(0).setDepth(1000);
 
-        // Signal bars in the panel header
-        for (let i = 0; i < 4; i++) {
-            aiStatusBg.fillStyle(CanvasTheme.colors.amber, 0.28 + i * 0.16);
-            aiStatusBg.fillRect(96 - i * 4, 37, 2, 6);
-        }
+        // Stamped intel tag in the panel header
+        this.add.text(100, 37, 'INTEL', {
+            fontSize: '7px',
+            fill: CanvasTheme.colors.amberCss,
+            fontFamily: CanvasTheme.fonts.mono,
+            letterSpacing: 1
+        }).setOrigin(1, 0).setScrollFactor(0).setDepth(1000);
 
         // Five compact lines fit between the header and the tower status below.
         this.aiStrategyText = this.add.text(10, 47, 'FOE: ---', {
@@ -655,12 +655,15 @@ class BattleScene extends Phaser.Scene {
         // Back button - compact in top left margin
         const backButtonBg = this.add.graphics();
         CanvasTheme.panel(backButtonBg, 5, 5, 70, 24, {
-            radius: 2,
-            fill: CanvasTheme.colors.raised,
-            fillAlpha: 0.92,
+            radius: 1,
+            fill: CanvasTheme.colors.canvas,
+            fillAlpha: 0.94,
             stroke: CanvasTheme.colors.line,
             strokeAlpha: 0.42,
-            shadow: false
+            shadow: false,
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.18
         });
         backButtonBg.setScrollFactor(0);
         backButtonBg.setDepth(1000);
@@ -675,7 +678,7 @@ class BattleScene extends Phaser.Scene {
         backButton.setDepth(1000);
 
         backButton.on('pointerover', () => {
-            backButton.setFill(CanvasTheme.colors.accentCss);
+            backButton.setFill(CanvasTheme.colors.amberCss);
         });
 
         backButton.on('pointerout', () => {
@@ -939,14 +942,17 @@ class BattleScene extends Phaser.Scene {
         // Timer background panel - compact in top right margin
         const timerBg = this.add.graphics();
         CanvasTheme.panel(timerBg, GAME_CONFIG.WIDTH - 70, 5, 65, 24, {
-            radius: 5,
-            fill: CanvasTheme.colors.raised,
-            fillAlpha: 0.92,
+            radius: 1,
+            fill: CanvasTheme.colors.canvas,
+            fillAlpha: 0.94,
             stroke: CanvasTheme.colors.accent,
-            strokeAlpha: 0.34,
+            strokeAlpha: 0.4,
             shadow: false,
             accent: CanvasTheme.colors.accent,
-            accentAlpha: 0.65
+            accentAlpha: 0.65,
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.16
         });
         timerBg.setScrollFactor(0);
         timerBg.setDepth(1000);
@@ -970,14 +976,17 @@ class BattleScene extends Phaser.Scene {
         // Enemy tower status panel - below AI status panel (which ends at y=102)
         const enemyPanelBg = this.add.graphics();
         CanvasTheme.panel(enemyPanelBg, 5, 108, 85, 45, {
-            radius: 5,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.88,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.9,
             stroke: CanvasTheme.colors.danger,
             strokeAlpha: 0.32,
             shadow: false,
             accent: CanvasTheme.colors.danger,
-            accentAlpha: 0.7
+            accentAlpha: 0.7,
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.16
         });
         enemyPanelBg.setScrollFactor(0);
         enemyPanelBg.setDepth(1000);
@@ -995,14 +1004,17 @@ class BattleScene extends Phaser.Scene {
         // Player tower status panel - below enemy panel (which ends at y=153)
         const playerPanelBg = this.add.graphics();
         CanvasTheme.panel(playerPanelBg, 5, 156, 85, 45, {
-            radius: 5,
-            fill: CanvasTheme.colors.panel,
-            fillAlpha: 0.88,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.9,
             stroke: CanvasTheme.colors.blue,
-            strokeAlpha: 0.32,
+            strokeAlpha: 0.36,
             shadow: false,
             accent: CanvasTheme.colors.blue,
-            accentAlpha: 0.7
+            accentAlpha: 0.7,
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.16
         });
         playerPanelBg.setScrollFactor(0);
         playerPanelBg.setDepth(1000);
@@ -1080,12 +1092,12 @@ class BattleScene extends Phaser.Scene {
             if (index === this.selectedCard) {
                 const { cardWidth: w, cardHeight: h } = this.getCardLayoutMetrics();
                 card.selectionBorder.clear();
-                card.selectionBorder.lineStyle(2, CanvasTheme.colors.amber, 0.95);
-                card.selectionBorder.strokeRoundedRect(card.x - 2, card.y - 2, w + 4, h + 4, 9);
-                CanvasTheme.brackets(
+                card.selectionBorder.lineStyle(2, CanvasTheme.colors.stamp, 0.95);
+                card.selectionBorder.strokeRoundedRect(card.x - 2, card.y - 2, w + 4, h + 4, 2);
+                CanvasTheme.stampBox(
                     card.selectionBorder,
                     card.x - 5, card.y - 5, w + 10, h + 10,
-                    CanvasTheme.colors.amber, 0.9, 10, 0
+                    CanvasTheme.colors.stamp, 0.7
                 );
                 card.selectionBorder.setVisible(true);
             } else {
@@ -1139,21 +1151,22 @@ class BattleScene extends Phaser.Scene {
         const headerColor = isTroop ? (typeColors[unitData.unitType] || CanvasTheme.colors.blue) : CanvasTheme.colors.violet;
 
         CanvasTheme.panel(tooltipBg, 0, 0, tooltipWidth, tooltipHeight, {
-            radius: 3,
-            fill: CanvasTheme.colors.panelStrong,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
             fillAlpha: 0.97,
             stroke: affordable ? headerColor : CanvasTheme.colors.steelLight,
             strokeAlpha: 0.65,
             accent: headerColor,
             accentAlpha: 0.85,
             shadowAlpha: 0.4,
-            rivets: true,
-            rivetAlpha: 0.4
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.18
         });
 
         // Header band tinted by card type
         tooltipBg.fillStyle(headerColor, 0.2);
-        tooltipBg.fillRoundedRect(1, 1, tooltipWidth - 2, 34, 2);
+        tooltipBg.fillRoundedRect(1, 1, tooltipWidth - 2, 34, 1);
         CanvasTheme.rule(tooltipBg, 12, 36, tooltipWidth - 12, 36, CanvasTheme.colors.line, 0.24);
 
         // Tank name and tier
@@ -1723,20 +1736,17 @@ class BattleScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 2,
-            fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.95,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.96,
             stroke: accent,
-            strokeAlpha: 0.6,
+            strokeAlpha: 0.65,
             accent,
             accentAlpha: 0.9,
             shadowAlpha: 0.34,
-            rivets: true,
-            rivetAlpha: 0.4,
-            brackets: true,
-            bracketColor: accent,
-            bracketAlpha: 0.5,
-            bracketLength: 8
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.2
         });
         banner.add(bg);
 
@@ -2534,18 +2544,17 @@ class BattleScene extends Phaser.Scene {
 
         const bg = this.add.graphics();
         CanvasTheme.panel(bg, -width / 2, -17, width, 34, {
-            radius: 6,
-            fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.94,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.95,
             stroke: CanvasTheme.colors.danger,
             strokeAlpha: 0.6,
             accent: CanvasTheme.colors.danger,
             accentAlpha: 0.9,
             shadowAlpha: 0.3,
-            brackets: true,
-            bracketColor: CanvasTheme.colors.danger,
-            bracketAlpha: 0.45,
-            bracketLength: 6
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.18
         });
 
         const text = this.add.text(0, 0, label, {
@@ -4048,37 +4057,30 @@ class BattleScene extends Phaser.Scene {
         banner.setDepth(100);
 
         const bg = this.add.graphics();
-        CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 2,
-            fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.97,
-            stroke: CanvasTheme.colors.danger,
-            strokeAlpha: 0.6,
-            accent: CanvasTheme.colors.danger,
-            accentAlpha: 0.9,
+        CanvasTheme.sheet(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
             shadowAlpha: 0.4,
-            rivets: true,
-            rivetAlpha: 0.45,
-            brackets: true,
-            bracketColor: CanvasTheme.colors.danger,
-            bracketAlpha: 0.4,
-            bracketLength: 10
+            accent: CanvasTheme.colors.stamp,
+            accentAlpha: 0.85
         });
         // Alert header band
-        bg.fillStyle(CanvasTheme.colors.danger, 0.16);
-        bg.fillRoundedRect(-panelW / 2 + 1, -panelH / 2 + 1, panelW - 2, 32, 2);
-        CanvasTheme.rule(bg, -panelW / 2 + 14, -panelH / 2 + 33, panelW / 2 - 14, -panelH / 2 + 33, CanvasTheme.colors.line, 0.18);
+        bg.fillStyle(CanvasTheme.colors.stamp, 0.12);
+        bg.fillRoundedRect(-panelW / 2 + 1, -panelH / 2 + 1, panelW - 2, 32, 1);
+        CanvasTheme.rule(bg, -panelW / 2 + 14, -panelH / 2 + 33, panelW / 2 - 14, -panelH / 2 + 33, CanvasTheme.colors.ink, 0.24);
 
         const eyebrow = this.add.text(-panelW / 2 + 16, -panelH / 2 + 7, 'SUPPLY ALERT', {
             fontSize: '7px',
-            fill: CanvasTheme.colors.dangerCss,
+            fill: CanvasTheme.colors.stampCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         });
 
         const title = this.add.text(0, -panelH / 2 + 20, 'INSUFFICIENT SUPPLY', {
             fontSize: '19px',
-            fill: CanvasTheme.colors.text,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 2
         }).setOrigin(0.5);
@@ -4087,7 +4089,7 @@ class BattleScene extends Phaser.Scene {
             `${displayName} requires ${cost} supply\n` +
             `AVAILABLE ${this.energy}   ·   SHORT ${energyNeeded}`, {
             fontSize: '10px',
-            fill: CanvasTheme.colors.textDim,
+            fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             align: 'center',
             lineSpacing: 5,
@@ -4100,7 +4102,7 @@ class BattleScene extends Phaser.Scene {
         const regen = this.add.text(0, 35,
             `ISSUE ${regenRate}s  ·  FULL STOCK ~${timeToEnergy}s`, {
             fontSize: '8px',
-            fill: CanvasTheme.colors.faint,
+            fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
         }).setOrigin(0.5);
@@ -4624,21 +4626,20 @@ class BattleScene extends Phaser.Scene {
         // Feedback panel
         const feedbackBg = this.add.graphics();
         CanvasTheme.panel(feedbackBg, panelX, panelY, panelW, panelH, {
-            radius: 6,
-            fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.94,
+            radius: 1,
+            fill: CanvasTheme.colors.canvasDark,
+            fillAlpha: 0.95,
             stroke: accent,
-            strokeAlpha: 0.45,
+            strokeAlpha: 0.5,
             accent,
             accentAlpha: 0.85,
             shadowAlpha: 0.3,
-            brackets: true,
-            bracketColor: accent,
-            bracketAlpha: 0.35,
-            bracketLength: 6
+            stitches: true,
+            stitchColor: CanvasTheme.colors.thread,
+            stitchAlpha: 0.16
         });
 
-        // Small action chip on the left
+        // Small action tag on the left
         CanvasTheme.chip(feedbackBg, panelX + 9, panelY + 9, 50, 16, accent, { fillAlpha: 0.18, strokeAlpha: 0.55 });
         const actionText = this.add.text(panelX + 34, panelY + 17, actionLabel, {
             fontSize: '7px',
@@ -5192,34 +5193,27 @@ class BattleScene extends Phaser.Scene {
         banner.setDepth(91);
 
         const bg = this.add.graphics();
-        CanvasTheme.panel(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
-            radius: 2,
-            fill: CanvasTheme.colors.panelStrong,
-            fillAlpha: 0.97,
-            stroke: CanvasTheme.colors.amber,
-            strokeAlpha: 0.48,
-            accent: CanvasTheme.colors.amber,
-            accentAlpha: 0.9,
+        CanvasTheme.sheet(bg, -panelW / 2, -panelH / 2, panelW, panelH, {
+            radius: 1,
+            fill: CanvasTheme.colors.paperLight,
+            edge: CanvasTheme.colors.paperEdge,
+            ink: CanvasTheme.colors.ink,
             shadowAlpha: 0.38,
-            rivets: true,
-            rivetAlpha: 0.45,
-            brackets: true,
-            bracketColor: CanvasTheme.colors.amber,
-            bracketAlpha: 0.4,
-            bracketLength: 8
+            accent: CanvasTheme.colors.stamp,
+            accentAlpha: 0.85
         });
-        CanvasTheme.rule(bg, -panelW / 2 + 16, 6, panelW / 2 - 16, 6, CanvasTheme.colors.line, 0.24);
+        CanvasTheme.rule(bg, -panelW / 2 + 16, 6, panelW / 2 - 16, 6, CanvasTheme.colors.ink, 0.3);
 
         const title = this.add.text(0, -9, 'BATTLE PAUSED', {
             fontSize: '19px',
-            fill: CanvasTheme.colors.text,
+            fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.display,
             letterSpacing: 3
         }).setOrigin(0.5);
 
         const sub = this.add.text(0, 18, 'PRESS RESUME TO CONTINUE', {
             fontSize: '8px',
-            fill: CanvasTheme.colors.muted,
+            fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
         }).setOrigin(0.5);
