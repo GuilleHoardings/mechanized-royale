@@ -10,12 +10,25 @@ class TankTacticsGame {
             GAME_CONFIG.HEIGHT = Math.max(GAME_CONFIG.HEIGHT, dynamicHeight);
         }
 
+        // Rasterise text above the canvas scale so labels stay sharp when the
+        // FIT-scaled canvas is stretched beyond its logical size.
+        const fitScale = Math.min(
+            window.innerWidth / GAME_CONFIG.WIDTH,
+            window.innerHeight / GAME_CONFIG.HEIGHT
+        );
+        const textResolution = Math.min(3, Math.max(2, Math.ceil(Math.max(window.devicePixelRatio || 1, fitScale))));
+        CanvasTheme.installTextResolution(textResolution);
+
         this.config = {
             type: Phaser.AUTO,
             width: GAME_CONFIG.WIDTH,
             height: GAME_CONFIG.HEIGHT,
             parent: 'game-container',
             backgroundColor: GAME_CONFIG.BACKGROUND_COLOR,
+            render: {
+                antialias: true,
+                roundPixels: true
+            },
             scene: [BootScene, MenuScene, DeckScene, BattleScene],
             physics: {
                 default: 'arcade',

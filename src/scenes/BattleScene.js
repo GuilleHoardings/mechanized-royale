@@ -1092,13 +1092,10 @@ class BattleScene extends Phaser.Scene {
             if (index === this.selectedCard) {
                 const { cardWidth: w, cardHeight: h } = this.getCardLayoutMetrics();
                 card.selectionBorder.clear();
+                // One stamped keyline is enough to mark the active card; the
+                // extra double rule made the hand look over-ruled.
                 card.selectionBorder.lineStyle(2, CanvasTheme.colors.stamp, 0.95);
                 card.selectionBorder.strokeRoundedRect(card.x - 2, card.y - 2, w + 4, h + 4, 2);
-                CanvasTheme.stampBox(
-                    card.selectionBorder,
-                    card.x - 5, card.y - 5, w + 10, h + 10,
-                    CanvasTheme.colors.stamp, 0.7
-                );
                 card.selectionBorder.setVisible(true);
             } else {
                 card.selectionBorder.setVisible(false);

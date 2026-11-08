@@ -109,6 +109,40 @@ const CanvasTheme = {
     },
 
     /**
+     * Phaser rasterises Text at 1x by default. Because the canvas is scaled
+     * with Phaser.Scale.FIT, that makes every label look soft on anything but
+     * a 1:1 viewport. Render glyphs at 2x (or the device pixel ratio, capped)
+     * so the text stays crisp when the canvas is scaled.
+     *
+     * Patches the factory once so every `this.add.text(...)` call inherits it,
+     * including text created by scenes that predate this helper.
+     */
+    installTextResolution(resolution = 2) {
+        if (this._textResolutionInstalled || typeof Phaser === 'undefined') return;
+        const factory = Phaser.GameObjects.GameObjectFactory.prototype;
+        const originalText = factory.text;
+
+        factory.text = function (x, y, text, style) {
+            let nextStyle = style;
+            if (nextStyle && typeof nextStyle === 'object') {
+                if (nextStyle.resolution === undefined) {
+                    nextStyle = { ...nextStyle, resolution };
+                }
+            } else if (!nextStyle) {
+                nextStyle = { resolution };
+            }
+
+            const created = originalText.call(this, x, y, text, nextStyle);
+            if (created && typeof created.setResolution === 'function') {
+                created.setResolution(resolution);
+            }
+            return created;
+        };
+
+        this._textResolutionInstalled = true;
+    },
+
+    /**
      * Paints an aged paper sheet across a rectangle. This is a real fill, not
      * just grain, so menu/deck/loading/report screens read as paper rather
      * than as a dark console.

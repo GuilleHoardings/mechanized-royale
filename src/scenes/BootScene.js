@@ -99,27 +99,18 @@ class BootScene extends Phaser.Scene {
         graphics.fillStyle(CanvasTheme.colors.paperShade, 0.18);
         graphics.fillRoundedRect(0, 0, 100, 80, 1);
 
-        // Art well - recessed field-manual illustration box
-        graphics.fillStyle(CanvasTheme.colors.paperDeep, 0.32);
+        // Art well - recessed field-manual illustration box. The tonal fill
+        // does the framing; no extra stroke so the card keeps one clean edge.
+        graphics.fillStyle(CanvasTheme.colors.paperDeep, 0.26);
         graphics.fillRoundedRect(5, 19, 90, 42, 1);
-        graphics.lineStyle(1, CanvasTheme.colors.ink, 0.4);
-        graphics.strokeRoundedRect(5, 19, 90, 42, 1);
 
-        // Neutral stamped strip; per-card type colour is layered in BattleScene
-        graphics.fillStyle(CanvasTheme.colors.stamp, 0.55);
-        graphics.fillRoundedRect(9, 6, 82, 2, 1);
-
-        // Name plate - ruled paper strip
-        graphics.fillStyle(CanvasTheme.colors.paperShade, 0.75);
+        // Name plate - ruled paper strip, again framed by tone only
+        graphics.fillStyle(CanvasTheme.colors.paperShade, 0.6);
         graphics.fillRoundedRect(4, 61, 92, 15, 1);
-        graphics.lineStyle(1, CanvasTheme.colors.ink, 0.3);
-        graphics.strokeRoundedRect(4, 61, 92, 15, 1);
 
-        // Outer ink keyline + inner double rule
-        graphics.lineStyle(1, CanvasTheme.colors.ink, 0.72);
+        // Single outer ink keyline
+        graphics.lineStyle(1, CanvasTheme.colors.ink, 0.7);
         graphics.strokeRoundedRect(0.5, 0.5, 99, 79, 1);
-        graphics.lineStyle(1, CanvasTheme.colors.ink, 0.22);
-        graphics.strokeRoundedRect(2.5, 2.5, 95, 75, 0);
         graphics.generateTexture('card_bg', 100, 80);
 
         graphics.clear();
