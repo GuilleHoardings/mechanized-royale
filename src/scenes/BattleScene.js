@@ -915,18 +915,18 @@ class BattleScene extends Phaser.Scene {
             const squareX = config.x + (i * (config.squareSize + config.spacing));
             const squareY = config.y;
 
-            // Empty cell: dark inset well
-            graphics.fillStyle(CanvasTheme.colors.panelStrong, 0.92);
-            graphics.lineStyle(1, CanvasTheme.colors.line, 0.3);
-            graphics.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-            graphics.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-            graphics.fillStyle(0x000000, 0.35);
-            graphics.fillRect(squareX + 2, squareY + 2, config.squareSize - 4, 2);
+            // Empty cell: a dark stamped well with a single thread hairline.
+            // No inner highlight strip - the bar reads as printed canvas kit,
+            // not a glossy console gauge.
+            graphics.fillStyle(CanvasTheme.colors.ink, 0.72);
+            graphics.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 1);
+            graphics.lineStyle(1, CanvasTheme.colors.thread, 0.22);
+            graphics.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 1);
         }
 
         this.energyBarBg = this.cacheStaticGraphics(
             graphics,
-            'procedural_energy_bar_bg',
+            'procedural_energy_bar_bg_v2',
             config.totalWidth + 2,
             config.height + 2
         );
@@ -935,6 +935,14 @@ class BattleScene extends Phaser.Scene {
         if (this.energyBarBg !== graphics) {
             this.energyBarBg.setPosition(config.x - 1, config.y - 1);
             this.energyBarBg.setScrollFactor(0);
+
+            // cacheStaticGraphics adds the baked well image at the end of the
+            // display list, which would paint the wells over the energy fill.
+            // Keep the fill above its own background so spent vs. available
+            // supply is actually visible.
+            if (this.energyBarFill) {
+                this.children.bringToTop(this.energyBarFill);
+            }
         }
     }
 
@@ -1538,29 +1546,13 @@ class BattleScene extends Phaser.Scene {
             const squareX = config.x + (i * (config.squareSize + config.spacing));
             const squareY = config.y;
 
-            // Filled square if we have energy for this slot
+            // Filled square if we have energy for this slot. Brass against the
+            // near-black empty wells makes spent vs. available supply obvious.
             if (i < this.energy) {
-                // Brighter blue for the newest energy points
-                let fillColor = CanvasTheme.colors.blueDeep;
-                let glowColor = CanvasTheme.colors.blue;
-
-                if (i >= this.energy - 2 && i < this.energy) {
-                    fillColor = CanvasTheme.colors.blue;
-
-                    // Subtle glow behind recent energy
-                    this.energyBarFill.fillStyle(glowColor, 0.22);
-                    this.energyBarFill.fillRoundedRect(squareX - 1.5, squareY - 1.5, config.squareSize + 3, config.squareSize + 3, 4);
-                }
-
-                // Main fill
-                this.energyBarFill.fillStyle(fillColor, 1);
-                this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-                this.energyBarFill.lineStyle(1, CanvasTheme.colors.accent, 0.55);
-                this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
-
-                // Inner highlight
-                this.energyBarFill.fillStyle(0xffffff, 0.22);
-                this.energyBarFill.fillRoundedRect(squareX + 2, squareY + 2, config.squareSize - 6, 3, 1.5);
+                this.energyBarFill.fillStyle(CanvasTheme.colors.accent, 0.95);
+                this.energyBarFill.fillRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 1);
+                this.energyBarFill.lineStyle(1, CanvasTheme.colors.ink, 0.55);
+                this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 1);
             }
             // Gradual fill for the next energy cell (showing regeneration progress)
             else if (i === this.energy && this.energy < this.maxEnergy) {
@@ -1569,13 +1561,13 @@ class BattleScene extends Phaser.Scene {
 
                 if (fillWidth > 0) {
                     // Draw partial fill from left
-                    this.energyBarFill.fillStyle(CanvasTheme.colors.blueDeep, 0.65);
+                    this.energyBarFill.fillStyle(CanvasTheme.colors.accent, 0.5);
                     this.energyBarFill.fillRoundedRect(squareX, squareY, fillWidth, config.squareSize,
-                        fillWidth >= config.squareSize - 3 ? 3 : 0);
+                        fillWidth >= config.squareSize - 3 ? 1 : 0);
 
-                    // Progress edge
-                    this.energyBarFill.lineStyle(1, CanvasTheme.colors.accent, 0.45);
-                    this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 3);
+                    // Keep the well's hairline visible while it fills
+                    this.energyBarFill.lineStyle(1, CanvasTheme.colors.thread, 0.22);
+                    this.energyBarFill.strokeRoundedRect(squareX, squareY, config.squareSize, config.squareSize, 1);
                 }
             }
         }

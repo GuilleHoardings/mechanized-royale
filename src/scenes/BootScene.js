@@ -99,16 +99,9 @@ class BootScene extends Phaser.Scene {
         graphics.fillStyle(CanvasTheme.colors.paperShade, 0.18);
         graphics.fillRoundedRect(0, 0, 100, 80, 1);
 
-        // Art well - recessed field-manual illustration box. The tonal fill
-        // does the framing; no extra stroke so the card keeps one clean edge.
-        graphics.fillStyle(CanvasTheme.colors.paperDeep, 0.26);
-        graphics.fillRoundedRect(5, 19, 90, 42, 1);
-
-        // Name plate - ruled paper strip, again framed by tone only
-        graphics.fillStyle(CanvasTheme.colors.paperShade, 0.6);
-        graphics.fillRoundedRect(4, 61, 92, 15, 1);
-
-        // Single outer ink keyline
+        // Flat printed card stock: one outer keyline and nothing else, so the
+        // illustration and name sit directly on the paper instead of inside
+        // another recessed/glossy box.
         graphics.lineStyle(1, CanvasTheme.colors.ink, 0.7);
         graphics.strokeRoundedRect(0.5, 0.5, 99, 79, 1);
         graphics.generateTexture('card_bg', 100, 80);
