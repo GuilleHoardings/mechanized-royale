@@ -163,8 +163,6 @@ class DeckScene extends Phaser.Scene {
         bg.fillRoundedRect(x, y, w, h, 1);
         bg.lineStyle(1, CanvasTheme.colors.ink, 0.62);
         bg.strokeRoundedRect(x + 0.5, y + 0.5, w - 1, h - 1, 1);
-        bg.lineStyle(1, CanvasTheme.colors.ink, 0.2);
-        bg.strokeRoundedRect(x + 3.5, y + 3.5, w - 7, h - 7, 0);
 
         const text = this.add.text(x + w / 2, y + h / 2, label, {
             fontSize: '10px',
@@ -239,7 +237,9 @@ class DeckScene extends Phaser.Scene {
             ink: CanvasTheme.colors.ink,
             shadowAlpha: 0.18,
             accent,
-            accentAlpha: 0.5
+            accentAlpha: 0.5,
+            // One keyline only; the inner rule made the dossier look boxed-in.
+            doubleRule: false
         });
         if (divider) {
             CanvasTheme.rule(g, x + 16, y + 30, x + w - 16, y + 30, CanvasTheme.colors.ink, 0.28);
@@ -391,7 +391,9 @@ class DeckScene extends Phaser.Scene {
 
         bg.clear();
 
-        // Card stock: a printed equipment slip with an illustration well.
+        // Flat printed equipment slip: art, cost and name print directly on
+        // the stock. No recessed art well, name plate or accent bar inside the
+        // tile - just the outer keyline that marks its state.
         bg.fillStyle(CanvasTheme.colors.ink, 0.18);
         bg.fillRoundedRect(x + 2, y + 3, w, h, 1);
 
@@ -403,31 +405,6 @@ class DeckScene extends Phaser.Scene {
         bg.fillStyle(CanvasTheme.colors.paperShade, empty ? 0.08 : 0.16);
         bg.fillRoundedRect(x, y, w, h, 1);
 
-        if (!empty) {
-            // Art well - a recessed printed plate
-            bg.fillStyle(CanvasTheme.colors.paperDeep, 0.3);
-            bg.fillRoundedRect(x + 5, y + 17, w - 10, h - 32, 1);
-            bg.lineStyle(1, CanvasTheme.colors.ink, 0.42);
-            bg.strokeRoundedRect(x + 5, y + 17, w - 10, h - 32, 1);
-        }
-
-        // Name plate - a ruled strip along the bottom
-        bg.fillStyle(CanvasTheme.colors.paperShade, empty ? 0.35 : 0.72);
-        bg.fillRoundedRect(x + 4, y + h - 17, w - 8, 13, 1);
-        bg.lineStyle(1, CanvasTheme.colors.ink, empty ? 0.18 : 0.32);
-        bg.strokeRoundedRect(x + 4, y + h - 17, w - 8, 13, 1);
-
-        const accent = selected ? CanvasTheme.colors.stamp
-            : available ? CanvasTheme.colors.oliveInk
-            : tile.kind === 'collection' ? CanvasTheme.colors.ink
-            : CanvasTheme.colors.paperEdge;
-
-        // Accent strip
-        if (!empty || selected) {
-            bg.fillStyle(accent, selected ? 0.95 : 0.55);
-            bg.fillRoundedRect(x + 8, y, Math.max(8, w - 16), 2, 1);
-        }
-
         if (selected) {
             bg.lineStyle(2, CanvasTheme.colors.stamp, 0.9);
         } else if (available) {
@@ -438,11 +415,6 @@ class DeckScene extends Phaser.Scene {
             bg.lineStyle(1, CanvasTheme.colors.ink, empty ? 0.2 : 0.55);
         }
         bg.strokeRoundedRect(x, y, w, h, 1);
-
-        // Selected card gets a rubber-stamp double box
-        if (selected) {
-            CanvasTheme.stampBox(bg, x + 3, y + 3, w - 6, h - 6, CanvasTheme.colors.stamp, 0.7);
-        }
 
         if (tile.art) {
             tile.art.setAlpha(tile.kind === 'collection' && !available && !selected ? 0.45 : 1);
@@ -537,11 +509,9 @@ class DeckScene extends Phaser.Scene {
             bg.fillRect(w - 26, h - 7, 16, 2);
         }
 
-        // Ink keyline + inner rule
+        // Single ink keyline
         bg.lineStyle(1, CanvasTheme.colors.ink, primary ? 0.7 : 0.5);
         bg.strokeRoundedRect(0.5, 0.5, w - 1, h - 1, 1);
-        bg.lineStyle(1, CanvasTheme.colors.ink, 0.2);
-        bg.strokeRoundedRect(3.5, 3.5, w - 7, h - 7, 0);
 
         const text = this.add.text(w / 2, h / 2, label, {
             fontSize: '12px',
