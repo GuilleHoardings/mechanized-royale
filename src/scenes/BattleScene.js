@@ -3981,6 +3981,9 @@ class BattleScene extends Phaser.Scene {
             cardId
         );
         card.tankIcon.setScale(scaleFactor);
+        // Replacement icons start at depth 0, which puts them under the card
+        // stock (depth 900). Keep them in the same HUD layer as the first hand.
+        card.tankIcon.setDepth(card.depth + 1);
 
         // Rotate troop cards to face upward (enemy field direction)
         // Skip rotation for image-based cards which are already oriented for the UI
