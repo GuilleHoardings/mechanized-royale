@@ -713,6 +713,11 @@ class BattleScene extends Phaser.Scene {
     createTankCards() {
         const { isTallScreen, scaleFactor, cardWidth, cardHeight, cardSpacing, iconOffsetY } = this.getCardLayoutMetrics();
 
+        // Hand cards sit in the HUD layer. Battlefield units and structures use
+        // their world y as depth, so without an explicit HUD depth a unit near
+        // the bottom edge (or its shadow) paints over the card labels.
+        const CARD_DEPTH = 900;
+
         // Calculate vertical position
         // Battlefield height is fixed. We arrange items in the remaining space below.
         // Space available = HEIGHT - WORLD_HEIGHT.
@@ -750,6 +755,7 @@ class BattleScene extends Phaser.Scene {
                 .setInteractive()
                 .setOrigin(0);
             card.setScrollFactor(0);
+            card.setDepth(CARD_DEPTH);
 
             // Icon - use mini card drawing for all card types
             const tankIcon = this.graphicsManager.createMiniCardGraphics(
@@ -758,6 +764,7 @@ class BattleScene extends Phaser.Scene {
                 cardId
             );
             tankIcon.setScale(scaleFactor); // Scale icon with card
+            tankIcon.setDepth(CARD_DEPTH + 1);
             // Rotate troop cards to face upward (enemy field direction)
             // Skip rotation for image-based cards which are already oriented for the UI
             if (cardDef.type === CARD_TYPES.TROOP && !tankIcon.isImageCard) {
@@ -775,6 +782,7 @@ class BattleScene extends Phaser.Scene {
                 strokeThickness: UI_CONFIG.CARDS.COST_TEXT.STROKE_THICKNESS * scaleFactor
             }).setOrigin(1, 0);
             costText.setScrollFactor(0);
+            costText.setDepth(CARD_DEPTH + 2);
 
             // Card name - positioned lower with improved styling
             const displayName = cardDef.name;
@@ -784,10 +792,12 @@ class BattleScene extends Phaser.Scene {
                 fontFamily: CanvasTheme.fonts.ui
             }).setOrigin(0.5);
             nameText.setScrollFactor(0);
+            nameText.setDepth(CARD_DEPTH + 2);
 
             // Selection frame (initially hidden)
             const selectionBorder = this.add.graphics();
             selectionBorder.setScrollFactor(0);
+            selectionBorder.setDepth(CARD_DEPTH + 3);
             selectionBorder.setVisible(false);
 
             // Store references
@@ -872,13 +882,16 @@ class BattleScene extends Phaser.Scene {
             height: barHeight
         };
 
-        // Energy bar background and squares
+        // Energy bar background and squares. Keep the whole gauge in the HUD
+        // layer, above battlefield units, and above its own baked background.
         this.energyBarBg = this.add.graphics();
         this.energyBarBg.setScrollFactor(0);
+        this.energyBarBg.setDepth(900);
 
         // Energy bar fill (will draw individual squares)
         this.energyBarFill = this.add.graphics();
         this.energyBarFill.setScrollFactor(0);
+        this.energyBarFill.setDepth(901);
 
         // Energy text - positioned to the left of the bar
         this.energyText = this.add.text(barX - 8, energyY + 10, `${this.energy}/${this.maxEnergy}`, {
@@ -889,6 +902,7 @@ class BattleScene extends Phaser.Scene {
             letterSpacing: 1
         }).setOrigin(1, 0.5); // Right-align the text so it sits left of the bar
         this.energyText.setScrollFactor(0);
+        this.energyText.setDepth(902);
 
         // The cell wells never change: draw them once instead of every frame.
         this.drawEnergyBarBackground();

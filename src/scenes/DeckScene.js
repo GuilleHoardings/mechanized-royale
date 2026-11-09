@@ -186,33 +186,35 @@ class DeckScene extends Phaser.Scene {
         this._drawPanel(L.deckX, L.deckY, L.deckW, L.deckH, CanvasTheme.colors.oliveInk);
         this._drawPanel(L.collectionX, L.collectionY, L.collectionW, L.collectionH, CanvasTheme.colors.ink);
 
+        const HEADER_DEPTH = 10;
+
         this.add.text(L.deckX + 16, L.deckY + 13, 'ACTIVE LOADOUT', {
             fontSize: '10px',
             fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
-        });
+        }).setDepth(HEADER_DEPTH);
 
         this.deckCountText = this.add.text(L.deckX + L.deckW - 16, L.deckY + 13, '', {
             fontSize: '10px',
             fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
-        }).setOrigin(1, 0);
+        }).setOrigin(1, 0).setDepth(HEADER_DEPTH);
 
         this.add.text(L.collectionX + 16, L.collectionY + 13, 'ARSENAL', {
             fontSize: '10px',
             fill: CanvasTheme.colors.inkMuted,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
-        });
+        }).setDepth(HEADER_DEPTH);
 
         this.collectionCountText = this.add.text(L.collectionX + L.collectionW - 16, L.collectionY + 13, '', {
             fontSize: '10px',
             fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
-        }).setOrigin(1, 0);
+        }).setOrigin(1, 0).setDepth(HEADER_DEPTH);
 
         this.collectionNote = this.add.text(
             L.collectionX + L.collectionW / 2,
@@ -225,7 +227,7 @@ class DeckScene extends Phaser.Scene {
                 align: 'center',
                 wordWrap: { width: L.collectionW - 40 }
             }
-        ).setOrigin(0.5);
+        ).setOrigin(0.5).setDepth(HEADER_DEPTH);
     }
 
     _drawPanel(x, y, w, h, accent = CanvasTheme.colors.ink, divider = true) {
@@ -324,6 +326,12 @@ class DeckScene extends Phaser.Scene {
             .setInteractive({ useHandCursor: true })
             .setAlpha(0.01);
 
+        // Keep every label above every tile illustration. Card art is larger
+        // than its slip, so without a shared text depth one tile's artwork can
+        // paint over a neighbouring tile's name or cost.
+        const TILE_ART_DEPTH = 5;
+        const TILE_TEXT_DEPTH = 10;
+
         tile.cost = this.add.text(x + w - 6, y + 5, '', {
             fontSize: `${Math.round(nameSize + 3)}px`,
             fill: CanvasTheme.colors.stampCss,
@@ -331,20 +339,22 @@ class DeckScene extends Phaser.Scene {
             fontStyle: 'bold',
             stroke: CanvasTheme.hex(CanvasTheme.colors.paperLight),
             strokeThickness: 2
-        }).setOrigin(1, 0);
+        }).setOrigin(1, 0).setDepth(TILE_TEXT_DEPTH);
 
         tile.name = this.add.text(x + w / 2, y + h - 9, '', {
             fontSize: `${nameSize}px`,
             fill: CanvasTheme.colors.inkTextDim,
             fontFamily: CanvasTheme.fonts.ui
-        }).setOrigin(0.5);
+        }).setOrigin(0.5).setDepth(TILE_TEXT_DEPTH);
 
         tile.check = this.add.text(x + 9, y + 9, '✓', {
             fontSize: '11px',
             fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             fontStyle: 'bold'
-        }).setOrigin(0.5).setVisible(false);
+        }).setOrigin(0.5).setDepth(TILE_TEXT_DEPTH).setVisible(false);
+
+        tile.artDepth = TILE_ART_DEPTH;
 
         return tile;
     }
@@ -373,14 +383,13 @@ class DeckScene extends Phaser.Scene {
             cardId
         );
         art.setScale(tile.artScale);
+        art.setDepth(tile.artDepth);
 
         // Troops face up, matching the battle hand
         if (CARDS[cardId].type === CARD_TYPES.TROOP) {
             art.setRotation(-Math.PI / 2);
         }
 
-        // Keep the artwork under the cost/name labels
-        this.children.moveBelow(art, tile.cost);
         tile.art = art;
     }
 
@@ -431,26 +440,28 @@ class DeckScene extends Phaser.Scene {
         const L = this.layout;
         this._drawPanel(L.detailX, L.detailY, L.detailW, L.detailH, CanvasTheme.colors.stamp, false);
 
+        const TEXT_DEPTH = 10;
+
         this.add.text(L.detailX + 16, L.detailY + 9, 'EQUIPMENT FILE', {
             fontSize: '8px',
             fill: CanvasTheme.colors.inkFaint,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 2
-        });
+        }).setDepth(TEXT_DEPTH);
 
         this.detailName = this.add.text(L.detailX + 16, L.detailY + 22, '', {
             fontSize: '16px',
             fill: CanvasTheme.colors.inkText,
             fontFamily: CanvasTheme.fonts.ui,
             fontWeight: '700'
-        });
+        }).setDepth(TEXT_DEPTH);
 
         this.detailMeta = this.add.text(L.detailX + 16, L.detailY + 44, '', {
             fontSize: '10px',
             fill: CanvasTheme.colors.oliveInkCss,
             fontFamily: CanvasTheme.fonts.mono,
             letterSpacing: 1
-        });
+        }).setDepth(TEXT_DEPTH);
 
         this.detailDesc = this.add.text(L.detailX + 16, L.detailY + 62, '', {
             fontSize: '10px',
@@ -458,7 +469,7 @@ class DeckScene extends Phaser.Scene {
             fontFamily: CanvasTheme.fonts.ui,
             wordWrap: { width: L.detailW - 32 },
             lineSpacing: 2
-        });
+        }).setDepth(TEXT_DEPTH);
     }
 
     _createButtons() {
@@ -486,6 +497,7 @@ class DeckScene extends Phaser.Scene {
 
     _createButton({ x, y, w, h, label, primary = false, onClick }) {
         const container = this.add.container(x, y);
+        container.setDepth(10);
 
         const bg = this.add.graphics();
         const accent = primary ? CanvasTheme.colors.stamp : CanvasTheme.colors.ink;
