@@ -393,6 +393,48 @@ function runChecks() {
     if (!idempotent) deckFailures++;
     console.log(`  ${idempotent ? 'ok  ' : 'FAIL'} sanitizeDeck is idempotent`);
 
+    // --- AI deck archetypes ----------------------------------------------
+    console.log('\nAI deck check (src/data/ai-decks.js):');
+    const aiDecks = game.AI_DECKS || [];
+    let aiDeckFailures = 0;
+    const seenAiDecks = new Set();
+
+    const checkAiDeck = (profile) => {
+        const deck = Array.isArray(profile.deck) ? profile.deck : [];
+        const unique = new Set(deck).size === deck.length;
+        const known = deck.every((id) => !!CARDS[id]);
+        const troops = deck.filter((id) => CARDS[id] && CARDS[id].type === game.CARD_TYPES.TROOP).length;
+        const hasAA = deck.includes('flak_panzer');
+        const hasSupport = deck.some((id) => {
+            const card = CARDS[id];
+            return card && (card.type === game.CARD_TYPES.SPELL || card.type === game.CARD_TYPES.BUILDING);
+        });
+        const avgCost = deck.length
+            ? deck.reduce((sum, id) => sum + (CARDS[id] ? CARDS[id].cost : 0), 0) / deck.length
+            : 0;
+        const balanced = avgCost >= 3.0 && avgCost <= 4.2;
+        const firstOfId = !seenAiDecks.has(profile.id);
+        seenAiDecks.add(profile.id);
+
+        const ok = deck.length === deckSize && unique && known && troops >= 4 &&
+            hasAA && hasSupport && balanced && firstOfId;
+        if (!ok) aiDeckFailures++;
+        console.log(
+            `  ${ok ? 'ok  ' : 'FAIL'} ${String(profile.id).padEnd(12)} ` +
+            `${deck.length} cards, troops=${troops}, avg=${avgCost.toFixed(2)}, aa=${hasAA}, support=${hasSupport}`
+        );
+    };
+
+    aiDecks.forEach(checkAiDeck);
+
+    if (aiDecks.length < 4) aiDeckFailures++;
+    console.log(`  ${aiDecks.length >= 4 ? 'ok  ' : 'FAIL'} ${aiDecks.length} archetypes defined (minimum 4)`);
+
+    const pickedDeck = game.pickRandomAIDeck();
+    const pickOk = !!pickedDeck && aiDecks.includes(pickedDeck);
+    if (!pickOk) aiDeckFailures++;
+    console.log(`  ${pickOk ? 'ok  ' : 'FAIL'} pickRandomAIDeck returns a defined deck`);
+
     // --- Air rules --------------------------------------------------------
     console.log('\nAir targeting check (rules live in src/utils/helpers.js):');
     const canTarget = game.GameHelpers.canTarget;
@@ -431,11 +473,11 @@ function runChecks() {
     }
 
     const failed = rows.filter((r) => !r.ok);
-    if (failed.length || centringFailures || deckFailures || airFailures || lifetimeFailures) {
-        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed, ${airFailures} air check(s) failed, ${lifetimeFailures} lifetime check(s) failed.`);
+    if (failed.length || centringFailures || deckFailures || aiDeckFailures || airFailures || lifetimeFailures) {
+        console.error(`\n${failed.length} item(s) outside expected bounds, ${centringFailures} icon(s) off-centre, ${deckFailures} deck check(s) failed, ${aiDeckFailures} AI deck check(s) failed, ${airFailures} air check(s) failed, ${lifetimeFailures} lifetime check(s) failed.`);
         process.exitCode = 1;
     } else {
-        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck, air rules and lifetimes valid.`);
+        console.log(`\nAll ${rows.length} items within expected bounds; all icons centred; deck, AI deck, air rules and lifetimes valid.`);
     }
 }
 

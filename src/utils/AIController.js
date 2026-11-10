@@ -7,10 +7,14 @@
 class AIController {
     constructor(scene) {
         this.scene = scene;
+        this.deckProfile = null; // Set by applyDeckProfile() at battle start
 
         // Initialize AI state with enhanced strategy tracking
         this.aiStrategy = {
             mode: 'balanced', // 'aggressive', 'defensive', 'balanced', 'counter-push', 'split-push'
+            deckId: null,
+            deckTag: null,
+            deckName: null,
             playerTankCount: 0,
             aiTankCount: 0,
             baseHealthPercent: 1.0,
@@ -71,6 +75,27 @@ class AIController {
         this.difficultyMultiplier = 1.0;
         this.reactionTimeBase = 800; // Base reaction time in ms (human-like)
         this.reactionTimeVariance = 800; // Add variance to feel more natural
+    }
+
+    /**
+     * Adopts an AI deck archetype for this battle.
+     * @param {Object|null} profile - Entry from AI_DECKS (see src/data/ai-decks.js)
+     */
+    applyDeckProfile(profile) {
+        this.deckProfile = profile || null;
+        if (!profile) return;
+
+        const deck = this.scene.aiDeck || [];
+        this.aiStrategy.deckId = profile.id;
+        this.aiStrategy.deckTag = profile.tag;
+        this.aiStrategy.deckName = profile.name;
+        this.aiStrategy.mode = profile.defaultMode || 'balanced';
+        this.aiStrategy.rushMode = !!profile.rush;
+        this.aiStrategy.defensiveMode = profile.defaultMode === 'defensive';
+        this.aiStrategy.preferredCards = (profile.preferredCards || [])
+            .filter((cardId) => deck.includes(cardId));
+
+        console.log(`🤖 AI deck: ${profile.name} (${profile.tag}) - ${profile.defaultMode}`);
     }
 
     /**
@@ -631,8 +656,10 @@ class AIController {
             if (strategy.playerBaseHealthPercent < 0.3) {
                 strategy.mode = 'aggressive'; // Trade damage
                 strategy.rushMode = true;
+                strategy.defensiveMode = false;
             } else {
                 strategy.mode = 'defensive';
+                strategy.rushMode = false;
                 strategy.defensiveMode = true;
             }
             // Only include preferred cards that are actually in the AI's deck
@@ -645,9 +672,12 @@ class AIController {
         if (battleTime <= 30) {
             if (strategy.playerBaseHealthPercent < strategy.baseHealthPercent) {
                 strategy.mode = 'defensive'; // Protect lead
+                strategy.rushMode = false;
+                strategy.defensiveMode = true;
             } else {
                 strategy.mode = 'aggressive'; // Catch up
                 strategy.rushMode = true;
+                strategy.defensiveMode = false;
             }
             return;
         }
@@ -656,6 +686,7 @@ class AIController {
         if (battleTime <= 60) {
             strategy.mode = 'aggressive';
             strategy.rushMode = true;
+            strategy.defensiveMode = false;
             return;
         }
 
@@ -670,6 +701,7 @@ class AIController {
         // Player is very aggressive - defend and counter
         if (strategy.playerPatterns.aggressionLevel > 0.7) {
             strategy.mode = 'defensive';
+            strategy.rushMode = false;
             strategy.defensiveMode = true;
             return;
         }
@@ -678,6 +710,7 @@ class AIController {
         if (!strategy.towerStatus.playerLeftTower && !strategy.towerStatus.playerRightTower) {
             strategy.mode = 'aggressive';
             strategy.rushMode = true;
+            strategy.defensiveMode = false;
             return;
         }
 
@@ -685,24 +718,24 @@ class AIController {
         if (!strategy.towerStatus.playerLeftTower || !strategy.towerStatus.playerRightTower) {
             strategy.mode = 'counter-push';
             strategy.activeLane = !strategy.towerStatus.playerLeftTower ? 'left' : 'right';
+            strategy.rushMode = false;
+            strategy.defensiveMode = false;
             return;
         }
 
         // Outnumbered - play defensive
         if (strategy.aiTankCount < strategy.playerTankCount - 1) {
             strategy.mode = 'defensive';
+            strategy.rushMode = false;
             strategy.defensiveMode = true;
             return;
         }
 
-        // Default - balanced play with slight aggression if we have advantage
-        if (strategy.energyAdvantage > 0 || strategy.aiTankCount > strategy.playerTankCount) {
-            strategy.mode = 'balanced';
-        } else {
-            strategy.mode = 'balanced';
-        }
-        strategy.rushMode = false;
-        strategy.defensiveMode = false;
+        // Default - settle into the deck archetype's natural posture
+        const defaultMode = this.deckProfile?.defaultMode || 'balanced';
+        strategy.mode = defaultMode;
+        strategy.rushMode = !!this.deckProfile?.rush;
+        strategy.defensiveMode = defaultMode === 'defensive';
     }
 
     /**
@@ -752,7 +785,8 @@ class AIController {
 
         // Combine counters with mode preferences, filtering by cards actually in AI's deck
         const modePrefs = modePreferences[this.aiStrategy.mode] || modePreferences['balanced'];
-        const allPreferred = [...new Set([...counters, ...modePrefs])];
+        const profilePrefs = this.deckProfile?.preferredCards || [];
+        const allPreferred = [...new Set([...counters, ...modePrefs, ...profilePrefs])];
         // Only include cards that are actually in the AI's deck
         const aiDeck = this.scene.aiDeck || [];
         this.aiStrategy.preferredCards = allPreferred.filter(cardId => aiDeck.includes(cardId));
@@ -1102,6 +1136,23 @@ class AIController {
             }
         }
 
+        // PRIORITY 6: Lean into this deck's signature cards
+        const profile = this.deckProfile;
+        if (profile && Array.isArray(profile.signatureCards)) {
+            const signatureInHand = availableCards.filter(item => profile.signatureCards.includes(item.cardId));
+            if (signatureInHand.length > 0) {
+                const signatureChance = Number.isFinite(profile.signatureChance) ? profile.signatureChance : 0.35;
+                if (Math.random() < signatureChance) {
+                    const pick = signatureInHand[Math.floor(Math.random() * signatureInHand.length)];
+                    return {
+                        cardId: pick.cardId,
+                        reason: `Deck signature - ${profile.name}`,
+                        handIndex: pick.index
+                    };
+                }
+            }
+        }
+
         // Get preferred troop cards that are in hand
         const preferredAvailable = availableCards.filter(item => {
             const card = CARDS[item.cardId];
@@ -1159,22 +1210,47 @@ class AIController {
                 break;
         }
 
-        // Fallback to preferred or random troop card
+        // Fallback to preferred or weighted card selection
         if (!chosenItem) {
             if (preferredAvailable.length > 0 && Math.random() < 0.75) {
                 chosenItem = preferredAvailable[Math.floor(Math.random() * preferredAvailable.length)];
                 reason = 'Preferred card from strategy list';
-            } else if (troopCards.length > 0) {
-                chosenItem = troopCards[Math.floor(Math.random() * troopCards.length)];
-                reason = 'Random troop card selection';
             } else {
-                // If no troop cards, pick any available card
-                chosenItem = availableCards[Math.floor(Math.random() * availableCards.length)];
-                reason = 'Fallback - random available card';
+                chosenItem = this.pickWeightedCard(availableCards);
+                reason = 'Weighted card selection';
             }
         }
 
         return { cardId: chosenItem.cardId, reason: reason, handIndex: chosenItem.index };
+    }
+
+    /**
+     * Picks a card from a list using the deck archetype's type weights.
+     * Keeps troops dominant while letting support cards see play.
+     * @param {Array<{cardId: string, index: number}>} cards
+     * @returns {{cardId: string, index: number}}
+     */
+    pickWeightedCard(cards) {
+        const profile = this.deckProfile;
+        const weights = cards.map((item) => {
+            const card = CARDS[item.cardId];
+            let weight = 1;
+            if (profile && profile.pickBias && card && Number.isFinite(profile.pickBias[card.type])) {
+                weight *= profile.pickBias[card.type];
+            }
+            if (profile && profile.preferredCards && profile.preferredCards.includes(item.cardId)) {
+                weight *= 1.6;
+            }
+            return Math.max(0.05, weight);
+        });
+
+        const total = weights.reduce((sum, weight) => sum + weight, 0);
+        let roll = Math.random() * total;
+        for (let i = 0; i < cards.length; i++) {
+            roll -= weights[i];
+            if (roll <= 0) return cards[i];
+        }
+        return cards[cards.length - 1];
     }
 
     /**
@@ -1185,7 +1261,11 @@ class AIController {
     chooseAIDeploymentPosition(unitData) {
         const validPositions = [];
         const deploymentZone = BATTLE_CONFIG.DEPLOYMENT_ZONES.ENEMY;
-        const activeLane = this.aiStrategy.activeLane;
+        const profile = this.deckProfile;
+        const laneBias = profile?.laneBias || null;
+        const strategyLane = this.aiStrategy.activeLane || 'center';
+        // With no contested lane, mass in the archetype's preferred lane.
+        const activeLane = (strategyLane === 'center' && laneBias) ? laneBias : strategyLane;
 
         // Define lane boundaries in tile coordinates (0-17 for 18 tiles)
         // Left: tiles 0-5, Center: tiles 6-11, Right: tiles 12-17
@@ -1196,13 +1276,14 @@ class AIController {
         };
 
         const targetLane = laneBounds[activeLane] || laneBounds.center;
+        const laneChance = (laneBias && activeLane === laneBias) ? 0.75 : 0.6;
 
         // Generate potential deployment positions with lane preference
         for (let attempts = 0; attempts < 30; attempts++) {
             let tileX, tileY;
 
-            // 60% chance to deploy in active lane, 40% elsewhere for variety
-            if (Math.random() < 0.6) {
+            // Bias toward the active/archetype lane, but keep some variety
+            if (Math.random() < laneChance) {
                 tileX = GameHelpers.randomInt(targetLane.minX, targetLane.maxX);
             } else {
                 // Deploy anywhere across the full width with some edge buffer
@@ -1221,6 +1302,15 @@ class AIController {
             } else if (this.aiStrategy.mode === 'defensive') {
                 // Deploy further back (rows 2-7)
                 tileY = GameHelpers.randomInt(baseY + 2, baseY + 7);
+            } else if (Number.isFinite(profile?.frontBias)) {
+                // Archetype posture: 0 = near own base, 1 = near the river
+                const span = maxY - (baseY + 1);
+                const centerY = baseY + 1 + span * profile.frontBias;
+                const spread = Math.max(1, Math.round(span * 0.3));
+                tileY = GameHelpers.randomInt(
+                    Math.max(baseY + 1, Math.round(centerY) - spread),
+                    Math.min(maxY, Math.round(centerY) + spread)
+                );
             } else if (unitData.type === TANK_TYPES.ARTILLERY) {
                 // Artillery deploys far back (rows 1-4)
                 tileY = GameHelpers.randomInt(baseY + 1, baseY + 4);

@@ -3259,17 +3259,19 @@ class BattleScene extends Phaser.Scene {
         this.aiEnergy = ENERGY_CONFIG.STARTING_ENERGY;
         this.aiMaxEnergy = ENERGY_CONFIG.MAX_ENERGY;
 
-        // Enhanced AI deck using CARD IDs - mirrors player's card system
-        // This allows AI to use spells, buildings, and special units
-        this.aiDeck = [
+        // Pick a random balanced archetype for this battle. The profile tells
+        // AIController which cards to lean on and how to deploy them.
+        const deckProfile = typeof pickRandomAIDeck === 'function' ? pickRandomAIDeck() : null;
+        this.aiDeckProfile = deckProfile;
+        this.aiDeck = deckProfile ? [...deckProfile.deck] : [
             'tiger',            // Win condition - heavy tank for base destruction
-            'panther',      // High DPS medium tank
-            'sherman',        // Long-range medium tank
+            'panther',          // High DPS medium tank
+            'sherman',          // Long-range medium tank
             'jagdpanzer',       // Tank destroyer
             'attack_helicopter', // Air harassment
             'bomber',           // Air win condition
             'flak_panzer',      // Anti-air defense
-            'infantry_platoon'     // Infantry platoon for harassment
+            'infantry_platoon'  // Infantry platoon for harassment
         ];
 
         // AI hand system - 4 cards visible from 8-card deck (same as player)
@@ -3277,13 +3279,19 @@ class BattleScene extends Phaser.Scene {
         this.aiNextCardIndex = 0;
         this.initializeAIDeck();
 
-        // AI strategy state (managed by AIController)
+        // Legacy strategy mirror (authoritative state lives in AIController)
         this.aiStrategy = {
-            mode: 'balanced',
-            rushMode: false,
-            defensiveMode: false,
+            mode: deckProfile ? deckProfile.defaultMode : 'balanced',
+            rushMode: deckProfile ? !!deckProfile.rush : false,
+            defensiveMode: deckProfile ? deckProfile.defaultMode === 'defensive' : false,
             preferredTankTypes: ['sherman', 'panther']
         };
+
+        // Hand the archetype to the controller so its card picks and
+        // deployment positioning follow the deck's playstyle.
+        if (this.aiController && typeof this.aiController.applyDeckProfile === 'function') {
+            this.aiController.applyDeckProfile(deckProfile);
+        }
 
         // AI energy regeneration
         this.aiEnergyTimer = this.time.addEvent({
@@ -3398,10 +3406,12 @@ class BattleScene extends Phaser.Scene {
         const advantage = Number.isFinite(strategy.energyAdvantage) ? strategy.energyAdvantage : 0;
         const aiTankCount = Number.isFinite(strategy.aiTankCount) ? strategy.aiTankCount : aiTanks.length;
         const playerTankCount = Number.isFinite(strategy.playerTankCount) ? strategy.playerTankCount : 0;
+        const deckTag = this.aiDeckProfile?.tag || strategy.deckTag || '';
+        const foeLabel = deckTag ? `${mode} ${deckTag}` : mode;
 
         this.aiStrategyText.setFill(color);
         this.aiStrategyText.setText([
-            `FOE: ${mode} [${aiTanks.length}]`,
+            `FOE: ${foeLabel} [${aiTanks.length}]`,
             `BASE ${baseHealth}%`,
             `TANKS ${aiTankCount} vs ${playerTankCount}`,
             `LANE ${lane}`,
@@ -3832,8 +3842,10 @@ class BattleScene extends Phaser.Scene {
             window.debugPanel.updateValue('debug-ai-energy', `${this.aiEnergy || 0}/${this.maxEnergy}`);
             const aiTanks = this.tanks.filter(t => !t.isPlayerTank && t.health > 0);
             window.debugPanel.updateValue('debug-ai-tanks', aiTanks.length);
-            window.debugPanel.updateValue('debug-ai-strategy', this.aiStrategy ? this.aiStrategy.mode : '-');
-            window.debugPanel.updateValue('debug-ai-rush', this.aiStrategy ? (this.aiStrategy.rushMode ? 'Yes' : 'No') : '-');
+            const aiStrategy = this.aiController?.aiStrategy || this.aiStrategy;
+            const deckLabel = this.aiDeckProfile ? ` (${this.aiDeckProfile.tag})` : '';
+            window.debugPanel.updateValue('debug-ai-strategy', aiStrategy ? `${aiStrategy.mode}${deckLabel}` : '-');
+            window.debugPanel.updateValue('debug-ai-rush', aiStrategy ? (aiStrategy.rushMode ? 'Yes' : 'No') : '-');
 
             // Battle Stats
             window.debugPanel.updateValue('debug-total-tanks', this.tanks.length);

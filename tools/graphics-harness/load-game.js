@@ -10,12 +10,14 @@ const vm = require('vm');
 const REPO_ROOT = path.join(__dirname, '..', '..');
 
 // Order matters: constants defines TANK_TYPES/CARD_TYPES/DECK_CONFIG, entities
-// defines UNITS/CARDS, helpers uses both for deck rules, unit-metrics provides
-// UNIT_METRICS, and GraphicsManager consumes all of the above.
+// defines UNITS/CARDS, ai-decks builds the AI archetypes from those card ids,
+// helpers uses both for deck rules, unit-metrics provides UNIT_METRICS, and
+// GraphicsManager consumes all of the above.
 const SCRIPTS = [
     'src/utils/constants.js',
     'src/utils/canvasTheme.js',
     'src/data/entities.js',
+    'src/data/ai-decks.js',
     'src/utils/helpers.js',
     'src/data/unit-metrics.js',
     'src/utils/GraphicsManager.js'
@@ -68,13 +70,15 @@ function createGameContext(extraScripts = []) {
 /**
  * @returns {{ GraphicsManager: Function, GameHelpers: Object, TANK_TYPES: Object,
  *             CARD_TYPES: Object, DECK_CONFIG: Object, UNITS: Object, CARDS: Object,
- *             DEFAULT_PLAYER_DECK: Array<string>, UNIT_METRICS: Object }}
+ *             DEFAULT_PLAYER_DECK: Array<string>, AI_DECKS: Array<Object>,
+ *             pickRandomAIDeck: Function, getAIDeckById: Function,
+ *             UNIT_METRICS: Object }}
  */
 function loadGame() {
     const context = createGameContext();
 
     const exported = vm.runInContext(
-        '({ GraphicsManager, GameHelpers, TANK_TYPES, CARD_TYPES, DECK_CONFIG, UNITS, CARDS, DEFAULT_PLAYER_DECK, UNIT_METRICS, UNIT_SCALE })',
+        '({ GraphicsManager, GameHelpers, TANK_TYPES, CARD_TYPES, DECK_CONFIG, UNITS, CARDS, DEFAULT_PLAYER_DECK, AI_DECKS, pickRandomAIDeck, getAIDeckById, UNIT_METRICS, UNIT_SCALE })',
         context
     );
     exported.REPO_ROOT = REPO_ROOT;
