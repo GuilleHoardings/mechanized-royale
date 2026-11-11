@@ -22,46 +22,46 @@ const AI_DECKS = [
         id: 'armoured',
         tag: 'ARM',
         name: 'Armoured Spearhead',
-        summary: 'Heavy armour and tank destroyers grinding up the centre.',
+        summary: 'Heavy armour with helicopter cover and launcher fire.',
         deck: [
             'tiger',
             'panther',
             'sherman',
-            'jagdpanzer',
+            'v1_launcher',
             'flak_panzer',
             'infantry_platoon',
             'smoke_barrage',
-            'artillery_strike'
+            'attack_helicopter'
         ],
         defaultMode: 'balanced',
-        preferredCards: ['tiger', 'panther', 'jagdpanzer', 'sherman'],
-        signatureCards: ['tiger', 'jagdpanzer'],
-        signatureChance: 0.35,
+        preferredCards: ['tiger', 'panther', 'sherman', 'v1_launcher'],
+        signatureCards: ['tiger', 'v1_launcher'],
+        signatureChance: 0.3,
         pickBias: { troop: 1.0, spell: 0.45, building: 0.4 },
         laneBias: 'center',
-        frontBias: 0.55,
+        frontBias: 0.5,
         rush: false
     },
     {
         id: 'combined',
         tag: 'CMB',
         name: 'Combined Arms',
-        summary: 'Tanks, air support and a forward launcher covering one flank.',
+        summary: 'Tanks, dive bombers and a forward launcher covering one flank.',
         deck: [
             'tiger',
             'panther',
             'sherman',
             'infantry_platoon',
-            'attack_helicopter',
+            'bomber',
             'flak_panzer',
             'smoke_barrage',
             'v1_launcher'
         ],
         defaultMode: 'balanced',
-        preferredCards: ['panther', 'sherman', 'attack_helicopter', 'v1_launcher'],
-        signatureCards: ['attack_helicopter', 'v1_launcher'],
+        preferredCards: ['tiger', 'panther', 'sherman', 'v1_launcher'],
+        signatureCards: ['tiger', 'v1_launcher'],
         signatureChance: 0.3,
-        pickBias: { troop: 0.95, spell: 0.5, building: 0.7 },
+        pickBias: { troop: 1.0, spell: 0.45, building: 0.45 },
         laneBias: 'left',
         frontBias: 0.5,
         rush: false
@@ -79,15 +79,15 @@ const AI_DECKS = [
             'infantry_platoon',
             'tiger',
             'smoke_barrage',
-            'artillery_strike'
+            'sherman'
         ],
         defaultMode: 'aggressive',
-        preferredCards: ['bomber', 'attack_helicopter', 'panther', 'tiger'],
+        preferredCards: ['bomber', 'attack_helicopter', 'panther', 'sherman'],
         signatureCards: ['bomber', 'attack_helicopter'],
         signatureChance: 0.4,
         pickBias: { troop: 1.0, spell: 0.55, building: 0.3 },
         laneBias: 'right',
-        frontBias: 0.68,
+        frontBias: 0.6,
         rush: false
     },
     {
@@ -98,20 +98,20 @@ const AI_DECKS = [
         deck: [
             'v1_launcher',
             'artillery_strike',
-            'jagdpanzer',
+            'infantry_platoon',
             'sherman',
             'tiger',
             'flak_panzer',
             'smoke_barrage',
             'panther'
         ],
-        defaultMode: 'defensive',
-        preferredCards: ['v1_launcher', 'artillery_strike', 'jagdpanzer', 'sherman'],
-        signatureCards: ['v1_launcher', 'artillery_strike'],
-        signatureChance: 0.35,
-        pickBias: { troop: 0.8, spell: 0.9, building: 1.0 },
-        laneBias: 'center',
-        frontBias: 0.28,
+        defaultMode: 'balanced',
+        preferredCards: ['v1_launcher', 'artillery_strike', 'sherman', 'panther'],
+        signatureCards: ['tiger', 'v1_launcher'],
+        signatureChance: 0.3,
+        pickBias: { troop: 1.0, spell: 0.45, building: 0.4 },
+        laneBias: 'right',
+        frontBias: 0.55,
         rush: false
     },
     {
@@ -133,10 +133,10 @@ const AI_DECKS = [
         preferredCards: ['infantry_platoon', 'panther', 'attack_helicopter', 'smoke_barrage'],
         signatureCards: ['infantry_platoon', 'smoke_barrage'],
         signatureChance: 0.4,
-        pickBias: { troop: 1.0, spell: 0.7, building: 0.3 },
+        pickBias: { troop: 1.0, spell: 0.6, building: 0.3 },
         laneBias: 'right',
-        frontBias: 0.62,
-        rush: true
+        frontBias: 0.45,
+        rush: false
     }
 ];
 

@@ -9,6 +9,8 @@
     "check": "node render-gallery.js --check",
     "smoke": "node scene-smoke.js",
     "targeting": "node targeting-smoke.js",
+    "balance": "node balance-sim.js",
+    "balance:check": "node balance-sim.js --runs=30 --check",
     "test": "node render-gallery.js --check && node scene-smoke.js && node targeting-smoke.js"
   },
   "dependencies": {
