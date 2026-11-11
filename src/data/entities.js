@@ -55,11 +55,11 @@ const UNITS = {
         unitType: TANK_TYPES.TANK_DESTROYER,
         tier: 2,
         stats: {
-            hp: 360,
-            damage: 160,
-            speed: 55,
-            range: 150,
-            armor: { front: 40, side: 25, rear: 20 },
+            hp: 300,
+            damage: 120,
+            speed: 50,
+            range: 110,
+            armor: { front: 30, side: 20, rear: 15 },
             penetration: 140
         },
         abilities: [],
